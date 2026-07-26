@@ -1,0 +1,2 @@
+-- Intentionally minimal. Run `npm run seed:demo` after `supabase start` to create
+-- login-capable local users and the supplied real branch/employee seed data.
