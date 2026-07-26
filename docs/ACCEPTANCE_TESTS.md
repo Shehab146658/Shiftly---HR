@@ -1,36 +1,63 @@
-# Milestone 1 Acceptance Tests
+# Acceptance Tests
 
-## Automated checks
+## Milestone 1 regression
 
-```bash
-npm install
-npm run check:static
-npm run supabase:start
-npm run db:reset
-npm run db:lint
-npm run db:test
-npm run seed:demo
-npm run check:web
-bash scripts/bootstrap-mobile.sh
-```
+- [ ] Owner can sign in and access one tenant only.
+- [ ] A second tenant cannot read the first tenant's branches, employees, or audit records.
+- [ ] Arabic navigation renders right-to-left.
+- [ ] Owner, HR, payroll, accountant, manager, and employee roles are available.
 
-## Manual acceptance
+## Employee lifecycle
 
-1. Open `/en/login`, sign in with the local demo owner, and reach the dashboard.
-2. Switch to Arabic and confirm the application interface becomes right-to-left.
-3. Confirm the dashboard shows four branches and twelve seeded employees.
-4. Create a new branch and verify it appears immediately.
-5. Create a team linked to a branch.
-6. Create an employee linked to a branch and team.
-7. Confirm the default tenant roles and permission badges appear.
-8. Confirm branch, team, and employee creation events appear in the audit log.
-9. Create a second tenant and user, then verify the user cannot read the first tenant's records.
-10. Run the Flutter app in demo mode, then with Supabase credentials; confirm login and sign-out work.
+- [ ] HR can create an employee with branch, team, manager, contact details, hire date, language, and status.
+- [ ] Employee search filters by text, branch, team, and status.
+- [ ] HR can edit an employee.
+- [ ] Changing branch, team, manager, or position closes the previous assignment and creates a current assignment record.
+- [ ] Assignment history is ordered newest first and remains auditable.
+- [ ] A team, branch, or manager from another tenant is rejected by the database.
 
-## Acceptance response
+## Branch scheduling configuration
 
-Use one of:
+- [ ] Each branch can configure its operational-day start.
+- [ ] Each branch can configure maximum shift hours.
+- [ ] Each branch can configure any weekday as the schedule week start.
+- [ ] Each branch can configure default employee, team, branch, or company visibility.
 
-- `Milestone 1 accepted`
-- `Milestone 1 accepted with notes: ...`
-- `Milestone 1 changes required: ...`
+## Shift templates
+
+- [ ] HR can create a company-wide shift.
+- [ ] HR can create a branch-specific shift.
+- [ ] Overnight shifts require the next-day flag.
+- [ ] A same-day shift with end time before start time is rejected.
+- [ ] Shift templates can be activated and deactivated.
+
+## Weekly schedules
+
+- [ ] Manager can create a schedule only on the configured branch week-start day.
+- [ ] Manager can add a shift using a template.
+- [ ] Manager can add a custom shift using start and end times.
+- [ ] Manager can add OFF, leave, training, and assignment entries.
+- [ ] Multiple segments can be created for the same employee and day.
+- [ ] Entries outside the seven-day schedule range are rejected.
+- [ ] A schedule can be copied to another valid week.
+- [ ] An empty schedule cannot be published.
+- [ ] Published schedules cannot be edited.
+- [ ] Published schedules can be locked.
+- [ ] Reopening a published or locked schedule requires `schedules.unlock` and a reason of at least five characters.
+- [ ] Status transitions are recorded.
+
+## Employee visibility and mobile
+
+- [ ] `self` visibility exposes only the linked employee's entries.
+- [ ] `team` visibility exposes colleagues in the same team.
+- [ ] `branch` visibility exposes employees scheduled in the same branch.
+- [ ] `all` visibility exposes all tenant schedule entries.
+- [ ] HR/owners with `schedules.read_all` can see all schedules.
+- [ ] Mobile app shows only published or locked entries for the current week.
+- [ ] Mobile app handles an unlinked employee account without crashing.
+
+## Seed-data confirmation
+
+- [ ] Gate Way, The One, Berry Rose, and Onovi exist.
+- [ ] Real employee names from the supplied images exist.
+- [ ] The 17–23 July 2026 weekly schedules match the supplied images.

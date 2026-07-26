@@ -1,0 +1,126 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { addScheduleEntry, copyWeeklySchedule, deleteScheduleEntry, transitionSchedule } from "../../actions";
+import { getTenantPageContext } from "@/lib/page-context";
+import { addIsoDays, formatScheduleTime, weekdayKey, weekDates } from "@/lib/scheduling";
+
+function entryText(entry: Record<string, unknown>, d: ReturnType<typeof import("@/lib/i18n").getDictionary>) {
+  const type = String(entry.entry_type);
+  if (type !== "shift") {
+    if (type === "off") return d.off;
+    if (type === "leave") return d.leave;
+    if (type === "training") return d.training;
+    return d.assignment;
+  }
+  const shift = Array.isArray(entry.shift_templates) ? entry.shift_templates[0] : entry.shift_templates as { name_en?: string; start_time?: string; end_time?: string; end_day_offset?: number } | null;
+  if (shift?.name_en) return `${shift.name_en} (${formatScheduleTime(shift.start_time)}–${formatScheduleTime(shift.end_time)}${shift.end_day_offset ? "+1" : ""})`;
+  return `${formatScheduleTime(String(entry.custom_start_time ?? ""))}–${formatScheduleTime(String(entry.custom_end_time ?? ""))}${entry.end_day_offset ? "+1" : ""}`;
+}
+
+export default async function ScheduleDetailsPage({ params }: { params: Promise<{ locale: string; scheduleId: string }> }) {
+  const { locale: rawLocale, scheduleId } = await params;
+  const { locale, dictionary: d, supabase, membership } = await getTenantPageContext(rawLocale);
+  if (!membership) return <div className="card">{d.noCompany}</div>;
+  const tenantId = membership.tenant_id;
+
+  const { data: schedule, error } = await supabase.from("weekly_schedules")
+    .select("id, tenant_id, branch_id, week_start, status, visibility, notes, published_at, locked_at, branches(name_en, name_ar)")
+    .eq("tenant_id", tenantId).eq("id", scheduleId).maybeSingle();
+  if (error) throw error;
+  if (!schedule) notFound();
+
+  const [{ data: entries }, { data: branchEmployees }, { data: allEmployees }, { data: shifts }, { data: events }] = await Promise.all([
+    supabase.from("schedule_entries").select("id, employee_id, work_date, segment_no, entry_type, custom_start_time, custom_end_time, end_day_offset, break_minutes, notes, shift_templates(name_en, name_ar, start_time, end_time, end_day_offset, color_hex), employees(employee_code, name_en, name_ar)").eq("schedule_id", scheduleId).order("work_date").order("segment_no"),
+    supabase.from("employees").select("id, employee_code, name_en, name_ar, position").eq("tenant_id", tenantId).eq("branch_id", schedule.branch_id).neq("status", "terminated").order("name_en"),
+    supabase.from("employees").select("id, employee_code, name_en, name_ar, position, branches(name_en)").eq("tenant_id", tenantId).neq("status", "terminated").order("name_en"),
+    supabase.from("shift_templates").select("id, code, name_en, name_ar, start_time, end_time, end_day_offset, branch_id").eq("tenant_id", tenantId).eq("is_active", true).or(`branch_id.is.null,branch_id.eq.${schedule.branch_id}`).order("start_time"),
+    supabase.from("schedule_status_events").select("id, from_status, to_status, reason, created_at").eq("schedule_id", scheduleId).order("created_at", { ascending: false }),
+  ]);
+
+  const branch = Array.isArray(schedule.branches) ? schedule.branches[0] : schedule.branches;
+  const dates = weekDates(schedule.week_start);
+  const scheduledEmployeeIds = new Set((entries ?? []).map((entry) => entry.employee_id));
+  const boardEmployees = [...(branchEmployees ?? [])];
+  for (const employee of allEmployees ?? []) {
+    if (scheduledEmployeeIds.has(employee.id) && !boardEmployees.some((existing) => existing.id === employee.id)) boardEmployees.push(employee);
+  }
+  const entryMap = new Map<string, typeof entries>();
+  for (const entry of entries ?? []) {
+    const key = `${entry.employee_id}:${entry.work_date}`;
+    const current = entryMap.get(key) ?? [];
+    current.push(entry);
+    entryMap.set(key, current);
+  }
+
+  const addAction = addScheduleEntry.bind(null, locale, tenantId, scheduleId, schedule.branch_id);
+  const publishAction = transitionSchedule.bind(null, locale, scheduleId, "published");
+  const lockAction = transitionSchedule.bind(null, locale, scheduleId, "locked");
+  const reopenAction = transitionSchedule.bind(null, locale, scheduleId, "draft");
+  const archiveAction = transitionSchedule.bind(null, locale, scheduleId, "archived");
+  const copyAction = copyWeeklySchedule.bind(null, locale, scheduleId);
+  const editable = schedule.status === "draft";
+
+  return <>
+    <div className="page-head">
+      <div>
+        <Link className="text-link" href={`/${locale}/schedules`}>← {d.backToSchedules}</Link>
+        <h1 className="page-title">{locale === "ar" && branch?.name_ar ? branch.name_ar : branch?.name_en} · {schedule.week_start}</h1>
+        <p className="muted">{d.visibility}: {schedule.visibility} · <span className={`badge status-${schedule.status}`}>{schedule.status}</span></p>
+      </div>
+      <div className="toolbar">
+        {schedule.status === "draft" ? <form action={publishAction}><button className="button">{d.publish}</button></form> : null}
+        {schedule.status === "published" ? <form action={lockAction}><button className="button">{d.lock}</button></form> : null}
+        {schedule.status === "published" || schedule.status === "locked" ? <form action={reopenAction} className="toolbar"><input className="input compact" name="reason" minLength={5} placeholder={d.reason} required /><button className="button secondary">{d.reopen}</button></form> : null}
+        {schedule.status === "published" || schedule.status === "locked" ? <form action={archiveAction}><button className="button ghost">{d.archive}</button></form> : null}
+      </div>
+    </div>
+
+    {!editable ? <div className="notice section-gap">{d.scheduleLockedHelp}</div> : null}
+
+    {editable ? <section className="card stack">
+      <h2>{d.addEntry}</h2>
+      <p className="muted">{d.useTemplateOrCustom}</p>
+      <form action={addAction} className="form-grid three-columns">
+        <div className="field"><label>{d.employee}</label><select className="select" name="employeeId" required><option value="">—</option>{allEmployees?.map((employee) => {
+          const employeeBranch = Array.isArray(employee.branches) ? employee.branches[0] : employee.branches;
+          return <option key={employee.id} value={employee.id}>{employee.employee_code} · {locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en}{employeeBranch?.name_en ? ` (${employeeBranch.name_en})` : ""}</option>;
+        })}</select></div>
+        <div className="field"><label>{d.workDate}</label><input className="input" type="date" min={schedule.week_start} max={addIsoDays(schedule.week_start, 6)} defaultValue={schedule.week_start} name="workDate" required /></div>
+        <div className="field"><label>{d.segment}</label><input className="input" type="number" min="1" max="10" defaultValue="1" name="segmentNo" required /></div>
+        <div className="field"><label>{d.entryType}</label><select className="select" name="entryType" defaultValue="shift"><option value="shift">{d.shift}</option><option value="off">{d.off}</option><option value="leave">{d.leave}</option><option value="training">{d.training}</option><option value="assignment">{d.assignment}</option></select></div>
+        <div className="field"><label>{d.shiftTemplate}</label><select className="select" name="shiftTemplateId"><option value="">{d.customTimes}</option>{shifts?.map((shift) => <option key={shift.id} value={shift.id}>{shift.code} · {locale === "ar" && shift.name_ar ? shift.name_ar : shift.name_en} ({formatScheduleTime(shift.start_time)}–{formatScheduleTime(shift.end_time)}{shift.end_day_offset ? "+1" : ""})</option>)}</select></div>
+        <div className="field"><label>{d.position}</label><input className="input" name="positionLabel" /></div>
+        <div className="field"><label>{d.startTime}</label><input className="input" type="time" name="customStartTime" /></div>
+        <div className="field"><label>{d.endTime}</label><input className="input" type="time" name="customEndTime" /></div>
+        <div className="field"><label>{d.nextDay}</label><select className="select" name="endDayOffset"><option value="0">No</option><option value="1">Yes</option></select></div>
+        <div className="field"><label>{d.breakMinutes}</label><input className="input" type="number" min="0" max="480" defaultValue="0" name="breakMinutes" /></div>
+        <div className="field full"><label>{d.notes}</label><input className="input" name="notes" /></div>
+        <div className="full"><button className="button">{d.add}</button></div>
+      </form>
+    </section> : null}
+
+    <section className="card stack section-gap">
+      <div className="card-heading"><h2>{d.scheduleBoard}</h2><span className="muted">{schedule.notes}</span></div>
+      <div className="schedule-board"><table><thead><tr><th>{d.employee}</th>{dates.map((date) => <th key={date}><span>{d[weekdayKey(date)]}</span><small>{date.slice(5)}</small></th>)}</tr></thead><tbody>
+        {boardEmployees.map((employee) => <tr key={employee.id}><th className="employee-cell"><strong>{locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en}</strong><small>{employee.employee_code}</small></th>{dates.map((date) => {
+          const cellEntries = entryMap.get(`${employee.id}:${date}`) ?? [];
+          return <td key={date} className={cellEntries.length ? "scheduled-cell" : ""}>{cellEntries.map((entry) => {
+            const removeAction = deleteScheduleEntry.bind(null, locale, tenantId, scheduleId, entry.id);
+            return <div className={`schedule-chip entry-${entry.entry_type}`} key={entry.id}><span>{entryText(entry as unknown as Record<string, unknown>, d)}</span>{editable ? <form action={removeAction}><button title={d.delete} className="chip-delete">×</button></form> : null}</div>;
+          })}</td>;
+        })}</tr>)}
+      </tbody></table>{!boardEmployees.length ? <div className="empty">{d.scheduleEmpty}</div> : null}</div>
+    </section>
+
+    <div className="grid two-columns section-gap">
+      <section className="card stack">
+        <h2>{d.copyWeek}</h2>
+        <form action={copyAction} className="stack"><div className="field"><label>{d.targetWeek}</label><input className="input" type="date" name="targetWeekStart" required /></div><button className="button secondary">{d.copyWeek}</button></form>
+      </section>
+      <section className="card stack">
+        <h2>{d.statusHistory}</h2>
+        <div className="timeline">{events?.map((event) => <div className="timeline-item" key={event.id}><strong>{event.from_status ?? "—"} → {event.to_status}</strong><span>{new Date(event.created_at).toLocaleString(locale)}</span>{event.reason ? <small>{event.reason}</small> : null}</div>)}{!events?.length ? <div className="muted">{d.empty}</div> : null}</div>
+      </section>
+    </div>
+  </>;
+}

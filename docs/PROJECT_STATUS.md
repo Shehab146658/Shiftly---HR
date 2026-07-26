@@ -1,30 +1,31 @@
-# Project Status
+# Shiftly HR Project Status
 
-**Product:** Shiftly HR  
-**Current milestone:** Milestone 1 — Foundation  
-**Release:** `v0.1.0-foundation`  
-**Status:** Ready for review  
-**Prepared:** 26 July 2026
+**Current milestone:** Milestone 2 — Employees and Weekly Scheduling
+**Status:** Ready for validation
+**Release:** `0.2.0`
+**Last updated:** 26 July 2026
 
-## Completed in this package
+## Completed
 
-- Monorepo and CI foundation.
-- Next.js bilingual administration portal.
-- Flutter bilingual employee application foundation.
-- Supabase local-development configuration.
-- Multi-tenant company and membership model.
-- Configurable roles and permissions.
-- Multiple-owner support.
-- Branch, team, and employee foundations.
-- Row-Level Security policies.
-- Audit-log triggers.
-- Real initial branches and visible employee names in the local seed script.
-- Database and static test foundations.
+- Extended employee records with contact details, preferred language, status, manager, hire date, and notes.
+- Automatic effective-dated assignment history for branch, team, manager, and position changes.
+- Configurable branch operational-day start, maximum shift duration, week-start day, and default schedule visibility.
+- Company-wide or branch-specific shift templates, including overnight shifts and breaks.
+- Weekly schedules with configurable week start, split shifts, OFF days, leave, training, and assignments.
+- Draft, publish, lock, reopen-with-reason, archive, and copy-week workflows.
+- Immutable audit coverage for employee assignments and scheduling entities.
+- Employee, team, branch, and company schedule visibility enforced through Row-Level Security.
+- Employee mobile view for published weekly schedules.
+- Real branches, employees, shift templates, and the supplied 17–23 July 2026 schedules included in demo seed data.
 
-## Review dependency
+## Validation gates
 
-A machine with internet access, Flutter, and Docker must execute the acceptance commands. The generation environment used for this package did not contain Flutter or Docker and could not download npm packages.
+- Static repository checks.
+- Next.js lint, TypeScript, tests, and production build.
+- Supabase migration reset, database lint, and pgTAP tests.
+- Flutter analysis and widget tests.
+- Manual acceptance scenarios in `docs/ACCEPTANCE_TESTS.md`.
 
-## External blocker
+## Known dependency
 
-Fingerprint device integration remains deferred until the manufacturer, model, export method, API, or accessible database is confirmed.
+Fingerprint device integration remains deferred until the manufacturer, model, and integration method are confirmed.
