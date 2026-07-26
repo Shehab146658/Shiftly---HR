@@ -1,33 +1,98 @@
+import Link from "next/link";
 import { createEmployee } from "../actions";
 import { getTenantPageContext } from "@/lib/page-context";
 
-export default async function EmployeesPage({ params }: { params: Promise<{ locale: string }> }) {
+function statusText(status: string, d: ReturnType<typeof import("@/lib/i18n").getDictionary>) {
+  if (status === "inactive") return d.inactive;
+  if (status === "on_leave") return d.onLeave;
+  if (status === "terminated") return d.terminated;
+  return d.active;
+}
+
+export default async function EmployeesPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ q?: string; branch?: string; team?: string; status?: string }>;
+}) {
   const { locale: rawLocale } = await params;
+  const filters = await searchParams;
   const { locale, dictionary: d, supabase, membership } = await getTenantPageContext(rawLocale);
   if (!membership) return <div className="card">{d.noCompany}</div>;
   const tenantId = membership.tenant_id;
-  const [{ data: employees, error }, { data: branches }, { data: teams }] = await Promise.all([
-    supabase.from("employees").select("id, employee_code, name_en, name_ar, position, status, branches(name_en), teams(name_en)").eq("tenant_id", tenantId).order("name_en"),
+
+  let employeeQuery = supabase
+    .from("employees")
+    .select("id, employee_code, name_en, name_ar, email, phone, position, status, hire_date, preferred_locale, branches(name_en), teams(name_en)")
+    .eq("tenant_id", tenantId)
+    .order("name_en");
+  if (filters.q?.trim()) employeeQuery = employeeQuery.or(`employee_code.ilike.%${filters.q.trim()}%,name_en.ilike.%${filters.q.trim()}%,name_ar.ilike.%${filters.q.trim()}%`);
+  if (filters.branch) employeeQuery = employeeQuery.eq("branch_id", filters.branch);
+  if (filters.team) employeeQuery = employeeQuery.eq("team_id", filters.team);
+  if (filters.status) employeeQuery = employeeQuery.eq("status", filters.status);
+
+  const [{ data: employees, error }, { data: branches }, { data: teams }, { data: managers }] = await Promise.all([
+    employeeQuery,
     supabase.from("branches").select("id, name_en").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
-    supabase.from("teams").select("id, name_en").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
+    supabase.from("teams").select("id, name_en, branch_id").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
+    supabase.from("employees").select("id, name_en").eq("tenant_id", tenantId).neq("status", "terminated").order("name_en"),
   ]);
   if (error) throw error;
   const action = createEmployee.bind(null, locale, tenantId);
 
   return <>
-    <div className="page-head"><h1 className="page-title">{d.employees}</h1></div>
+    <div className="page-head">
+      <div>
+        <h1 className="page-title">{d.employees}</h1>
+        <p className="muted">{employees?.length ?? 0} {d.employees.toLowerCase()}</p>
+      </div>
+    </div>
+
     <section className="card stack">
-      <form action={action} className="form-grid">
+      <h2>{d.add} {d.employee}</h2>
+      <form action={action} className="form-grid three-columns">
         <div className="field"><label>{d.code}</label><input className="input" name="employeeCode" required /></div>
-        <div className="field"><label>{d.position}</label><input className="input" name="position" /></div>
         <div className="field"><label>{d.nameEnglish}</label><input className="input" name="nameEn" required /></div>
         <div className="field"><label>{d.nameArabic}</label><input className="input" name="nameAr" dir="rtl" /></div>
+        <div className="field"><label>{d.position}</label><input className="input" name="position" /></div>
+        <div className="field"><label>{d.email}</label><input className="input" name="email" type="email" /></div>
+        <div className="field"><label>{d.phone}</label><input className="input" name="phone" /></div>
         <div className="field"><label>{d.branch}</label><select className="select" name="branchId"><option value="">—</option>{branches?.map((b) => <option key={b.id} value={b.id}>{b.name_en}</option>)}</select></div>
         <div className="field"><label>{d.team}</label><select className="select" name="teamId"><option value="">—</option>{teams?.map((t) => <option key={t.id} value={t.id}>{t.name_en}</option>)}</select></div>
+        <div className="field"><label>{d.manager}</label><select className="select" name="managerEmployeeId"><option value="">—</option>{managers?.map((m) => <option key={m.id} value={m.id}>{m.name_en}</option>)}</select></div>
+        <div className="field"><label>{d.hireDate}</label><input className="input" name="hireDate" type="date" /></div>
+        <div className="field"><label>{d.preferredLanguage}</label><select className="select" name="preferredLocale"><option value="en">English</option><option value="ar">العربية</option></select></div>
+        <div className="field"><label>{d.statusLabel}</label><select className="select" name="status"><option value="active">{d.active}</option><option value="inactive">{d.inactive}</option><option value="on_leave">{d.onLeave}</option><option value="terminated">{d.terminated}</option></select></div>
+        <div className="field full"><label>{d.notes}</label><textarea className="input" name="notes" rows={2} /></div>
         <div className="full"><button className="button">{d.add}</button></div>
       </form>
-      <div className="table-wrap"><table><thead><tr><th>{d.code}</th><th>{d.nameEnglish}</th><th>{d.position}</th><th>{d.branch}</th><th>{d.team}</th><th>{d.statusLabel}</th></tr></thead><tbody>
-        {employees?.map((row) => { const branch = Array.isArray(row.branches) ? row.branches[0] : row.branches; const team = Array.isArray(row.teams) ? row.teams[0] : row.teams; return <tr key={row.id}><td className="code">{row.employee_code}</td><td>{row.name_en}</td><td>{row.position ?? "—"}</td><td>{branch?.name_en ?? "—"}</td><td>{team?.name_en ?? "—"}</td><td><span className="badge">{row.status}</span></td></tr>; })}
+    </section>
+
+    <section className="card stack section-gap">
+      <form className="toolbar" method="get">
+        <input className="input compact" name="q" defaultValue={filters.q} placeholder={`${d.search}…`} />
+        <select className="select compact" name="branch" defaultValue={filters.branch ?? ""}><option value="">{d.allBranches}</option>{branches?.map((b) => <option key={b.id} value={b.id}>{b.name_en}</option>)}</select>
+        <select className="select compact" name="team" defaultValue={filters.team ?? ""}><option value="">{d.allTeams}</option>{teams?.map((t) => <option key={t.id} value={t.id}>{t.name_en}</option>)}</select>
+        <select className="select compact" name="status" defaultValue={filters.status ?? ""}><option value="">{d.allStatuses}</option><option value="active">{d.active}</option><option value="inactive">{d.inactive}</option><option value="on_leave">{d.onLeave}</option><option value="terminated">{d.terminated}</option></select>
+        <button className="button">{d.search}</button>
+        <Link className="button ghost" href={`/${locale}/employees`}>{d.clear}</Link>
+      </form>
+      <div className="table-wrap"><table><thead><tr><th>{d.code}</th><th>{d.nameEnglish}</th><th>{d.position}</th><th>{d.branch}</th><th>{d.team}</th><th>{d.email}</th><th>{d.statusLabel}</th><th>{d.actions}</th></tr></thead><tbody>
+        {employees?.map((row) => {
+          const branch = Array.isArray(row.branches) ? row.branches[0] : row.branches;
+          const team = Array.isArray(row.teams) ? row.teams[0] : row.teams;
+          return <tr key={row.id}>
+            <td className="code">{row.employee_code}</td>
+            <td><strong>{locale === "ar" && row.name_ar ? row.name_ar : row.name_en}</strong></td>
+            <td>{row.position ?? "—"}</td>
+            <td>{branch?.name_en ?? "—"}</td>
+            <td>{team?.name_en ?? "—"}</td>
+            <td>{row.email ?? "—"}</td>
+            <td><span className={`badge status-${row.status}`}>{statusText(row.status, d)}</span></td>
+            <td><Link className="text-link" href={`/${locale}/employees/${row.id}`}>{d.edit}</Link></td>
+          </tr>;
+        })}
       </tbody></table>{!employees?.length ? <div className="empty">{d.empty}</div> : null}</div>
     </section>
   </>;

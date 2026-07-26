@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shiftly_employee/src/localization.dart';
+import 'package:shiftly_employee/src/schedule_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key, required this.locale, required this.onToggleLocale, required this.demoMode});
@@ -32,7 +33,7 @@ class HomePage extends StatelessWidget {
           GridView.builder(
             shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: items.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.35),
-            itemBuilder: (context, index) { final item = items[index]; return Card(child: InkWell(borderRadius: BorderRadius.circular(12), onTap: () {}, child: Padding(padding: const EdgeInsets.all(16), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(item.$1, size: 34, color: Theme.of(context).colorScheme.primary), const SizedBox(height: 10), Text(item.$2, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))])))); },
+            itemBuilder: (context, index) { final item = items[index]; return Card(child: InkWell(borderRadius: BorderRadius.circular(12), onTap: () { if (index == 0) { Navigator.of(context).push(MaterialPageRoute(builder: (_) => SchedulePage(locale: locale, demoMode: demoMode))); } }, child: Padding(padding: const EdgeInsets.all(16), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(item.$1, size: 34, color: Theme.of(context).colorScheme.primary), const SizedBox(height: 10), Text(item.$2, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))])))); },
           ),
         ],
       ),

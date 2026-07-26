@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.0-employees-scheduling] - 2026-07-26
+
+### Added
+
+- Effective-dated employee branch, team, manager, and position history.
+- Extended employee contact, language, lifecycle, and management fields.
+- Configurable branch operational day, maximum shift duration, week start, and schedule visibility.
+- Company-wide and branch-scoped shift templates with overnight support.
+- Weekly schedule planner with split shifts and non-working entry types.
+- Publish, lock, reasoned reopen, archive, and copy-week controls.
+- Schedule Row-Level Security for employee, team, branch, and company visibility.
+- Employee mobile current-week schedule view.
+- Real 17–23 July 2026 schedule seed data.
+
 ## [0.1.0-foundation] - 2026-07-26
 
 ### Added

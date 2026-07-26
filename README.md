@@ -8,9 +8,21 @@ Shiftly HR is a bilingual, multi-tenant HR SaaS platform for companies with mult
 - `packages/shared-contracts`: shared TypeScript domain contracts.
 - `docs`: architecture, security, delivery status, and acceptance criteria.
 
+## Milestone 2 — Employees and Weekly Scheduling
+
+The current release adds:
+
+- Full employee lifecycle fields and effective-dated assignment history.
+- Configurable branch operational day, maximum shift duration, week-start day, and schedule visibility.
+- Company-wide and branch-specific shift templates.
+- Weekly schedules with split shifts, overnight shifts, OFF, leave, training, and assignments.
+- Publish, lock, reasoned reopen, archive, and copy-week workflows.
+- Employee mobile access to published current-week schedules.
+- Real seed schedules for Gate Way, The One, Berry Rose, and Onovi for 17–23 July 2026.
+
 ## Milestone 1 — Foundation
 
-This release establishes:
+The foundation established:
 
 - Multi-tenant company isolation.
 - Supabase authentication and profile provisioning.
@@ -105,16 +117,16 @@ Never commit database passwords, service-role keys, secret keys, signing secrets
 
 ## Git workflow
 
-Milestone branch: `milestone/01-foundation`
+Milestone branch: `milestone/02-employees-scheduling`
 
-Release tag: `v0.1.0-foundation`
+Release tag: `v0.2.0-employees-scheduling`
 
 Recommended commit:
 
 ```bash
 git add .
-git commit -m "feat(foundation): bootstrap Shiftly HR multi-tenant platform"
-git push -u origin milestone/01-foundation
+git commit -m "feat(scheduling): deliver employee lifecycle and weekly scheduling"
+git push -u origin milestone/02-employees-scheduling
 ```
 
 See `docs/SETUP.md` for detailed instructions and `docs/ACCEPTANCE_TESTS.md` for the review checklist.
