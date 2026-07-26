@@ -1,0 +1,33 @@
+{
+  "name": "shiftly-hr",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shiftly HR multi-tenant SaaS platform",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "workspaces": [
+    "apps/admin-web",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=@shiftly/admin-web",
+    "build:web": "npm run build --workspace=@shiftly/admin-web",
+    "lint:web": "npm run lint --workspace=@shiftly/admin-web",
+    "typecheck:web": "npm run typecheck --workspace=@shiftly/admin-web",
+    "test:web": "npm run test --workspace=@shiftly/admin-web",
+    "check:web": "npm run lint:web && npm run typecheck:web && npm run test:web && npm run build:web",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db",
+    "db:lint": "supabase db lint --local --level warning",
+    "db:types": "supabase gen types typescript --local > packages/shared-contracts/src/database.generated.ts",
+    "seed:demo": "node scripts/seed-demo.mjs",
+    "check:static": "python3 scripts/static-check.py"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "2.110.8",
+    "supabase": "2.109.1"
+  }
+}

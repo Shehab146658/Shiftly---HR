@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+.next/
+out/
+coverage/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.test.example
+apps/admin-web/.env.local
+
+# Supabase local state
+supabase/.branches/
+supabase/.temp/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+build/
+apps/employee-mobile/android/.gradle/
+apps/employee-mobile/ios/Pods/
+apps/employee-mobile/ios/.symlinks/
+apps/employee-mobile/macos/Pods/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Generated reports
+reports/
+*.log
