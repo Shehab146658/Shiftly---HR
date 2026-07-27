@@ -20,6 +20,14 @@ Every new tenant-owned table must:
 
 Security-definer functions set an empty search path and use fully qualified object names to reduce search-path manipulation risk.
 
+## Schedule scope
+
+Owners and HR roles with `schedules.read_all` can work across the tenant. Branch
+and team managers do not receive that permission. Their user account must be
+linked through `employees.user_id`; schedule mutations are then limited to the
+linked employee's current branch. Schedule reads continue to honor the
+schedule's `self`, `team`, `branch`, or `all` visibility.
+
 ## Audit integrity
 
 Application roles receive read access through policy only. Insert, update, and delete privileges are revoked from authenticated and anonymous users. Audit triggers run with a security-definer function.

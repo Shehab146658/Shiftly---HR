@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { updateEmployee } from "../../actions";
+import { archiveEmployee, updateEmployee } from "../../actions";
 import { getTenantPageContext } from "@/lib/page-context";
 
 export default async function EmployeeDetailsPage({ params }: { params: Promise<{ locale: string; employeeId: string }> }) {
@@ -18,6 +18,7 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
   if (error) throw error;
   if (!employee) notFound();
   const action = updateEmployee.bind(null, locale, tenantId, employeeId);
+  const archiveAction = archiveEmployee.bind(null, locale, tenantId, employeeId);
 
   return <>
     <div className="page-head">
@@ -26,6 +27,7 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
         <h1 className="page-title">{locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en}</h1>
         <p className="muted code">{employee.employee_code}</p>
       </div>
+      {employee.status !== "terminated" ? <form action={archiveAction}><button className="button danger">{d.archiveEmployee}</button></form> : null}
     </div>
 
     <section className="card stack">

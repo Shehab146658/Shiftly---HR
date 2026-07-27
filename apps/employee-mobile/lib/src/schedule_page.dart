@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shiftly_employee/src/localization.dart';
 
+({DateTime earliestStart, DateTime latestStart}) currentScheduleWindow(DateTime now) {
+  final today = DateTime(now.year, now.month, now.day);
+  return (earliestStart: today.subtract(const Duration(days: 6)), latestStart: today);
+}
+
+String scheduleIsoDate(DateTime date) =>
+    '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
 class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key, required this.locale, required this.demoMode});
 
@@ -35,14 +43,13 @@ class _SchedulePageState extends State<SchedulePage> {
         .maybeSingle();
     if (employee == null) return const [];
 
-    final today = DateTime.now();
-    final monday = DateTime(today.year, today.month, today.day).subtract(Duration(days: today.weekday - 1));
-    final sunday = monday.add(const Duration(days: 6));
+    final window = currentScheduleWindow(DateTime.now());
     final schedules = await client
         .from('weekly_schedules')
         .select('id')
         .eq('tenant_id', employee['tenant_id'])
-        .eq('week_start', _isoDate(monday))
+        .gte('week_start', scheduleIsoDate(window.earliestStart))
+        .lte('week_start', scheduleIsoDate(window.latestStart))
         .inFilter('status', const ['published', 'locked']);
     final scheduleIds = (schedules as List).map((row) => row['id'] as String).toList();
     if (scheduleIds.isEmpty) return const [];
@@ -52,14 +59,12 @@ class _SchedulePageState extends State<SchedulePage> {
         .select('id, work_date, segment_no, entry_type, custom_start_time, custom_end_time, end_day_offset, notes, shift_templates(name_en, name_ar, start_time, end_time, end_day_offset), branch:branches!schedule_entries_scheduled_branch_id_fkey(name_en, name_ar)')
         .eq('employee_id', employee['id'])
         .inFilter('schedule_id', scheduleIds)
-        .gte('work_date', _isoDate(monday))
-        .lte('work_date', _isoDate(sunday))
+        .gte('work_date', scheduleIsoDate(window.earliestStart))
+        .lte('work_date', scheduleIsoDate(window.latestStart.add(const Duration(days: 6))))
         .order('work_date')
         .order('segment_no');
     return (rows as List).map((row) => Map<String, dynamic>.from(row as Map)).toList();
   }
-
-  String _isoDate(DateTime date) => '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   String _time(dynamic value) {
     final text = value?.toString() ?? '';

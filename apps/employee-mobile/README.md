@@ -7,7 +7,7 @@ Flutter employee application for Android and iOS.
 - English and Arabic interface.
 - Supabase authentication.
 - Employee dashboard foundation.
-- Current-week published schedule view.
+- Current-week published schedule view for any configured branch week-start day.
 - Split and overnight shift display.
 - OFF, leave, training, and assignment labels.
 - Row-Level Security determines which schedule entries the signed-in employee may read.
@@ -22,4 +22,4 @@ flutter run \
   --dart-define=SUPABASE_PUBLISHABLE_KEY=<publishable-key>
 ```
 
-The authenticated Supabase user must be linked through `employees.user_id` to display a personal schedule.
+The authenticated Supabase user must be linked through `employees.user_id` to display a personal schedule. The app searches the valid seven-day schedule window rather than assuming that every branch starts its week on Monday.

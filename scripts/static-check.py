@@ -14,7 +14,11 @@ foundation = (root / 'supabase/migrations/202607260001_foundation.sql').read_tex
 scheduling = (root / 'supabase/migrations/202607260002_employees_scheduling.sql').read_text(encoding='utf-8')
 required = {
     'foundation': (foundation, ['enable row level security', 'create_tenant_with_owner', 'has_permission', 'capture_audit_log']),
-    'scheduling': (scheduling, ['employee_assignments', 'shift_templates', 'weekly_schedules', 'schedule_entries', 'set_weekly_schedule_status', 'copy_weekly_schedule']),
+    'scheduling': (scheduling, [
+        'employee_assignments', 'shift_templates', 'weekly_schedules', 'schedule_entries',
+        'shift_duration_minutes', 'can_manage_schedule_branch', 'can_view_weekly_schedule',
+        'set_weekly_schedule_status', 'copy_weekly_schedule',
+    ]),
 }
 for name, (migration, tokens) in required.items():
     for token in tokens:
@@ -26,6 +30,10 @@ for path in root.rglob('*'):
         text = path.read_text(encoding='utf-8', errors='ignore')
         if re.search(r'(service_role|secret_key)\s*=\s*["\'][A-Za-z0-9._-]{20,}', text, re.I):
             errors.append(f'possible committed secret: {path.relative_to(root)}')
+
+mobile_schedule = (root / 'apps/employee-mobile/lib/src/schedule_page.dart').read_text(encoding='utf-8')
+if 'currentScheduleWindow' not in mobile_schedule or ".gte('week_start'" not in mobile_schedule:
+    errors.append('mobile schedule lookup must support configurable branch week starts')
 
 if errors:
     print('\n'.join(errors))

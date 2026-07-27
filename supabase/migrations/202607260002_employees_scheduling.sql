@@ -171,7 +171,7 @@ select r.id, p.key
 from public.roles r
 cross join public.permissions p
 where r.name in ('branch_manager', 'team_manager')
-  and p.key in ('employee_assignments.read', 'shifts.read', 'schedules.read', 'schedules.read_all', 'schedules.manage', 'schedules.publish')
+  and p.key in ('employee_assignments.read', 'shifts.read', 'schedules.read', 'schedules.manage', 'schedules.publish')
 on conflict do nothing;
 
 insert into public.role_permissions(role_id, permission_key)
@@ -231,11 +231,11 @@ begin
     (v_accountant, 'tenant.read'), (v_accountant, 'employees.read'), (v_accountant, 'payroll.read'),
     (v_branch_manager, 'tenant.read'), (v_branch_manager, 'branches.read'), (v_branch_manager, 'teams.read'),
     (v_branch_manager, 'employees.read'), (v_branch_manager, 'employees.manage'), (v_branch_manager, 'employee_assignments.read'),
-    (v_branch_manager, 'shifts.read'), (v_branch_manager, 'schedules.read'), (v_branch_manager, 'schedules.read_all'),
+    (v_branch_manager, 'shifts.read'), (v_branch_manager, 'schedules.read'),
     (v_branch_manager, 'schedules.manage'), (v_branch_manager, 'schedules.publish'),
     (v_team_manager, 'tenant.read'), (v_team_manager, 'branches.read'), (v_team_manager, 'teams.read'),
     (v_team_manager, 'employees.read'), (v_team_manager, 'employee_assignments.read'), (v_team_manager, 'shifts.read'),
-    (v_team_manager, 'schedules.read'), (v_team_manager, 'schedules.read_all'), (v_team_manager, 'schedules.manage'),
+    (v_team_manager, 'schedules.read'), (v_team_manager, 'schedules.manage'),
     (v_team_manager, 'schedules.publish'),
     (v_employee, 'tenant.read'), (v_employee, 'branches.read'), (v_employee, 'teams.read'),
     (v_employee, 'shifts.read'), (v_employee, 'schedules.read')
@@ -314,38 +314,36 @@ begin
     return new;
   end if;
 
-  if new.branch_id is distinct from old.branch_id
-     or new.team_id is distinct from old.team_id
-     or new.manager_employee_id is distinct from old.manager_employee_id
-     or new.position is distinct from old.position then
-    v_effective_from := current_date;
+  v_effective_from := current_date;
 
+  if new.status = 'terminated' and old.status <> 'terminated' then
     update public.employee_assignments
-      set effective_to = greatest(effective_from, v_effective_from - 1)
-    where employee_id = new.id and effective_to is null and effective_from < v_effective_from;
+      set effective_to = greatest(effective_from, v_effective_from),
+          reason = 'Employee archived'
+    where employee_id = new.id and effective_to is null;
+    return new;
+  end if;
 
-    if exists (
-      select 1 from public.employee_assignments a
-      where a.employee_id = new.id and a.effective_to is null
-    ) then
-      update public.employee_assignments
-      set branch_id = new.branch_id,
-          team_id = new.team_id,
-          manager_employee_id = new.manager_employee_id,
-          position = new.position,
-          effective_from = least(effective_from, v_effective_from),
-          reason = 'Employee record updated',
-          created_by = auth.uid()
-      where employee_id = new.id and effective_to is null;
-    else
-      insert into public.employee_assignments(
-        tenant_id, employee_id, branch_id, team_id, manager_employee_id, position,
-        effective_from, reason, created_by
-      ) values (
-        new.tenant_id, new.id, new.branch_id, new.team_id, new.manager_employee_id, new.position,
-        v_effective_from, 'Employee record updated', auth.uid()
-      );
-    end if;
+  if new.status <> 'terminated' and (
+       old.status = 'terminated'
+       or new.branch_id is distinct from old.branch_id
+       or new.team_id is distinct from old.team_id
+       or new.manager_employee_id is distinct from old.manager_employee_id
+       or new.position is distinct from old.position
+     ) then
+    update public.employee_assignments
+      set effective_to = greatest(effective_from, v_effective_from)
+    where employee_id = new.id and effective_to is null;
+
+    insert into public.employee_assignments(
+      tenant_id, employee_id, branch_id, team_id, manager_employee_id, position,
+      effective_from, reason, created_by
+    ) values (
+      new.tenant_id, new.id, new.branch_id, new.team_id, new.manager_employee_id, new.position,
+      v_effective_from,
+      case when old.status = 'terminated' then 'Employee reactivated' else 'Employee record updated' end,
+      auth.uid()
+    );
   end if;
   return new;
 end;
@@ -355,17 +353,53 @@ create trigger track_employee_assignment_after_change
 after insert or update on public.employees
 for each row execute function public.track_employee_assignment();
 
+create or replace function public.shift_duration_minutes(
+  p_start_time time,
+  p_end_time time,
+  p_end_day_offset smallint
+)
+returns integer
+language sql
+immutable
+set search_path = ''
+as $$
+  select (
+    extract(epoch from (
+      (date '2000-01-01' + p_end_time + (p_end_day_offset * interval '1 day'))
+      - (date '2000-01-01' + p_start_time)
+    )) / 60
+  )::integer;
+$$;
+
 create or replace function public.validate_shift_template_links()
 returns trigger
 language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  v_duration_minutes integer;
+  v_maximum_shift_hours integer;
 begin
+  v_duration_minutes := public.shift_duration_minutes(new.start_time, new.end_time, new.end_day_offset);
+  if v_duration_minutes <= 0 then
+    raise exception 'Shift duration must be greater than zero';
+  end if;
+  if new.break_minutes >= v_duration_minutes then
+    raise exception 'Break duration must be shorter than the shift';
+  end if;
   if new.branch_id is not null and not exists (
     select 1 from public.branches b where b.id = new.branch_id and b.tenant_id = new.tenant_id
   ) then
     raise exception 'Shift branch must belong to the same tenant';
+  end if;
+  if new.branch_id is not null then
+    select b.maximum_shift_hours into v_maximum_shift_hours
+    from public.branches b
+    where b.id = new.branch_id and b.tenant_id = new.tenant_id;
+    if v_duration_minutes > v_maximum_shift_hours * 60 then
+      raise exception 'Shift duration exceeds the branch maximum';
+    end if;
   end if;
   return new;
 end;
@@ -429,6 +463,12 @@ set search_path = ''
 as $$
 declare
   v_schedule public.weekly_schedules%rowtype;
+  v_duration_minutes integer;
+  v_maximum_shift_hours integer;
+  v_start_time time;
+  v_end_time time;
+  v_end_day_offset smallint;
+  v_break_minutes integer;
 begin
   select * into v_schedule from public.weekly_schedules s where s.id = new.schedule_id;
   if v_schedule.id is null then raise exception 'Schedule not found'; end if;
@@ -443,11 +483,43 @@ begin
   if not exists (
     select 1 from public.branches b where b.id = new.scheduled_branch_id and b.tenant_id = new.tenant_id
   ) then raise exception 'Scheduled branch must belong to the same tenant'; end if;
+  if new.scheduled_branch_id <> v_schedule.branch_id then
+    raise exception 'Scheduled branch must match the weekly schedule branch';
+  end if;
   if new.shift_template_id is not null and not exists (
     select 1 from public.shift_templates st
     where st.id = new.shift_template_id and st.tenant_id = new.tenant_id
       and (st.branch_id is null or st.branch_id = new.scheduled_branch_id)
   ) then raise exception 'Shift template is not valid for this tenant or branch'; end if;
+
+  if new.entry_type = 'shift' then
+    if new.shift_template_id is not null then
+      select st.start_time, st.end_time, st.end_day_offset, st.break_minutes
+        into v_start_time, v_end_time, v_end_day_offset, v_break_minutes
+      from public.shift_templates st
+      where st.id = new.shift_template_id;
+    else
+      v_start_time := new.custom_start_time;
+      v_end_time := new.custom_end_time;
+      v_end_day_offset := new.end_day_offset;
+      v_break_minutes := new.break_minutes;
+    end if;
+
+    v_duration_minutes := public.shift_duration_minutes(v_start_time, v_end_time, v_end_day_offset);
+    select b.maximum_shift_hours into v_maximum_shift_hours
+    from public.branches b
+    where b.id = new.scheduled_branch_id;
+
+    if v_duration_minutes <= 0 then
+      raise exception 'Shift duration must be greater than zero';
+    end if;
+    if v_break_minutes >= v_duration_minutes then
+      raise exception 'Break duration must be shorter than the shift';
+    end if;
+    if v_duration_minutes > v_maximum_shift_hours * 60 then
+      raise exception 'Shift duration exceeds the branch maximum';
+    end if;
+  end if;
   return new;
 end;
 $$;
@@ -488,6 +560,94 @@ as $$
   limit 1;
 $$;
 
+create or replace function public.can_manage_schedule_branch(
+  p_tenant_id uuid,
+  p_branch_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select public.has_permission(p_tenant_id, 'schedules.manage')
+    and (
+      public.has_permission(p_tenant_id, 'schedules.read_all')
+      or exists (
+        select 1
+        from public.employees e
+        where e.tenant_id = p_tenant_id
+          and e.user_id = auth.uid()
+          and e.status <> 'terminated'
+          and e.branch_id = p_branch_id
+      )
+    );
+$$;
+
+create or replace function public.can_manage_schedule(
+  p_tenant_id uuid,
+  p_schedule_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.weekly_schedules s
+    where s.id = p_schedule_id
+      and s.tenant_id = p_tenant_id
+      and public.can_manage_schedule_branch(s.tenant_id, s.branch_id)
+  );
+$$;
+
+create or replace function public.can_view_weekly_schedule(
+  p_tenant_id uuid,
+  p_schedule_id uuid,
+  p_branch_id uuid,
+  p_visibility public.schedule_visibility
+)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_current_employee uuid;
+  v_current_branch uuid;
+  v_current_team uuid;
+begin
+  if public.has_permission(p_tenant_id, 'schedules.read_all') then return true; end if;
+  if not public.is_tenant_member(p_tenant_id) then return false; end if;
+  if p_visibility = 'all' then return true; end if;
+
+  v_current_employee := public.current_employee_id(p_tenant_id);
+  if v_current_employee is null then return false; end if;
+  select e.branch_id, e.team_id into v_current_branch, v_current_team
+  from public.employees e where e.id = v_current_employee;
+
+  if p_visibility = 'self' then
+    return exists (
+      select 1 from public.schedule_entries se
+      where se.schedule_id = p_schedule_id and se.employee_id = v_current_employee
+    );
+  end if;
+  if p_visibility = 'branch' then return v_current_branch = p_branch_id; end if;
+  if p_visibility = 'team' then
+    return v_current_team is not null and exists (
+      select 1
+      from public.schedule_entries se
+      join public.employees target on target.id = se.employee_id
+      where se.schedule_id = p_schedule_id and target.team_id = v_current_team
+    );
+  end if;
+  return false;
+end;
+$$;
+
 create or replace function public.can_view_schedule_entry(
   p_tenant_id uuid,
   p_schedule_id uuid,
@@ -507,7 +667,7 @@ declare
   v_current_team uuid;
   v_target_team uuid;
 begin
-  if public.has_permission(p_tenant_id, 'schedules.read_all') or public.has_permission(p_tenant_id, 'schedules.manage') then
+  if public.has_permission(p_tenant_id, 'schedules.read_all') then
     return true;
   end if;
 
@@ -551,6 +711,7 @@ begin
   select * into v_schedule from public.weekly_schedules where id = p_schedule_id for update;
   if v_schedule.id is null then raise exception 'Schedule not found'; end if;
   if not public.is_tenant_member(v_schedule.tenant_id) then raise exception 'Access denied'; end if;
+  if not public.can_manage_schedule_branch(v_schedule.tenant_id, v_schedule.branch_id) then raise exception 'Schedule is outside the user scope'; end if;
   v_original := v_schedule.status;
   perform set_config('shiftly.schedule_transition', 'allowed', true);
 
@@ -605,7 +766,7 @@ declare
 begin
   select * into v_source from public.weekly_schedules where id = p_source_schedule_id;
   if v_source.id is null then raise exception 'Source schedule not found'; end if;
-  if not public.has_permission(v_source.tenant_id, 'schedules.manage') then raise exception 'Missing schedules.manage permission'; end if;
+  if not public.can_manage_schedule_branch(v_source.tenant_id, v_source.branch_id) then raise exception 'Schedule is outside the user scope'; end if;
   if extract(isodow from p_target_week_start)::smallint <> (select b.week_start_isodow from public.branches b where b.id = v_source.branch_id) then
     raise exception 'Target week start does not match the branch week-start setting';
   end if;
@@ -633,12 +794,16 @@ end;
 $$;
 
 grant execute on function public.current_employee_id(uuid) to authenticated;
+grant execute on function public.can_manage_schedule_branch(uuid, uuid) to authenticated;
+grant execute on function public.can_manage_schedule(uuid, uuid) to authenticated;
+grant execute on function public.can_view_weekly_schedule(uuid, uuid, uuid, public.schedule_visibility) to authenticated;
 grant execute on function public.can_view_schedule_entry(uuid, uuid, uuid, uuid) to authenticated;
 grant execute on function public.set_weekly_schedule_status(uuid, public.schedule_status, text) to authenticated;
 grant execute on function public.copy_weekly_schedule(uuid, date) to authenticated;
 
 revoke execute on function public.validate_employee_assignment_links() from public, anon, authenticated;
 revoke execute on function public.track_employee_assignment() from public, anon, authenticated;
+revoke execute on function public.shift_duration_minutes(time, time, smallint) from public, anon, authenticated;
 revoke execute on function public.validate_shift_template_links() from public, anon, authenticated;
 revoke execute on function public.validate_weekly_schedule_links() from public, anon, authenticated;
 revoke execute on function public.validate_schedule_status_transition() from public, anon, authenticated;
@@ -681,22 +846,24 @@ for all to authenticated using (public.has_permission(tenant_id, 'shifts.manage'
 with check (public.has_permission(tenant_id, 'shifts.manage'));
 
 create policy weekly_schedules_read on public.weekly_schedules
-for select to authenticated using (public.is_tenant_member(tenant_id));
+for select to authenticated using (
+  public.can_view_weekly_schedule(tenant_id, id, branch_id, visibility)
+);
 create policy weekly_schedules_manage on public.weekly_schedules
-for insert to authenticated with check (public.has_permission(tenant_id, 'schedules.manage'));
+for insert to authenticated with check (public.can_manage_schedule_branch(tenant_id, branch_id));
 create policy weekly_schedules_update on public.weekly_schedules
-for update to authenticated using (public.has_permission(tenant_id, 'schedules.manage'))
-with check (public.has_permission(tenant_id, 'schedules.manage'));
+for update to authenticated using (public.can_manage_schedule_branch(tenant_id, branch_id))
+with check (public.can_manage_schedule_branch(tenant_id, branch_id));
 create policy weekly_schedules_delete on public.weekly_schedules
-for delete to authenticated using (public.has_permission(tenant_id, 'schedules.manage') and status = 'draft');
+for delete to authenticated using (public.can_manage_schedule_branch(tenant_id, branch_id) and status = 'draft');
 
 create policy schedule_entries_read on public.schedule_entries
 for select to authenticated using (
   public.can_view_schedule_entry(tenant_id, schedule_id, employee_id, scheduled_branch_id)
 );
 create policy schedule_entries_manage on public.schedule_entries
-for all to authenticated using (public.has_permission(tenant_id, 'schedules.manage'))
-with check (public.has_permission(tenant_id, 'schedules.manage'));
+for all to authenticated using (public.can_manage_schedule(tenant_id, schedule_id))
+with check (public.can_manage_schedule(tenant_id, schedule_id));
 
 create policy schedule_status_events_read on public.schedule_status_events
 for select to authenticated using (

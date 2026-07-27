@@ -66,6 +66,7 @@ button { cursor: pointer; }
 .button:hover { background: var(--primary-strong); }
 .button.secondary { background: #e9efff; color: var(--primary-strong); }
 .button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+.button.danger { background: #b42318; color: #fff; }
 .error { color: var(--danger); background: #fff1f0; padding: 10px 12px; border-radius: 10px; }
 
 .shell { min-height: 100vh; display: grid; grid-template-columns: 260px minmax(0,1fr); }

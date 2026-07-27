@@ -190,6 +190,18 @@ export async function updateEmployee(locale: AppLocale, tenantId: string, employ
   revalidatePath(`/${locale}/employees/${employeeId}`);
 }
 
+export async function archiveEmployee(locale: AppLocale, tenantId: string, employeeId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("employees")
+    .update({ status: "terminated" })
+    .eq("tenant_id", idSchema.parse(tenantId))
+    .eq("id", idSchema.parse(employeeId));
+  if (error) throw error;
+  revalidatePath(`/${locale}/employees`);
+  revalidatePath(`/${locale}/employees/${employeeId}`);
+}
+
 export async function createShiftTemplate(locale: AppLocale, tenantId: string, formData: FormData) {
   const values = z.object({
     code: codeSchema,

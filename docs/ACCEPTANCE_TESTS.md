@@ -12,7 +12,10 @@
 - [ ] HR can create an employee with branch, team, manager, contact details, hire date, language, and status.
 - [ ] Employee search filters by text, branch, team, and status.
 - [ ] HR can edit an employee.
+- [ ] HR can archive an employee without deleting historical schedule or audit data.
+- [ ] HR can reactivate an archived employee.
 - [ ] Changing branch, team, manager, or position closes the previous assignment and creates a current assignment record.
+- [ ] Multiple assignment changes on the same day remain separate history records.
 - [ ] Assignment history is ordered newest first and remains auditable.
 - [ ] A team, branch, or manager from another tenant is rejected by the database.
 
@@ -29,6 +32,8 @@
 - [ ] HR can create a branch-specific shift.
 - [ ] Overnight shifts require the next-day flag.
 - [ ] A same-day shift with end time before start time is rejected.
+- [ ] A shift longer than the branch maximum is rejected.
+- [ ] Break duration cannot equal or exceed shift duration.
 - [ ] Shift templates can be activated and deactivated.
 
 ## Weekly schedules
@@ -53,7 +58,10 @@
 - [ ] `branch` visibility exposes employees scheduled in the same branch.
 - [ ] `all` visibility exposes all tenant schedule entries.
 - [ ] HR/owners with `schedules.read_all` can see all schedules.
+- [ ] Branch and team managers do not receive `schedules.read_all`.
+- [ ] A manager account linked to an employee can manage schedules only in that employee's current branch.
 - [ ] Mobile app shows only published or locked entries for the current week.
+- [ ] Mobile schedule lookup follows each branch's configurable week-start day instead of assuming Monday.
 - [ ] Mobile app handles an unlinked employee account without crashing.
 
 ## Seed-data confirmation

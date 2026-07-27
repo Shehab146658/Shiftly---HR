@@ -12,12 +12,13 @@ Shiftly HR is a bilingual, multi-tenant HR SaaS platform for companies with mult
 
 The current release adds:
 
-- Full employee lifecycle fields and effective-dated assignment history.
+- Full employee lifecycle fields, recoverable archival, and effective-dated assignment history.
 - Configurable branch operational day, maximum shift duration, week-start day, and schedule visibility.
 - Company-wide and branch-specific shift templates.
 - Weekly schedules with split shifts, overnight shifts, OFF, leave, training, and assignments.
 - Publish, lock, reasoned reopen, archive, and copy-week workflows.
-- Employee mobile access to published current-week schedules.
+- Employee mobile access to published current-week schedules for any configured branch week start.
+- Database-enforced schedule visibility and branch-scoped manager writes.
 - Real seed schedules for Gate Way, The One, Berry Rose, and Onovi for 17–23 July 2026.
 
 ## Milestone 1 — Foundation
@@ -117,16 +118,7 @@ Never commit database passwords, service-role keys, secret keys, signing secrets
 
 ## Git workflow
 
-Milestone branch: `milestone/02-employees-scheduling`
-
-Release tag: `v0.2.0-employees-scheduling`
-
-Recommended commit:
-
-```bash
-git add .
-git commit -m "feat(scheduling): deliver employee lifecycle and weekly scheduling"
-git push -u origin milestone/02-employees-scheduling
-```
+Milestone 2 is maintained directly on `main`. Tag an accepted release as
+`v0.2.0-employees-scheduling`.
 
 See `docs/SETUP.md` for detailed instructions and `docs/ACCEPTANCE_TESTS.md` for the review checklist.
