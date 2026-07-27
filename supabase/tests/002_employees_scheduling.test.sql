@@ -17,11 +17,26 @@ select has_function('public', 'can_view_weekly_schedule', array['uuid','uuid','u
 select has_function('public', 'can_view_schedule_entry', array['uuid','uuid','uuid','uuid'], 'schedule entry visibility helper exists');
 select has_function('public', 'set_weekly_schedule_status', array['uuid','schedule_status','text'], 'controlled status transition RPC exists');
 select has_function('public', 'copy_weekly_schedule', array['uuid','date'], 'schedule copy RPC exists');
-select ok(row_security_active('public.employee_assignments'::regclass), 'RLS is active on employee assignments');
-select ok(row_security_active('public.shift_templates'::regclass), 'RLS is active on shift templates');
-select ok(row_security_active('public.weekly_schedules'::regclass), 'RLS is active on weekly schedules');
-select ok(row_security_active('public.schedule_entries'::regclass), 'RLS is active on schedule entries');
-select ok(row_security_active('public.schedule_status_events'::regclass), 'RLS is active on schedule status events');
+select ok(
+  (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = 'public.employee_assignments'::regclass),
+  'RLS is enabled on employee assignments'
+);
+select ok(
+  (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = 'public.shift_templates'::regclass),
+  'RLS is enabled on shift templates'
+);
+select ok(
+  (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = 'public.weekly_schedules'::regclass),
+  'RLS is enabled on weekly schedules'
+);
+select ok(
+  (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = 'public.schedule_entries'::regclass),
+  'RLS is enabled on schedule entries'
+);
+select ok(
+  (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = 'public.schedule_status_events'::regclass),
+  'RLS is enabled on schedule status events'
+);
 select col_is_pk('public', 'weekly_schedules', 'id', 'weekly schedules have a primary key');
 select col_not_null('public', 'schedule_entries', 'employee_id', 'schedule entries require an employee');
 select col_not_null('public', 'schedule_entries', 'work_date', 'schedule entries require a work date');
