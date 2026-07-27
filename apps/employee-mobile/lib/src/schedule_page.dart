@@ -112,7 +112,7 @@ class _SchedulePageState extends State<SchedulePage> {
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: entries.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final row = entries[index];
                 final branch = row['branch'] as Map<String, dynamic>?;
@@ -124,7 +124,7 @@ class _SchedulePageState extends State<SchedulePage> {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                     leading: CircleAvatar(child: Text((row['work_date'] as String).substring(8, 10))),
                     title: Text(_entryLabel(row, s), style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text([row['work_date'], if (branchName != null) branchName, if (row['notes'] != null) row['notes']].join(' · ')),
+                    subtitle: Text([row['work_date'], branchName, row['notes']].whereType<Object>().join(' · ')),
                   ),
                 );
               },
