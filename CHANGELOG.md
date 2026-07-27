@@ -16,6 +16,7 @@
 - Employee mobile current-week schedule view for configurable week-start days.
 - Database enforcement of maximum shift duration and break-length rules.
 - Patched PostCSS and Sharp transitive versions verified against the production web build.
+- Explicit authenticated and service-role API grants layered under Row-Level Security.
 - Real 17–23 July 2026 schedule seed data.
 
 ## [0.1.0-foundation] - 2026-07-26

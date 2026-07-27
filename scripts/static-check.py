@@ -12,12 +12,17 @@ for path in root.rglob('package.json'):
 
 foundation = (root / 'supabase/migrations/202607260001_foundation.sql').read_text(encoding='utf-8')
 scheduling = (root / 'supabase/migrations/202607260002_employees_scheduling.sql').read_text(encoding='utf-8')
+api_privileges = (root / 'supabase/migrations/202607260003_api_privileges.sql').read_text(encoding='utf-8')
 required = {
     'foundation': (foundation, ['enable row level security', 'create_tenant_with_owner', 'has_permission', 'capture_audit_log']),
     'scheduling': (scheduling, [
         'employee_assignments', 'shift_templates', 'weekly_schedules', 'schedule_entries',
         'shift_duration_minutes', 'can_manage_schedule_branch', 'can_view_weekly_schedule',
         'set_weekly_schedule_status', 'copy_weekly_schedule',
+    ]),
+    'api privileges': (api_privileges, [
+        'to authenticated', 'to service_role', 'public.schedule_entries',
+        'revoke insert, update, delete on public.audit_logs',
     ]),
 }
 for name, (migration, tokens) in required.items():
