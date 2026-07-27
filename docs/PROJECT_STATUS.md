@@ -1,7 +1,7 @@
 # Shiftly HR Project Status
 
 **Current milestone:** Milestone 2 — Employees and Weekly Scheduling
-**Status:** Implementation complete; final validation in progress
+**Status:** Completed and automatically validated
 **Release:** `0.2.0`
 **Last updated:** 27 July 2026
 
@@ -22,10 +22,13 @@
 
 ## Validation gates
 
-- Static repository checks.
-- Next.js lint, TypeScript, tests, and production build.
-- Supabase migration reset, database lint, and pgTAP tests.
-- Flutter analysis and widget tests.
+- Static repository checks: passed.
+- Next.js lint, TypeScript, 4 unit tests, and production build: passed.
+- Supabase migration reset and database lint: passed.
+- Supabase pgTAP: 46 tests passed.
+- Flutter 3.44 analysis: passed with no issues.
+- Flutter tests: 2 passed.
+- Production JavaScript dependency audit: passed after verified transitive security overrides.
 - Manual acceptance scenarios in `docs/ACCEPTANCE_TESTS.md`.
 
 ## Known dependency

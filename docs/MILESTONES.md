@@ -3,7 +3,7 @@
 | Milestone | Scope | Status |
 |---|---|---|
 | 1. Foundation | Multi-tenancy, authentication, RBAC, branches, teams, baseline employees, audit | Completed |
-| 2. Employees & Scheduling | Employee lifecycle, assignment history, shift templates, weekly schedules, mobile schedule | Ready for validation |
+| 2. Employees & Scheduling | Employee lifecycle, assignment history, shift templates, weekly schedules, mobile schedule | Completed |
 | 3. Attendance | GPS, selfie, geofence, clock-in/out, overnight-day calculations, reports | Planned |
 | 4. Requests & Leave | Request catalogue, leave balances, attachments, configurable approvals | Planned |
 | 5. Payroll | Salary rules, attendance deductions, overtime, payroll runs, payslips | Planned |
