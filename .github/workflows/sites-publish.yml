@@ -1,4 +1,4 @@
-name: Publish Shiftly HR Preview
+name: Build Shiftly HR Preview
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -22,10 +22,29 @@ jobs:
       - name: Decode verified source bundle
         run: base64 --decode .hosting/shiftly-hosting.bundle.b64 > /tmp/shiftly.bundle
 
-      - name: Push verified source to Sites
-        env:
-          SITES_PUSH_TOKEN: ${{ secrets.SITES_PUSH_TOKEN }}
-        run: |
-          git clone /tmp/shiftly.bundle /tmp/shiftly-site
-          cd /tmp/shiftly-site
-          git -c http.extraHeader="Authorization: Bearer ${SITES_PUSH_TOKEN}" push --force "https://git.chatgpt-team.site/8f3cdd22-c939-4a6c-b68a-0a27ab095303/appgprj_6a69daffee80819192c00857e69b5812.git" HEAD:refs/heads/main
+      - name: Restore verified source
+        run: git clone /tmp/shiftly.bundle /tmp/shiftly-site
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        working-directory: /tmp/shiftly-site
+        run: npm ci
+
+      - name: Build Sites package
+        working-directory: /tmp/shiftly-site
+        run: npm run build
+
+      - name: Package Sites archive
+        run: tar -czf /tmp/shiftly-site.tar.gz -C /tmp/shiftly-site dist
+
+      - name: Upload Sites archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: shiftly-site-archive
+          path: /tmp/shiftly-site.tar.gz
+          retention-days: 1
+          if-no-files-found: error
