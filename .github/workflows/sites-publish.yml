@@ -28,4 +28,4 @@ jobs:
         run: |
           git clone /tmp/shiftly.bundle /tmp/shiftly-site
           cd /tmp/shiftly-site
-          git -c http.extraHeader="Authorization: Bearer ${SITES_PUSH_TOKEN}" push --force "https://git.chatgpt-team.site/8f3cdd22-c939-4a6c-b68a-0a27ab095303/appgprj_6a69daffee80819192c00857e69b5812.git" HEAD:main
+          git -c http.extraHeader="Authorization: Bearer ${SITES_PUSH_TOKEN}" push --force "https://git.chatgpt-team.site/8f3cdd22-c939-4a6c-b68a-0a27ab095303/appgprj_6a69daffee80819192c00857e69b5812.git" HEAD:refs/heads/main
