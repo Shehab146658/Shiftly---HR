@@ -1,0 +1,31 @@
+name: Publish Shiftly HR Preview
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/sites-publish.yml"
+      - ".hosting/shiftly-hosting.bundle.b64"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Decode verified source bundle
+        run: base64 --decode .hosting/shiftly-hosting.bundle.b64 > /tmp/shiftly.bundle
+
+      - name: Push verified source to Sites
+        env:
+          SITES_PUSH_TOKEN: ${{ secrets.SITES_PUSH_TOKEN }}
+        run: |
+          git clone /tmp/shiftly.bundle /tmp/shiftly-site
+          cd /tmp/shiftly-site
+          git -c http.extraHeader="Authorization: Bearer ${SITES_PUSH_TOKEN}" push --force "https://git.chatgpt-team.site/8f3cdd22-c939-4a6c-b68a-0a27ab095303/appgprj_6a69daffee80819192c00857e69b5812.git" HEAD:main
