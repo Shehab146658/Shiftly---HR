@@ -1,6 +1,14 @@
+import Link from "next/link";
 import { CompanyOnboarding } from "@/components/company-onboarding";
 import { getActiveMembership, requireUser } from "@/lib/auth";
 import { getDictionary, isLocale } from "@/lib/i18n";
+
+const statusColors: Record<string, string> = {
+  active: "#2357d9",
+  on_leave: "#8b5cf6",
+  inactive: "#f59e0b",
+  terminated: "#94a3b8",
+};
 
 export default async function DashboardPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: rawLocale } = await params;
@@ -11,27 +19,133 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
   if (!membership) return <CompanyOnboarding locale={locale} labels={d} />;
   const tenantId = membership.tenant_id;
-  const [branches, teams, employees, owners] = await Promise.all([
-    supabase.from("branches").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("is_active", true),
+  const [branchesResult, teamsResult, employeesResult, ownersResult, schedulesResult, shiftsResult] = await Promise.all([
+    supabase.from("branches").select("id, name_en, name_ar").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
     supabase.from("teams").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("is_active", true),
-    supabase.from("employees").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "active"),
+    supabase.from("employees").select("id, branch_id, status").eq("tenant_id", tenantId),
     supabase.from("memberships").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("is_owner", true).eq("status", "active"),
+    supabase.from("weekly_schedules").select("id, status").eq("tenant_id", tenantId),
+    supabase.from("shift_templates").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("is_active", true),
   ]);
 
-  const stats = [[d.totalBranches, branches.count ?? 0], [d.totalTeams, teams.count ?? 0], [d.totalEmployees, employees.count ?? 0], [d.totalOwners, owners.count ?? 0]];
-  const features = [
-    [d.secureTenant, d.secureTenantDesc], [d.configurableRoles, d.configurableRolesDesc],
-    [d.bilingual, d.bilingualDesc], [d.audited, d.auditedDesc],
+  for (const result of [branchesResult, teamsResult, employeesResult, ownersResult, schedulesResult, shiftsResult]) {
+    if (result.error) throw result.error;
+  }
+
+  const branches = branchesResult.data ?? [];
+  const employees = employeesResult.data ?? [];
+  const schedules = schedulesResult.data ?? [];
+  const activeEmployees = employees.filter((employee) => employee.status === "active").length;
+
+  const stats = [
+    { label: d.totalEmployees, value: employees.length, detail: `${activeEmployees} ${d.active.toLowerCase()}`, href: `/${locale}/employees`, accent: "blue" },
+    { label: d.totalBranches, value: branches.length, detail: d.openDirectory, href: `/${locale}/branches`, accent: "green" },
+    { label: d.totalTeams, value: teamsResult.count ?? 0, detail: d.openDirectory, href: `/${locale}/teams`, accent: "violet" },
+    { label: d.totalOwners, value: ownersResult.count ?? 0, detail: d.manageAccess, href: `/${locale}/roles`, accent: "orange" },
+  ];
+
+  const branchDistribution = branches.map((branch) => ({
+    id: branch.id,
+    name: locale === "ar" && branch.name_ar ? branch.name_ar : branch.name_en,
+    count: employees.filter((employee) => employee.branch_id === branch.id).length,
+  }));
+  const unassignedCount = employees.filter((employee) => !employee.branch_id).length;
+  if (unassignedCount) branchDistribution.push({ id: "", name: d.unassigned, count: unassignedCount });
+  const largestBranch = Math.max(1, ...branchDistribution.map((branch) => branch.count));
+
+  const employeeStatuses = [
+    { key: "active", label: d.active },
+    { key: "on_leave", label: d.onLeave },
+    { key: "inactive", label: d.inactive },
+    { key: "terminated", label: d.terminated },
+  ].map((status) => ({
+    ...status,
+    count: employees.filter((employee) => employee.status === status.key).length,
+  }));
+  const totalEmployees = Math.max(1, employees.length);
+  let currentAngle = 0;
+  const donutStops = employeeStatuses.map((status) => {
+    const start = currentAngle;
+    currentAngle += (status.count / totalEmployees) * 360;
+    return `${statusColors[status.key]} ${start}deg ${currentAngle}deg`;
+  });
+
+  const scheduleStatuses = [
+    { key: "draft", label: d.draft },
+    { key: "published", label: d.published },
+    { key: "locked", label: d.locked },
+    { key: "archived", label: d.archived },
+  ].map((status) => ({
+    ...status,
+    count: schedules.filter((schedule) => schedule.status === status.key).length,
+  }));
+
+  const quickLinks = [
+    { label: d.employees, detail: d.employeeDirectory, href: `/${locale}/employees` },
+    { label: d.shifts, detail: `${shiftsResult.count ?? 0} ${d.active.toLowerCase()}`, href: `/${locale}/shifts` },
+    { label: d.schedules, detail: `${schedules.length} ${d.scheduledWeeks}`, href: `/${locale}/schedules` },
+    { label: d.roles, detail: d.manageAccess, href: `/${locale}/roles` },
+    { label: d.audit, detail: d.reviewChanges, href: `/${locale}/audit` },
   ];
 
   return (
     <>
-      <div className="page-head"><div><h1 className="page-title">{d.welcome}</h1><p className="muted">{d.foundation}</p></div></div>
-      <section className="grid stats">
-        {stats.map(([label, value]) => <article className="card" key={String(label)}><div className="muted">{label}</div><div className="stat-value">{value}</div></article>)}
+      <div className="page-head dashboard-head">
+        <div><h1 className="page-title">{d.welcome}</h1><p className="muted">{d.dashboardOverview}</p></div>
+        <Link className="button" href={`/${locale}/schedules`}>{d.openSchedules}</Link>
+      </div>
+
+      <section className="dashboard-stat-grid" aria-label={d.companySnapshot}>
+        {stats.map((stat) => <Link className={`dashboard-stat dashboard-link stat-accent-${stat.accent}`} href={stat.href} key={stat.label}>
+          <div><span className="dashboard-stat-label">{stat.label}</span><strong className="stat-value">{stat.value}</strong><small>{stat.detail}</small></div>
+          <span aria-hidden="true" className="dashboard-arrow">→</span>
+        </Link>)}
       </section>
-      <section className="grid feature-grid">
-        {features.map(([title, body]) => <article className="card feature-card" key={title}><h3>{title}</h3><p className="muted">{body}</p></article>)}
+
+      <section className="dashboard-chart-grid">
+        <article className="card dashboard-panel branch-panel">
+          <div className="card-heading"><div><h2>{d.workforceByBranch}</h2><p className="muted">{d.clickChartHint}</p></div><Link className="text-link" href={`/${locale}/branches`}>{d.viewAll}</Link></div>
+          <div className="branch-chart">
+            {branchDistribution.map((branch) => <Link className="branch-bar-row dashboard-link" href={branch.id ? `/${locale}/employees?branch=${branch.id}` : `/${locale}/employees`} key={branch.id || "unassigned"}>
+              <span className="branch-bar-label">{branch.name}</span>
+              <span className="branch-bar-track"><span className="branch-bar-fill" style={{ width: `${Math.max(5, (branch.count / largestBranch) * 100)}%` }} /></span>
+              <strong>{branch.count}</strong>
+            </Link>)}
+            {!branchDistribution.length ? <div className="empty">{d.empty}</div> : null}
+          </div>
+        </article>
+
+        <article className="card dashboard-panel status-panel">
+          <div className="card-heading"><div><h2>{d.employeeStatus}</h2><p className="muted">{d.currentWorkforce}</p></div><Link className="text-link" href={`/${locale}/employees`}>{d.viewAll}</Link></div>
+          <div className="status-chart-layout">
+            <div className="donut-chart" style={{ background: employees.length ? `conic-gradient(${donutStops.join(", ")})` : "#e2e8f0" }}>
+              <div className="donut-center"><strong>{employees.length}</strong><span>{d.totalEmployees}</span></div>
+            </div>
+            <div className="chart-legend">
+              {employeeStatuses.map((status) => <Link className="legend-row dashboard-link" href={`/${locale}/employees?status=${status.key}`} key={status.key}>
+                <span className="legend-dot" style={{ background: statusColors[status.key] }} /><span>{status.label}</span><strong>{status.count}</strong>
+              </Link>)}
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section className="card dashboard-panel schedule-panel">
+        <div className="card-heading"><div><h2>{d.scheduleOverview}</h2><p className="muted">{d.scheduleOverviewHelp}</p></div><Link className="text-link" href={`/${locale}/schedules`}>{d.viewAll}</Link></div>
+        <div className="schedule-stat-grid">
+          {scheduleStatuses.map((status) => <Link className={`schedule-stat dashboard-link status-${status.key}`} href={`/${locale}/schedules`} key={status.key}>
+            <span>{status.label}</span><strong>{status.count}</strong><small>{d.openDirectory} →</small>
+          </Link>)}
+        </div>
+      </section>
+
+      <section className="dashboard-quick-section">
+        <div className="card-heading"><div><h2>{d.quickActions}</h2><p className="muted">{d.quickActionsHelp}</p></div></div>
+        <div className="quick-link-grid">
+          {quickLinks.map((link) => <Link className="quick-link-card dashboard-link" href={link.href} key={link.href}>
+            <div><strong>{link.label}</strong><span>{link.detail}</span></div><span aria-hidden="true" className="dashboard-arrow">→</span>
+          </Link>)}
+        </div>
       </section>
     </>
   );
