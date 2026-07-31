@@ -36,6 +36,9 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "worker",
+    "vite.config.ts",
+    "sites-vite-plugin.ts"
   ]
 }

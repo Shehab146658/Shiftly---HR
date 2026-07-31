@@ -24,7 +24,7 @@ export default async function EmployeesPage({
 
   let employeeQuery = supabase
     .from("employees")
-    .select("id, employee_code, name_en, name_ar, email, phone, position, status, hire_date, preferred_locale, branches(name_en), teams(name_en)")
+    .select("id, employee_code, name_en, name_ar, email, phone, position, status, hire_date, preferred_locale, branches(name_en), teams(name_en), employee_role_assignments(role_id, roles(name))")
     .eq("tenant_id", tenantId)
     .order("name_en");
   if (filters.q?.trim()) employeeQuery = employeeQuery.or(`employee_code.ilike.%${filters.q.trim()}%,name_en.ilike.%${filters.q.trim()}%,name_ar.ilike.%${filters.q.trim()}%`);
@@ -49,7 +49,8 @@ export default async function EmployeesPage({
       </div>
     </div>
 
-    <section className="card stack">
+    <div className="employees-content">
+    <section className="card stack employee-create-panel">
       <h2>{d.add} {d.employee}</h2>
       <form action={action} className="form-grid three-columns">
         <div className="field"><label>{d.code}</label><input className="input" name="employeeCode" required /></div>
@@ -69,7 +70,7 @@ export default async function EmployeesPage({
       </form>
     </section>
 
-    <section className="card stack section-gap">
+    <section className="card stack section-gap employee-directory">
       <form className="toolbar" method="get">
         <input className="input compact" name="q" defaultValue={filters.q} placeholder={`${d.search}…`} />
         <select className="select compact" name="branch" defaultValue={filters.branch ?? ""}><option value="">{d.allBranches}</option>{branches?.map((b) => <option key={b.id} value={b.id}>{b.name_en}</option>)}</select>
@@ -78,22 +79,51 @@ export default async function EmployeesPage({
         <button className="button">{d.search}</button>
         <Link className="button ghost" href={`/${locale}/employees`}>{d.clear}</Link>
       </form>
-      <div className="table-wrap"><table><thead><tr><th>{d.code}</th><th>{d.nameEnglish}</th><th>{d.position}</th><th>{d.branch}</th><th>{d.team}</th><th>{d.email}</th><th>{d.statusLabel}</th><th>{d.actions}</th></tr></thead><tbody>
+      <div className="table-wrap desktop-only"><table><thead><tr><th>{d.code}</th><th>{d.nameEnglish}</th><th>{d.position}</th><th>{d.branch}</th><th>{d.team}</th><th>{d.accessRoles}</th><th>{d.statusLabel}</th><th>{d.actions}</th></tr></thead><tbody>
         {employees?.map((row) => {
           const branch = Array.isArray(row.branches) ? row.branches[0] : row.branches;
           const team = Array.isArray(row.teams) ? row.teams[0] : row.teams;
+          const roleNames = (row.employee_role_assignments ?? []).flatMap((assignment) => {
+            const role = Array.isArray(assignment.roles) ? assignment.roles[0] : assignment.roles;
+            return role?.name ? [role.name] : [];
+          });
           return <tr key={row.id}>
             <td className="code">{row.employee_code}</td>
             <td><strong>{locale === "ar" && row.name_ar ? row.name_ar : row.name_en}</strong></td>
             <td>{row.position ?? "—"}</td>
             <td>{branch?.name_en ?? "—"}</td>
             <td>{team?.name_en ?? "—"}</td>
-            <td>{row.email ?? "—"}</td>
+            <td><div className="role-badges">{roleNames.length ? roleNames.map((name) => <span className="badge" key={name}>{name}</span>) : <span className="muted">{d.noRoles}</span>}</div></td>
             <td><span className={`badge status-${row.status}`}>{statusText(row.status, d)}</span></td>
             <td><Link className="text-link" href={`/${locale}/employees/${row.id}`}>{d.edit}</Link></td>
           </tr>;
         })}
       </tbody></table>{!employees?.length ? <div className="empty">{d.empty}</div> : null}</div>
+      <div className="mobile-only employee-card-list">
+        {employees?.map((row) => {
+          const branch = Array.isArray(row.branches) ? row.branches[0] : row.branches;
+          const team = Array.isArray(row.teams) ? row.teams[0] : row.teams;
+          const roleNames = (row.employee_role_assignments ?? []).flatMap((assignment) => {
+            const role = Array.isArray(assignment.roles) ? assignment.roles[0] : assignment.roles;
+            return role?.name ? [role.name] : [];
+          });
+          return <article className="employee-card" key={row.id}>
+            <div className="employee-card-head">
+              <div><strong>{locale === "ar" && row.name_ar ? row.name_ar : row.name_en}</strong><div className="muted code">{row.employee_code}</div></div>
+              <span className={`badge status-${row.status}`}>{statusText(row.status, d)}</span>
+            </div>
+            <div className="employee-card-meta">
+              <span>{row.position ?? d.noPosition}</span>
+              <span>{branch?.name_en ?? d.allBranches}</span>
+              {team?.name_en ? <span>{team.name_en}</span> : null}
+            </div>
+            <div className="role-badges">{roleNames.length ? roleNames.map((name) => <span className="badge" key={name}>{name}</span>) : <span className="muted">{d.noRoles}</span>}</div>
+            <Link className="button ghost full-width" href={`/${locale}/employees/${row.id}`}>{d.manageEmployee}</Link>
+          </article>;
+        })}
+        {!employees?.length ? <div className="empty">{d.empty}</div> : null}
+      </div>
     </section>
+    </div>
   </>;
 }

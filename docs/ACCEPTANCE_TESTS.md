@@ -53,6 +53,10 @@
 
 ## Employee visibility and mobile
 
+- [ ] Mobile web navigation opens from a burger button and closes by link, overlay, close button, or Escape.
+- [ ] Employee records display as readable touch-friendly cards on phone-sized screens.
+- [ ] The employee directory appears before the creation form on phone-sized screens.
+
 - [ ] `self` visibility exposes only the linked employee's entries.
 - [ ] `team` visibility exposes colleagues in the same team.
 - [ ] `branch` visibility exposes employees scheduled in the same branch.
@@ -63,6 +67,15 @@
 - [ ] Mobile app shows only published or locked entries for the current week.
 - [ ] Mobile schedule lookup follows each branch's configurable week-start day instead of assuming Monday.
 - [ ] Mobile app handles an unlinked employee account without crashing.
+
+## Employee access roles
+
+- [ ] Owner or HR can assign one or more non-owner roles from an employee profile.
+- [ ] Roles assigned before account creation remain pending and activate when the employee login is linked.
+- [ ] Roles assigned to a linked employee synchronize immediately to membership permissions.
+- [ ] Removing a role removes the corresponding membership permission assignment.
+- [ ] Company ownership cannot be granted through an employee profile.
+- [ ] Every employee-role change is tenant-isolated and audited.
 
 ## Seed-data confirmation
 

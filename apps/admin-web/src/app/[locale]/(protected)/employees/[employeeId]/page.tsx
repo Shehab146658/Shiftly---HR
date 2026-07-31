@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { archiveEmployee, updateEmployee } from "../../actions";
+import { archiveEmployee, updateEmployee, updateEmployeeRoles } from "../../actions";
 import { getTenantPageContext } from "@/lib/page-context";
 
 export default async function EmployeeDetailsPage({ params }: { params: Promise<{ locale: string; employeeId: string }> }) {
@@ -8,17 +8,31 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
   const { locale, dictionary: d, supabase, membership } = await getTenantPageContext(rawLocale);
   if (!membership) return <div className="card">{d.noCompany}</div>;
   const tenantId = membership.tenant_id;
-  const [{ data: employee, error }, { data: branches }, { data: teams }, { data: managers }, { data: assignments }] = await Promise.all([
+  const [
+    { data: employee, error },
+    { data: branches },
+    { data: teams },
+    { data: managers },
+    { data: assignments },
+    { data: roles, error: rolesError },
+    { data: assignedRoleRows, error: assignedRolesError },
+  ] = await Promise.all([
     supabase.from("employees").select("*").eq("tenant_id", tenantId).eq("id", employeeId).maybeSingle(),
     supabase.from("branches").select("id, name_en").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
     supabase.from("teams").select("id, name_en").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
     supabase.from("employees").select("id, name_en").eq("tenant_id", tenantId).neq("id", employeeId).neq("status", "terminated").order("name_en"),
     supabase.from("employee_assignments").select("id, position, effective_from, effective_to, reason, branches(name_en), teams(name_en), manager:employees!employee_assignments_manager_employee_id_fkey(name_en)").eq("tenant_id", tenantId).eq("employee_id", employeeId).order("effective_from", { ascending: false }),
+    supabase.from("roles").select("id, name, description").eq("tenant_id", tenantId).neq("name", "owner").order("name"),
+    supabase.from("employee_role_assignments").select("role_id").eq("tenant_id", tenantId).eq("employee_id", employeeId),
   ]);
   if (error) throw error;
+  if (rolesError) throw rolesError;
+  if (assignedRolesError) throw assignedRolesError;
   if (!employee) notFound();
   const action = updateEmployee.bind(null, locale, tenantId, employeeId);
   const archiveAction = archiveEmployee.bind(null, locale, tenantId, employeeId);
+  const rolesAction = updateEmployeeRoles.bind(null, locale, tenantId, employeeId);
+  const assignedRoleIds = new Set(assignedRoleRows?.map((row) => row.role_id) ?? []);
 
   return <>
     <div className="page-head">
@@ -47,6 +61,37 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
         <div className="field"><label>{d.statusLabel}</label><select className="select" name="status" defaultValue={employee.status}><option value="active">{d.active}</option><option value="inactive">{d.inactive}</option><option value="on_leave">{d.onLeave}</option><option value="terminated">{d.terminated}</option></select></div>
         <div className="field full"><label>{d.notes}</label><textarea className="input" name="notes" rows={3} defaultValue={employee.notes ?? ""} /></div>
         <div className="full"><button className="button">{d.update}</button></div>
+      </form>
+    </section>
+
+    <section className="card stack section-gap">
+      <div className="card-heading">
+        <div>
+          <h2>{d.accessRoles}</h2>
+          <p className="muted">{d.accessRolesHelp}</p>
+        </div>
+      </div>
+      <div className="access-summary">
+        <div>
+          <strong>{d.userAccount}</strong>
+          <p className="muted">{employee.user_id ? d.accountLinkedHelp : d.accountPendingHelp}</p>
+        </div>
+        <span className={`badge ${employee.user_id ? "account-linked" : "account-pending"}`}>
+          {employee.user_id ? d.accountLinked : d.accountPending}
+        </span>
+      </div>
+      <form action={rolesAction} className="stack">
+        <div className="role-option-grid">
+          {roles?.map((role) => <label className="role-option" key={role.id}>
+            <input defaultChecked={assignedRoleIds.has(role.id)} name="roleIds" type="checkbox" value={role.id} />
+            <span>
+              <strong>{role.name.replaceAll("_", " ")}</strong>
+              <small>{role.description ?? d.noDescription}</small>
+            </span>
+          </label>)}
+        </div>
+        {!roles?.length ? <div className="empty">{d.empty}</div> : null}
+        <div><button className="button">{d.saveRoles}</button></div>
       </form>
     </section>
 

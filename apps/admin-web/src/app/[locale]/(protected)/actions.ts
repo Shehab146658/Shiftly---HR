@@ -202,6 +202,34 @@ export async function archiveEmployee(locale: AppLocale, tenantId: string, emplo
   revalidatePath(`/${locale}/employees/${employeeId}`);
 }
 
+export async function updateEmployeeRoles(locale: AppLocale, tenantId: string, employeeId: string, formData: FormData) {
+  const parsedTenantId = idSchema.parse(tenantId);
+  const parsedEmployeeId = idSchema.parse(employeeId);
+  const roleIds = z.array(idSchema).max(20).parse(
+    [...new Set(formData.getAll("roleIds").map((value) => String(value)))],
+  );
+  const supabase = await createSupabaseServerClient();
+
+  const { data: employee, error: employeeError } = await supabase
+    .from("employees")
+    .select("id")
+    .eq("tenant_id", parsedTenantId)
+    .eq("id", parsedEmployeeId)
+    .maybeSingle();
+  if (employeeError) throw employeeError;
+  if (!employee) throw new Error("Employee not found in this company");
+
+  const { error } = await supabase.rpc("set_employee_roles", {
+    p_employee_id: parsedEmployeeId,
+    p_role_ids: roleIds,
+  });
+  if (error) throw error;
+
+  revalidatePath(`/${locale}/employees`);
+  revalidatePath(`/${locale}/employees/${employeeId}`);
+  revalidatePath(`/${locale}/roles`);
+}
+
 export async function createShiftTemplate(locale: AppLocale, tenantId: string, formData: FormData) {
   const values = z.object({
     code: codeSchema,

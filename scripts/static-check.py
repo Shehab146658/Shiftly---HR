@@ -13,6 +13,7 @@ for path in root.rglob('package.json'):
 foundation = (root / 'supabase/migrations/202607260001_foundation.sql').read_text(encoding='utf-8')
 scheduling = (root / 'supabase/migrations/202607260002_employees_scheduling.sql').read_text(encoding='utf-8')
 api_privileges = (root / 'supabase/migrations/202607260003_api_privileges.sql').read_text(encoding='utf-8')
+employee_roles = (root / 'supabase/migrations/202607260004_employee_role_assignments.sql').read_text(encoding='utf-8')
 required = {
     'foundation': (foundation, ['enable row level security', 'create_tenant_with_owner', 'has_permission', 'capture_audit_log']),
     'scheduling': (scheduling, [
@@ -23,6 +24,11 @@ required = {
     'api privileges': (api_privileges, [
         'to authenticated', 'to service_role', 'public.schedule_entries',
         'revoke insert, update, delete on public.audit_logs',
+    ]),
+    'employee roles': (employee_roles, [
+        'employee_role_assignments', 'set_employee_roles',
+        'sync_employee_role_to_membership', 'enable row level security',
+        'Company ownership must be managed from owner membership settings',
     ]),
 }
 for name, (migration, tokens) in required.items():

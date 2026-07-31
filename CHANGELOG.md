@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Persistent employee access-role assignment with pending-account support, membership synchronization, RLS, audit logging, and tests.
+
+### Changed
+
+- Replaced the stacked mobile sidebar with an accessible burger-menu drawer.
+- Added mobile-first employee and role views.
+
 ## [0.2.0-employees-scheduling] - 2026-07-26
 
 ### Added

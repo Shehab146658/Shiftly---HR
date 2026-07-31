@@ -21,5 +21,7 @@ Milestone 2 is accepted when:
 5. Reopening requires permission and an audit reason.
 6. Employees can only see schedules allowed by the configured visibility.
 7. The employee mobile app displays the linked employee's published current-week schedule for any configured branch week start.
+8. The web portal uses a mobile navigation drawer and touch-friendly employee views.
+9. Authorized users can assign employee access roles before or after a login account is linked; changes are audited and synchronized to membership permissions.
 8. Employee archival is recoverable and retains schedule and assignment history.
 9. Branch and team managers cannot bypass configured schedule visibility with company-wide read access.
