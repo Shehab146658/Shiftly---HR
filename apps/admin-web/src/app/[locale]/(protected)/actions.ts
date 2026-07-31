@@ -11,6 +11,7 @@ const codeSchema = z.string().trim().min(2).max(30).regex(/^[A-Za-z0-9_-]+$/);
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 const optionalId = z.string().uuid().optional();
+const permissionKeySchema = z.string().trim().min(2).max(100).regex(/^[a-z0-9_.-]+$/);
 
 function optionalString(value: FormDataEntryValue | null) {
   const result = String(value ?? "").trim();
@@ -187,6 +188,66 @@ export async function createEmployee(locale: AppLocale, tenantId: string, formDa
 
   revalidatePath(`/${locale}/employees`);
   revalidatePath(`/${locale}/roles`);
+}
+
+export async function createRole(locale: AppLocale, tenantId: string, formData: FormData) {
+  const values = z.object({
+    name: z.string().trim().min(2).max(60),
+    description: z.string().trim().max(300).optional(),
+  }).parse({
+    name: formData.get("name"),
+    description: optionalString(formData.get("description")),
+  });
+  const normalizedName = values.name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  if (normalizedName.length < 2) throw new Error("Role name must contain letters or numbers");
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("roles").insert({
+    tenant_id: idSchema.parse(tenantId),
+    name: normalizedName,
+    description: values.description ?? null,
+    is_system: false,
+  });
+  if (error) throw error;
+  revalidatePath(`/${locale}/roles`);
+}
+
+export async function updateRoleDetails(locale: AppLocale, tenantId: string, roleId: string, formData: FormData) {
+  const values = z.object({
+    name: z.string().trim().min(2).max(60),
+    description: z.string().trim().max(300).optional(),
+  }).parse({
+    name: formData.get("name"),
+    description: optionalString(formData.get("description")),
+  });
+  const normalizedName = values.name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  if (normalizedName.length < 2) throw new Error("Role name must contain letters or numbers");
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("roles").update({
+    name: normalizedName,
+    description: values.description ?? null,
+  }).eq("tenant_id", idSchema.parse(tenantId)).eq("id", idSchema.parse(roleId)).eq("is_system", false);
+  if (error) throw error;
+  revalidatePath(`/${locale}/roles`);
+  revalidatePath(`/${locale}/roles/${roleId}`);
+}
+
+export async function updateRolePermissions(locale: AppLocale, tenantId: string, roleId: string, formData: FormData) {
+  idSchema.parse(tenantId);
+  const parsedRoleId = idSchema.parse(roleId);
+  const permissionKeys = z.array(permissionKeySchema).max(100).parse(
+    [...new Set(formData.getAll("permissionKeys").map(String))],
+  );
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("set_role_permissions", {
+    p_role_id: parsedRoleId,
+    p_permission_keys: permissionKeys,
+  });
+  if (error) throw error;
+  revalidatePath(`/${locale}/roles`);
+  revalidatePath(`/${locale}/roles/${roleId}`);
+  revalidatePath(`/${locale}/audit`);
 }
 
 export async function updateEmployee(locale: AppLocale, tenantId: string, employeeId: string, formData: FormData) {

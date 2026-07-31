@@ -23,7 +23,7 @@ export function AppShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const items = [
     ["dashboard", d.dashboard], ["branches", d.branches], ["teams", d.teams], ["employees", d.employees],
-    ["shifts", d.shifts], ["schedules", d.schedules], ["roles", d.roles], ["audit", d.audit], ["status", d.status],
+    ["shifts", d.shifts], ["schedules", d.schedules], ["roles", d.roles], ["audit", d.audit],
   ];
   const logout = signOut.bind(null, locale);
 

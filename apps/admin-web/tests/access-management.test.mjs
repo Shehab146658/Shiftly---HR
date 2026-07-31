@@ -45,3 +45,30 @@ test("employee creation includes a role dropdown and existing employees receive 
   assert.match(defaultRolesMigration, /create trigger assign_default_employee_role/);
   assert.match(defaultRolesMigration, /join public\.roles r[\s\S]*r\.name = 'employee'/);
 });
+
+test("roles provide dedicated permission management and project status is not in navigation", async () => {
+  const [roles, details, actions, shell, migration] = await Promise.all([
+    readSource("../src/app/[locale]/(protected)/roles/page.tsx"),
+    readSource("../src/app/[locale]/(protected)/roles/[roleId]/page.tsx"),
+    readSource("../src/app/[locale]/(protected)/actions.ts"),
+    readSource("../src/components/app-shell.tsx"),
+    readSource("../../../supabase/migrations/202607260006_role_permission_management.sql"),
+  ]);
+
+  assert.match(roles, /customizePermissions/);
+  assert.match(details, /name="permissionKeys"/);
+  assert.match(details, /permission-choice-grid/);
+  assert.match(actions, /updateRolePermissions/);
+  assert.match(migration, /create or replace function public\.set_role_permissions/);
+  assert.doesNotMatch(shell, /\["status", d\.status\]/);
+});
+
+test("audit history resolves people and renders descriptive field changes", async () => {
+  const audit = await readSource("../src/app/[locale]/(protected)/audit/page.tsx");
+
+  assert.match(audit, /employeeByUser/);
+  assert.match(audit, /before_data, after_data/);
+  assert.match(audit, /audit-change-row/);
+  assert.match(audit, /employees\/\$\{employee\.id\}/);
+  assert.doesNotMatch(audit, /className="code">\{row\.actor_user_id/);
+});
