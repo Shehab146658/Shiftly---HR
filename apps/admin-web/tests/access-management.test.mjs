@@ -17,6 +17,7 @@ test("mobile shell exposes an accessible drawer instead of stacking navigation",
   assert.match(shell, /shell-menu-button-open/);
   assert.match(styles, /\.menu-button\s*\{/);
   assert.match(styles, /\.shell-menu-button\s*\{[\s\S]*?z-index:\s*70/);
+  assert.match(styles, /\.shell \.sidebar\s*\{[^}]*z-index:\s*60/);
   assert.match(styles, /position:\s*fixed;[\s\S]*\.sidebar\.sidebar-open/);
 });
 
