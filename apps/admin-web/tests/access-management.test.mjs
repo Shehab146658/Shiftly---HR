@@ -31,3 +31,17 @@ test("employee access roles are editable and persisted through the role RPC", as
   assert.match(migration, /create table public\.employee_role_assignments/);
   assert.match(migration, /create policy employee_role_assignments_manage/);
 });
+
+test("employee creation includes a role dropdown and existing employees receive the employee role", async () => {
+  const [page, actions, defaultRolesMigration] = await Promise.all([
+    readSource("../src/app/[locale]/(protected)/employees/page.tsx"),
+    readSource("../src/app/[locale]/(protected)/actions.ts"),
+    readSource("../../../supabase/migrations/202607260005_default_employee_roles.sql"),
+  ]);
+
+  assert.match(page, /name="roleId"/);
+  assert.match(page, /role\.name === "employee"/);
+  assert.match(actions, /p_role_ids:\s*\[roleId\]/);
+  assert.match(defaultRolesMigration, /create trigger assign_default_employee_role/);
+  assert.match(defaultRolesMigration, /join public\.roles r[\s\S]*r\.name = 'employee'/);
+});

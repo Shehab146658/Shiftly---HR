@@ -3,8 +3,11 @@ import json, re, sys
 
 root = Path(__file__).resolve().parents[1]
 errors = []
+ignored_parts = {'.git', '.next', '.dart_tool', 'build', 'coverage', 'node_modules'}
 
 for path in root.rglob('package.json'):
+    if ignored_parts.intersection(path.relative_to(root).parts):
+        continue
     try:
         json.loads(path.read_text(encoding='utf-8'))
     except Exception as exc:
@@ -14,6 +17,7 @@ foundation = (root / 'supabase/migrations/202607260001_foundation.sql').read_tex
 scheduling = (root / 'supabase/migrations/202607260002_employees_scheduling.sql').read_text(encoding='utf-8')
 api_privileges = (root / 'supabase/migrations/202607260003_api_privileges.sql').read_text(encoding='utf-8')
 employee_roles = (root / 'supabase/migrations/202607260004_employee_role_assignments.sql').read_text(encoding='utf-8')
+default_employee_roles = (root / 'supabase/migrations/202607260005_default_employee_roles.sql').read_text(encoding='utf-8')
 required = {
     'foundation': (foundation, ['enable row level security', 'create_tenant_with_owner', 'has_permission', 'capture_audit_log']),
     'scheduling': (scheduling, [
@@ -30,6 +34,10 @@ required = {
         'sync_employee_role_to_membership', 'enable row level security',
         'Company ownership must be managed from owner membership settings',
     ]),
+    'default employee roles': (default_employee_roles, [
+        'assign_default_employee_role', "r.name = 'employee'",
+        'on conflict (employee_id, role_id) do nothing',
+    ]),
 }
 for name, (migration, tokens) in required.items():
     for token in tokens:
@@ -37,7 +45,9 @@ for name, (migration, tokens) in required.items():
             errors.append(f'{name} migration missing required token: {token}')
 
 for path in root.rglob('*'):
-    if path.is_file() and '.git' not in path.parts:
+    if ignored_parts.intersection(path.relative_to(root).parts):
+        continue
+    if path.is_file():
         text = path.read_text(encoding='utf-8', errors='ignore')
         if re.search(r'(service_role|secret_key)\s*=\s*["\'][A-Za-z0-9._-]{20,}', text, re.I):
             errors.append(f'possible committed secret: {path.relative_to(root)}')

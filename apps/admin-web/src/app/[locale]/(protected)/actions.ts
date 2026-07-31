@@ -170,10 +170,23 @@ function employeePayload(tenantId: string, values: z.infer<typeof employeeFormSc
 
 export async function createEmployee(locale: AppLocale, tenantId: string, formData: FormData) {
   const values = parseEmployeeForm(formData);
+  const roleId = idSchema.parse(formData.get("roleId"));
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("employees").insert(employeePayload(tenantId, values));
+  const { data: employee, error } = await supabase
+    .from("employees")
+    .insert(employeePayload(tenantId, values))
+    .select("id")
+    .single();
   if (error) throw error;
+
+  const { error: roleError } = await supabase.rpc("set_employee_roles", {
+    p_employee_id: employee.id,
+    p_role_ids: [roleId],
+  });
+  if (roleError) throw roleError;
+
   revalidatePath(`/${locale}/employees`);
+  revalidatePath(`/${locale}/roles`);
 }
 
 export async function updateEmployee(locale: AppLocale, tenantId: string, employeeId: string, formData: FormData) {

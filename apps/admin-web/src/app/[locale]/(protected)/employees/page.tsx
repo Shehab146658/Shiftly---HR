@@ -32,14 +32,23 @@ export default async function EmployeesPage({
   if (filters.team) employeeQuery = employeeQuery.eq("team_id", filters.team);
   if (filters.status) employeeQuery = employeeQuery.eq("status", filters.status);
 
-  const [{ data: employees, error }, { data: branches }, { data: teams }, { data: managers }] = await Promise.all([
+  const [
+    { data: employees, error },
+    { data: branches },
+    { data: teams },
+    { data: managers },
+    { data: roles, error: rolesError },
+  ] = await Promise.all([
     employeeQuery,
     supabase.from("branches").select("id, name_en").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
     supabase.from("teams").select("id, name_en, branch_id").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
     supabase.from("employees").select("id, name_en").eq("tenant_id", tenantId).neq("status", "terminated").order("name_en"),
+    supabase.from("roles").select("id, name").eq("tenant_id", tenantId).neq("name", "owner").order("name"),
   ]);
   if (error) throw error;
+  if (rolesError) throw rolesError;
   const action = createEmployee.bind(null, locale, tenantId);
+  const defaultRoleId = roles?.find((role) => role.name === "employee")?.id ?? roles?.[0]?.id;
 
   return <>
     <div className="page-head">
@@ -65,6 +74,7 @@ export default async function EmployeesPage({
         <div className="field"><label>{d.hireDate}</label><input className="input" name="hireDate" type="date" /></div>
         <div className="field"><label>{d.preferredLanguage}</label><select className="select" name="preferredLocale"><option value="en">English</option><option value="ar">العربية</option></select></div>
         <div className="field"><label>{d.statusLabel}</label><select className="select" name="status"><option value="active">{d.active}</option><option value="inactive">{d.inactive}</option><option value="on_leave">{d.onLeave}</option><option value="terminated">{d.terminated}</option></select></div>
+        <div className="field"><label>{d.accessRole}</label><select className="select" defaultValue={defaultRoleId} name="roleId" required>{roles?.map((role) => <option key={role.id} value={role.id}>{role.name.replaceAll("_", " ")}</option>)}</select><small className="muted">{d.accessRoleHelp}</small></div>
         <div className="field full"><label>{d.notes}</label><textarea className="input" name="notes" rows={2} /></div>
         <div className="full"><button className="button">{d.add}</button></div>
       </form>
