@@ -6,12 +6,13 @@ import { isLocale } from "@/lib/i18n";
 export default async function ProtectedLayout({ children, params }: { children: React.ReactNode; params: Promise<{ locale: string }> }) {
   const { locale: rawLocale } = await params;
   if (!isLocale(rawLocale)) notFound();
-  const { user } = await requireUser(rawLocale);
+  const { user, supabase } = await requireUser(rawLocale);
   const membership = await getActiveMembership(user.id);
   const tenant = Array.isArray(membership?.tenants) ? membership.tenants[0] : membership?.tenants;
+  const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
 
   return (
-    <AppShell locale={rawLocale} userEmail={user.email ?? ""} companyName={tenant?.name_en}>
+    <AppShell locale={rawLocale} userEmail={user.email ?? ""} userId={user.id} userName={profile?.full_name} isOwner={membership?.is_owner} companyName={tenant?.name_en}>
       {children}
     </AppShell>
   );

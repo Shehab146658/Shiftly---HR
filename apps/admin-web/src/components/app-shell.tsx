@@ -4,28 +4,38 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LanguageSwitch } from "@/components/language-switch";
+import { AppIcon, BrandMark, type AppIconName } from "@/components/brand-mark";
 import { getDictionary, type AppLocale } from "@/lib/i18n";
 import { signOut } from "@/app/[locale]/(protected)/actions";
 
 export function AppShell({
   locale,
   userEmail,
+  userId,
+  userName,
+  isOwner,
   companyName,
   children,
 }: {
   locale: AppLocale;
   userEmail: string;
+  userId: string;
+  userName?: string | null;
+  isOwner?: boolean;
   companyName?: string | null;
   children: React.ReactNode;
 }) {
   const d = getDictionary(locale);
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const items = [
-    ["dashboard", d.dashboard], ["branches", d.branches], ["teams", d.teams], ["employees", d.employees],
-    ["shifts", d.shifts], ["schedules", d.schedules], ["roles", d.roles], ["audit", d.audit],
+  const items: Array<[string, string, AppIconName]> = [
+    ["dashboard", d.dashboard, "dashboard"], ["branches", d.branches, "branches"], ["teams", d.teams, "teams"], ["employees", d.employees, "employees"],
+    ["shifts", d.shifts, "shifts"], ["schedules", d.schedules, "schedules"], ["roles", d.roles, "roles"], ["audit", d.audit, "audit"],
   ];
   const logout = signOut.bind(null, locale);
+  const profileHref = `/${locale}/profiles/${userId}`;
+  const displayName = userName?.trim() || userEmail;
+  const initials = displayName.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -53,7 +63,7 @@ export function AppShell({
       />
       <aside className={`sidebar${menuOpen ? " sidebar-open" : ""}`} id="primary-navigation">
         <div className="sidebar-head">
-          <div className="brand">{d.product}</div>
+          <Link aria-label={`${d.product} · ${d.dashboard}`} className="sidebar-brand" href={`/${locale}/dashboard`} onClick={() => setMenuOpen(false)}><BrandMark /></Link>
           <button
             aria-label={locale === "ar" ? "إغلاق القائمة" : "Close navigation"}
             className="sidebar-close"
@@ -64,15 +74,18 @@ export function AppShell({
           </button>
         </div>
         <nav className="nav">
-          {items.map(([path, label]) => {
+          {items.map(([path, label, icon]) => {
             const href = `/${locale}/${path}`;
             const active = pathname === href || pathname.startsWith(`${href}/`);
-            return <Link aria-current={active ? "page" : undefined} className={active ? "active" : undefined} key={path} href={href} onClick={() => setMenuOpen(false)}>{label}</Link>;
+            return <Link aria-current={active ? "page" : undefined} className={active ? "active" : undefined} key={path} href={href} onClick={() => setMenuOpen(false)}><AppIcon className="nav-icon" name={icon} /><span>{label}</span></Link>;
           })}
         </nav>
         <div className="sidebar-footer">
-          <div><strong>{companyName ?? d.noCompany}</strong></div>
-          <div style={{ color: "#b8c3d9", fontSize: ".86rem" }}>{userEmail}</div>
+          <Link className="sidebar-profile" href={profileHref} onClick={() => setMenuOpen(false)}>
+            <span className="sidebar-avatar">{initials || "U"}</span>
+            <span className="sidebar-profile-copy"><strong title={displayName}>{displayName}</strong><small title={userEmail}>{isOwner ? d.companyOwner : d.companyUser} · {userEmail}</small></span>
+            <AppIcon className="profile-chevron" name="profile" />
+          </Link>
           <form action={logout}><button className="button ghost" style={{ width: "100%", color: "white" }}>{d.signOut}</button></form>
         </div>
       </aside>
@@ -90,8 +103,8 @@ export function AppShell({
               <span aria-hidden="true" className="menu-button-lines"><i /><i /><i /></span>
             </button>
             <div className="topbar-identity">
-              <span className="topbar-product">{d.product}</span>
-              <strong>{companyName ?? d.product}</strong>
+              <Link className="topbar-brand-link" href={`/${locale}/dashboard`}><BrandMark compact /></Link>
+              <strong title={companyName ?? d.product}>{companyName ?? d.product}</strong>
             </div>
           </div>
           <LanguageSwitch locale={locale} />

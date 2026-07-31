@@ -1,9 +1,9 @@
 # Shiftly HR Project Status
 
 **Current milestone:** Milestone 2 — Employees and Weekly Scheduling
-**Status:** Completed and automatically validated
+**Status:** Completed with experience hardening
 **Release:** `0.2.0`
-**Last updated:** 27 July 2026
+**Last updated:** 31 July 2026
 
 ## Completed
 
@@ -20,12 +20,20 @@
 - Employee mobile view for published weekly schedules with configurable branch week-start support.
 - Real branches, employees, shift templates, and the supplied 17–23 July 2026 schedules included in demo seed data.
 
+## Experience hardening
+
+- All active seed employees are assigned to team `001`, with their original branch assignments retained.
+- Linked user and employee profiles include a clickable owner profile from the dashboard and navigation.
+- Employee creation opens on demand, and the directory uses one responsive table.
+- Long branch, team, and position labels expose their full value in contextual tooltips.
+- Important administration actions show pending, success, and failure feedback.
+
 ## Validation gates
 
 - Static repository checks: passed.
-- Next.js lint, TypeScript, 4 unit tests, and production build: passed.
+- Next.js lint, TypeScript, 15 unit tests, and production build: passed.
 - Supabase migration reset and database lint: passed.
-- Supabase pgTAP: 48 tests passed.
+- Supabase pgTAP: 67 tests passed.
 - Flutter 3.44 analysis: passed with no issues.
 - Flutter tests: 2 passed.
 - Production JavaScript dependency audit: passed after verified transitive security overrides.

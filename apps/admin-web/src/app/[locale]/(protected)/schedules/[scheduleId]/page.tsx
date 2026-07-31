@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { addScheduleEntry, copyWeeklySchedule, deleteScheduleEntry, transitionSchedule } from "../../actions";
+import { ActionForm } from "@/components/action-form";
 import { getTenantPageContext } from "@/lib/page-context";
 import { addIsoDays, formatScheduleTime, weekdayKey, weekDates } from "@/lib/scheduling";
 
@@ -68,10 +69,10 @@ export default async function ScheduleDetailsPage({ params }: { params: Promise<
         <p className="muted">{d.visibility}: {schedule.visibility} · <span className={`badge status-${schedule.status}`}>{schedule.status}</span></p>
       </div>
       <div className="toolbar">
-        {schedule.status === "draft" ? <form action={publishAction}><button className="button">{d.publish}</button></form> : null}
-        {schedule.status === "published" ? <form action={lockAction}><button className="button">{d.lock}</button></form> : null}
-        {schedule.status === "published" || schedule.status === "locked" ? <form action={reopenAction} className="toolbar"><input className="input compact" name="reason" minLength={5} placeholder={d.reason} required /><button className="button secondary">{d.reopen}</button></form> : null}
-        {schedule.status === "published" || schedule.status === "locked" ? <form action={archiveAction}><button className="button ghost">{d.archive}</button></form> : null}
+        {schedule.status === "draft" ? <ActionForm action={publishAction} errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.schedulePublished}><button className="button" type="submit">{d.publish}</button></ActionForm> : null}
+        {schedule.status === "published" ? <ActionForm action={lockAction} errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.scheduleLocked}><button className="button" type="submit">{d.lock}</button></ActionForm> : null}
+        {schedule.status === "published" || schedule.status === "locked" ? <ActionForm action={reopenAction} className="toolbar" errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.scheduleReopened}><input className="input compact" name="reason" minLength={5} placeholder={d.reason} required /><button className="button secondary" type="submit">{d.reopen}</button></ActionForm> : null}
+        {schedule.status === "published" || schedule.status === "locked" ? <ActionForm action={archiveAction} confirmMessage={d.archiveScheduleConfirm} errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.scheduleArchived}><button className="button ghost" type="submit">{d.archive}</button></ActionForm> : null}
       </div>
     </div>
 
@@ -80,7 +81,7 @@ export default async function ScheduleDetailsPage({ params }: { params: Promise<
     {editable ? <section className="card stack">
       <h2>{d.addEntry}</h2>
       <p className="muted">{d.useTemplateOrCustom}</p>
-      <form action={addAction} className="form-grid three-columns">
+      <ActionForm action={addAction} className="form-grid three-columns" errorMessage={d.actionFailed} pendingMessage={d.saving} resetOnSuccess successMessage={d.scheduleEntrySaved}>
         <div className="field"><label>{d.employee}</label><select className="select" name="employeeId" required><option value="">—</option>{allEmployees?.map((employee) => {
           const employeeBranch = Array.isArray(employee.branches) ? employee.branches[0] : employee.branches;
           return <option key={employee.id} value={employee.id}>{employee.employee_code} · {locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en}{employeeBranch?.name_en ? ` (${employeeBranch.name_en})` : ""}</option>;
@@ -96,7 +97,7 @@ export default async function ScheduleDetailsPage({ params }: { params: Promise<
         <div className="field"><label>{d.breakMinutes}</label><input className="input" type="number" min="0" max="480" defaultValue="0" name="breakMinutes" /></div>
         <div className="field full"><label>{d.notes}</label><input className="input" name="notes" /></div>
         <div className="full"><button className="button">{d.add}</button></div>
-      </form>
+      </ActionForm>
     </section> : null}
 
     <section className="card stack section-gap">
@@ -106,7 +107,7 @@ export default async function ScheduleDetailsPage({ params }: { params: Promise<
           const cellEntries = entryMap.get(`${employee.id}:${date}`) ?? [];
           return <td key={date} className={cellEntries.length ? "scheduled-cell" : ""}>{cellEntries.map((entry) => {
             const removeAction = deleteScheduleEntry.bind(null, locale, tenantId, scheduleId, entry.id);
-            return <div className={`schedule-chip entry-${entry.entry_type}`} key={entry.id}><span>{entryText(entry as unknown as Record<string, unknown>, d)}</span>{editable ? <form action={removeAction}><button title={d.delete} className="chip-delete">×</button></form> : null}</div>;
+            return <div className={`schedule-chip entry-${entry.entry_type}`} key={entry.id}><span>{entryText(entry as unknown as Record<string, unknown>, d)}</span>{editable ? <ActionForm action={removeAction} confirmMessage={d.deleteEntryConfirm} errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.scheduleEntryRemoved}><button title={d.delete} className="chip-delete" type="submit">×</button></ActionForm> : null}</div>;
           })}</td>;
         })}</tr>)}
       </tbody></table>{!boardEmployees.length ? <div className="empty">{d.scheduleEmpty}</div> : null}</div>
@@ -115,7 +116,7 @@ export default async function ScheduleDetailsPage({ params }: { params: Promise<
     <div className="grid two-columns section-gap">
       <section className="card stack">
         <h2>{d.copyWeek}</h2>
-        <form action={copyAction} className="stack"><div className="field"><label>{d.targetWeek}</label><input className="input" type="date" name="targetWeekStart" required /></div><button className="button secondary">{d.copyWeek}</button></form>
+        <ActionForm action={copyAction} className="stack" errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.scheduleCopied}><div className="field"><label>{d.targetWeek}</label><input className="input" type="date" name="targetWeekStart" required /></div><button className="button secondary" type="submit">{d.copyWeek}</button></ActionForm>
       </section>
       <section className="card stack">
         <h2>{d.statusHistory}</h2>

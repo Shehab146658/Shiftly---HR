@@ -116,6 +116,39 @@ export async function createTeam(locale: AppLocale, tenantId: string, formData: 
   revalidatePath(`/${locale}/teams`);
 }
 
+export async function assignAllEmployeesToTeam(locale: AppLocale, tenantId: string, teamId: string, _formData?: FormData) {
+  void _formData;
+  idSchema.parse(tenantId);
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("assign_all_employees_to_team", {
+    p_team_id: idSchema.parse(teamId),
+  });
+  if (error) throw error;
+  revalidatePath(`/${locale}/dashboard`);
+  revalidatePath(`/${locale}/teams`);
+  revalidatePath(`/${locale}/employees`);
+  revalidatePath(`/${locale}/audit`);
+}
+
+export async function updateOwnProfile(locale: AppLocale, formData: FormData) {
+  const values = z.object({
+    fullName: z.string().trim().min(2).max(150),
+    profileLocale: z.enum(["en", "ar"]),
+  }).parse({
+    fullName: formData.get("fullName"),
+    profileLocale: formData.get("profileLocale"),
+  });
+  const supabase = await createSupabaseServerClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw authError ?? new Error("Authentication required");
+  const { error } = await supabase.from("profiles").update({
+    full_name: values.fullName,
+    locale: values.profileLocale,
+  }).eq("id", authData.user.id);
+  if (error) throw error;
+  revalidatePath(`/${locale}/profiles/${authData.user.id}`);
+}
+
 const employeeFormSchema = z.object({
   employeeCode: codeSchema,
   nameEn: z.string().trim().min(2).max(150),

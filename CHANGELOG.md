@@ -5,11 +5,20 @@
 ### Added
 
 - Persistent employee access-role assignment with pending-account support, membership synchronization, RLS, audit logging, and tests.
+- Tenant-member profile pages with clickable owner and employee identities.
+- Reusable save, update, archive, publish, and assignment feedback with pending, success, and failure states.
+- A guarded bulk action that assigns every active employee to a selected company-wide team while preserving branch history.
+- Contextual overflow tooltips for long names and assignment labels.
 
 ### Changed
 
 - Replaced the stacked mobile sidebar with an accessible burger-menu drawer.
-- Added mobile-first employee and role views.
+- Added mobile-first employee and role views with a single responsive employee table.
+- Reworked employee creation into an on-demand modal and mobile bottom sheet.
+- Replaced the text-only product label and navigation markers with a linked Shiftly brand lockup and purpose-built icons.
+- Made the signed-in account, dashboard owner count, employee names, and role assignments open their relevant profiles.
+- Improved roles and audit presentation so permissions and people are easier to understand.
+- Refined dashboard, cards, tables, forms, mobile spacing, and action states across the administration portal.
 
 ## [0.2.0-employees-scheduling] - 2026-07-26
 

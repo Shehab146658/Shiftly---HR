@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createRole } from "../actions";
+import { ActionForm } from "@/components/action-form";
 import { getTenantPageContext } from "@/lib/page-context";
 
 function displayRoleName(name: string) {
@@ -12,11 +13,21 @@ export default async function RolesPage({ params }: { params: Promise<{ locale: 
   if (!membership) return <div className="card">{d.noCompany}</div>;
 
   const [{ data: roles, error }, { data: permissions, error: permissionsError }] = await Promise.all([
-    supabase.from("roles").select("id, name, description, is_system, role_permissions(permission_key), employee_role_assignments(employee_id, employees(id, name_en, name_ar, position))").eq("tenant_id", membership.tenant_id).order("is_system", { ascending: false }).order("name"),
+    supabase.from("roles").select("id, name, description, is_system, role_permissions(permission_key), employee_role_assignments(employee_id, employees(id, user_id, name_en, name_ar, position)), membership_roles(membership_id, memberships(id, user_id, is_owner, status))").eq("tenant_id", membership.tenant_id).order("is_system", { ascending: false }).order("name"),
     supabase.from("permissions").select("key, description, module").order("module").order("key"),
   ]);
   if (error) throw error;
   if (permissionsError) throw permissionsError;
+
+  const accountUserIds = [...new Set((roles ?? []).flatMap((role) => role.membership_roles.flatMap((assignment) => {
+    const account = Array.isArray(assignment.memberships) ? assignment.memberships[0] : assignment.memberships;
+    return account?.user_id ? [account.user_id] : [];
+  })))];
+  const { data: accountProfiles, error: profileError } = accountUserIds.length
+    ? await supabase.from("profiles").select("id, full_name").in("id", accountUserIds)
+    : { data: [], error: null };
+  if (profileError) throw profileError;
+  const profileById = new Map((accountProfiles ?? []).map((profile) => [profile.id, profile]));
 
   const permissionByKey = new Map((permissions ?? []).map((permission) => [permission.key, permission]));
   const createAction = createRole.bind(null, locale, membership.tenant_id);
@@ -26,18 +37,18 @@ export default async function RolesPage({ params }: { params: Promise<{ locale: 
       <div><h1 className="page-title">{d.roleManagementTitle}</h1><p className="muted">{d.roleManagementHelp}</p></div>
       <details className="role-create-popover">
         <summary className="button">{d.createCustomRole}</summary>
-        <form action={createAction} className="card stack role-create-form">
+        <ActionForm action={createAction} className="card stack role-create-form" errorMessage={d.actionFailed} pendingMessage={d.saving} resetOnSuccess successMessage={d.roleCreated}>
           <div className="field"><label>{d.roleName}</label><input className="input" name="name" placeholder={d.roleNamePlaceholder} required /></div>
           <div className="field"><label>{d.roleDescription}</label><textarea className="input" name="description" rows={3} /></div>
           <button className="button">{d.createRole}</button>
-        </form>
+        </ActionForm>
       </details>
     </div>
 
     <section className="role-summary-grid">
       <div className="role-summary-card"><strong>{roles?.length ?? 0}</strong><span>{d.roles}</span></div>
       <div className="role-summary-card"><strong>{permissions?.length ?? 0}</strong><span>{d.availableCapabilities}</span></div>
-      <div className="role-summary-card"><strong>{roles?.reduce((total, role) => total + role.employee_role_assignments.length, 0) ?? 0}</strong><span>{d.assignedEmployees}</span></div>
+      <div className="role-summary-card"><strong>{roles?.reduce((total, role) => total + role.employee_role_assignments.length + role.membership_roles.length, 0) ?? 0}</strong><span>{d.assignedPeople}</span></div>
     </section>
 
     <section className="role-management-grid">
@@ -45,6 +56,12 @@ export default async function RolesPage({ params }: { params: Promise<{ locale: 
         const assignedEmployees = role.employee_role_assignments.flatMap((assignment) => {
           const employee = Array.isArray(assignment.employees) ? assignment.employees[0] : assignment.employees;
           return employee ? [employee] : [];
+        });
+        const linkedEmployeeUsers = new Set(assignedEmployees.flatMap((employee) => employee.user_id ? [employee.user_id] : []));
+        const assignedAccounts = role.membership_roles.flatMap((assignment) => {
+          const account = Array.isArray(assignment.memberships) ? assignment.memberships[0] : assignment.memberships;
+          if (!account?.user_id || account.status === "revoked" || linkedEmployeeUsers.has(account.user_id)) return [];
+          return [{ ...account, profile: profileById.get(account.user_id) }];
         });
         const rolePermissions = role.role_permissions.map((entry) => permissionByKey.get(entry.permission_key)).filter(Boolean);
         const isProtected = role.name === "owner";
@@ -61,10 +78,11 @@ export default async function RolesPage({ params }: { params: Promise<{ locale: 
             {rolePermissions.length > 4 ? <small className="muted">+{rolePermissions.length - 4} {d.moreCapabilities}</small> : null}
           </div>
           <div className="role-people-preview">
-            <div><strong>{d.assignedPeople}</strong><span className="muted">{assignedEmployees.length}</span></div>
+            <div><strong>{d.assignedPeople}</strong><span className="muted">{assignedEmployees.length + assignedAccounts.length}</span></div>
             <div className="role-people-links">
               {assignedEmployees.slice(0, 4).map((employee) => <Link href={`/${locale}/employees/${employee.id}`} key={employee.id}>{locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en}</Link>)}
-              {!assignedEmployees.length ? <span className="muted">{d.noAssignedPeople}</span> : null}
+              {assignedAccounts.slice(0, Math.max(0, 4 - assignedEmployees.length)).map((account) => <Link href={`/${locale}/profiles/${account.user_id}`} key={account.id}>{account.profile?.full_name ?? d.ownerAccount}</Link>)}
+              {!assignedEmployees.length && !assignedAccounts.length ? <span className="muted">{d.noAssignedPeople}</span> : null}
             </div>
           </div>
           <Link className="button secondary full-width" href={`/${locale}/roles/${role.id}`}>{isProtected ? d.viewPermissions : d.customizePermissions}</Link>

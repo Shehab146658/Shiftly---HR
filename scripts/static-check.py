@@ -19,6 +19,7 @@ api_privileges = (root / 'supabase/migrations/202607260003_api_privileges.sql').
 employee_roles = (root / 'supabase/migrations/202607260004_employee_role_assignments.sql').read_text(encoding='utf-8')
 default_employee_roles = (root / 'supabase/migrations/202607260005_default_employee_roles.sql').read_text(encoding='utf-8')
 role_permission_management = (root / 'supabase/migrations/202607260006_role_permission_management.sql').read_text(encoding='utf-8')
+member_profiles = (root / 'supabase/migrations/202607260007_member_profiles_and_team_assignment.sql').read_text(encoding='utf-8')
 required = {
     'foundation': (foundation, ['enable row level security', 'create_tenant_with_owner', 'has_permission', 'capture_audit_log']),
     'scheduling': (scheduling, [
@@ -42,6 +43,11 @@ required = {
     'role permission management': (role_permission_management, [
         'set_role_permissions', 'Owner permissions are protected',
         "'role_permissions'", 'grant execute',
+    ]),
+    'member profiles and team assignment': (member_profiles, [
+        'can_view_tenant_profile', 'profiles_select_tenant_members',
+        'assign_all_employees_to_team', 'set branch_id = null',
+        'grant execute',
     ]),
 }
 for name, (migration, tokens) in required.items():

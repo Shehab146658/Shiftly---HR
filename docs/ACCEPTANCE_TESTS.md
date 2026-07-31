@@ -1,5 +1,16 @@
 # Acceptance Tests
 
+## Administration experience hardening
+
+- [ ] Selecting **Add employee** opens the creation dialog; the form is not shown before that action.
+- [ ] The employee directory has one responsive list, without duplicate cards beneath it.
+- [ ] The Shiftly brand and signed-in account both open their relevant pages.
+- [ ] The dashboard owner card opens the owner profile.
+- [ ] Long branch, team, and position labels expose their complete value in a tooltip.
+- [ ] Team `001` contains every active employee while existing branch assignments remain unchanged.
+- [ ] Saving or updating important records displays a pending state followed by a success or failure message.
+- [ ] The employee directory and creation dialog remain usable at a 390px mobile viewport.
+
 ## Milestone 1 regression
 
 - [ ] Owner can sign in and access one tenant only.

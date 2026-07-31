@@ -1,4 +1,5 @@
 import { createShiftTemplate, toggleShiftTemplate } from "../actions";
+import { ActionForm } from "@/components/action-form";
 import { getTenantPageContext } from "@/lib/page-context";
 
 function formatTime(value: string) {
@@ -20,7 +21,7 @@ export default async function ShiftTemplatesPage({ params }: { params: Promise<{
   return <>
     <div className="page-head"><div><h1 className="page-title">{d.shifts}</h1><p className="muted">{shifts?.length ?? 0} {d.shifts.toLowerCase()}</p></div></div>
     <section className="card stack">
-      <form action={action} className="form-grid three-columns">
+      <ActionForm action={action} className="form-grid three-columns" errorMessage={d.actionFailed} pendingMessage={d.saving} resetOnSuccess successMessage={d.shiftCreated}>
         <div className="field"><label>{d.code}</label><input className="input" name="code" placeholder="12_10" required /></div>
         <div className="field"><label>{d.nameEnglish}</label><input className="input" name="nameEn" placeholder="12 PM - 10 PM" required /></div>
         <div className="field"><label>{d.nameArabic}</label><input className="input" name="nameAr" dir="rtl" /></div>
@@ -31,7 +32,7 @@ export default async function ShiftTemplatesPage({ params }: { params: Promise<{
         <div className="field"><label>{d.breakMinutes}</label><input className="input" type="number" min="0" max="480" name="breakMinutes" defaultValue="0" /></div>
         <div className="field"><label>{d.color}</label><input className="input color-input" type="color" name="colorHex" defaultValue="#2357D9" /></div>
         <div className="full"><button className="button">{d.add}</button></div>
-      </form>
+      </ActionForm>
     </section>
 
     <section className="card stack section-gap">
@@ -47,7 +48,7 @@ export default async function ShiftTemplatesPage({ params }: { params: Promise<{
             <td>{formatTime(row.end_time)}{row.end_day_offset ? " +1" : ""}</td>
             <td>{row.break_minutes}</td>
             <td><span className="badge">{row.is_active ? d.active : d.inactive}</span></td>
-            <td><form action={toggleAction}><button className="text-button">{row.is_active ? d.deactivate : d.activate}</button></form></td>
+            <td><ActionForm action={toggleAction} errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={row.is_active ? d.shiftDeactivated : d.shiftActivated}><button className="text-button" type="submit">{row.is_active ? d.deactivate : d.activate}</button></ActionForm></td>
           </tr>;
         })}
       </tbody></table>{!shifts?.length ? <div className="empty">{d.empty}</div> : null}</div>

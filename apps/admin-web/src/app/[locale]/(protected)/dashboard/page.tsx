@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CompanyOnboarding } from "@/components/company-onboarding";
+import { OverflowTooltip } from "@/components/overflow-tooltip";
 import { getActiveMembership, requireUser } from "@/lib/auth";
 import { getDictionary, isLocale } from "@/lib/i18n";
 
@@ -41,7 +42,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
     { label: d.totalEmployees, value: employees.length, detail: `${activeEmployees} ${d.active.toLowerCase()}`, href: `/${locale}/employees`, accent: "blue" },
     { label: d.totalBranches, value: branches.length, detail: d.openDirectory, href: `/${locale}/branches`, accent: "green" },
     { label: d.totalTeams, value: teamsResult.count ?? 0, detail: d.openDirectory, href: `/${locale}/teams`, accent: "violet" },
-    { label: d.totalOwners, value: ownersResult.count ?? 0, detail: d.manageAccess, href: `/${locale}/roles`, accent: "orange" },
+    { label: d.totalOwners, value: ownersResult.count ?? 0, detail: d.viewProfile, href: `/${locale}/profiles/${user.id}`, accent: "orange" },
   ];
 
   const branchDistribution = branches.map((branch) => ({
@@ -107,7 +108,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
           <div className="card-heading"><div><h2>{d.workforceByBranch}</h2><p className="muted">{d.clickChartHint}</p></div><Link className="text-link" href={`/${locale}/branches`}>{d.viewAll}</Link></div>
           <div className="branch-chart">
             {branchDistribution.map((branch) => <Link className="branch-bar-row dashboard-link" href={branch.id ? `/${locale}/employees?branch=${branch.id}` : `/${locale}/employees`} key={branch.id || "unassigned"}>
-              <span className="branch-bar-label">{branch.name}</span>
+              <OverflowTooltip className="branch-bar-label" text={branch.name} />
               <span className="branch-bar-track"><span className="branch-bar-fill" style={{ width: `${Math.max(5, (branch.count / largestBranch) * 100)}%` }} /></span>
               <strong>{branch.count}</strong>
             </Link>)}

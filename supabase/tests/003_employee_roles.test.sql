@@ -10,8 +10,16 @@ select ok(
   (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = 'public.employee_role_assignments'::regclass),
   'RLS is enabled on employee role assignments'
 );
-select has_policy('public', 'employee_role_assignments', 'employee_role_assignments_read', 'employee role assignments have a read policy');
-select has_policy('public', 'employee_role_assignments', 'employee_role_assignments_manage', 'employee role assignments have a write policy');
+select is(
+  (select count(*)::integer from pg_catalog.pg_policies where schemaname = 'public' and tablename = 'employee_role_assignments' and policyname = 'employee_role_assignments_read'),
+  1,
+  'employee role assignments have a read policy'
+);
+select is(
+  (select count(*)::integer from pg_catalog.pg_policies where schemaname = 'public' and tablename = 'employee_role_assignments' and policyname = 'employee_role_assignments_manage'),
+  1,
+  'employee role assignments have a write policy'
+);
 
 insert into public.tenants(id, slug, name_en, status)
 values ('11000000-0000-0000-0000-000000000001', 'roles-test', 'Roles Test', 'active');
@@ -22,8 +30,9 @@ values ('31000000-0000-0000-0000-000000000001', '11000000-0000-0000-0000-0000000
 select lives_ok(
   $$insert into public.employee_role_assignments(tenant_id, employee_id, role_id)
     select '11000000-0000-0000-0000-000000000001', '31000000-0000-0000-0000-000000000001', id
-    from public.roles where tenant_id = '11000000-0000-0000-0000-000000000001' and name = 'employee'$$,
-  'a normal tenant role can be assigned to an employee'
+    from public.roles where tenant_id = '11000000-0000-0000-0000-000000000001' and name = 'employee'
+    on conflict (employee_id, role_id) do nothing$$,
+  'a normal tenant role is safely assigned to an employee by default'
 );
 
 select is(

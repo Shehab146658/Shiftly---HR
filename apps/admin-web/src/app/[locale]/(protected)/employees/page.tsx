@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { createEmployee } from "../actions";
+import { EmployeeCreateDialog } from "@/components/employee-create-dialog";
+import { OverflowTooltip } from "@/components/overflow-tooltip";
 import { getTenantPageContext } from "@/lib/page-context";
 
 function statusText(status: string, d: ReturnType<typeof import("@/lib/i18n").getDictionary>) {
@@ -54,33 +56,29 @@ export default async function EmployeesPage({
     <div className="page-head">
       <div>
         <h1 className="page-title">{d.employees}</h1>
-        <p className="muted">{employees?.length ?? 0} {d.employees.toLowerCase()}</p>
+        <p className="muted">{employees?.length ?? 0} {d.employees.toLowerCase()} · {d.employeeDirectory}</p>
       </div>
+      <EmployeeCreateDialog
+        action={action}
+        branches={branches ?? []}
+        defaultRoleId={defaultRoleId}
+        labels={{
+          addEmployee: d.addEmployee, addEmployeeHelp: d.addEmployeeHelp, employeeDirectory: d.employeeDirectory,
+          close: d.close, cancel: d.cancel, code: d.code, nameEnglish: d.nameEnglish, nameArabic: d.nameArabic,
+          position: d.position, email: d.email, phone: d.phone, branch: d.branch, team: d.team, manager: d.manager,
+          hireDate: d.hireDate, preferredLanguage: d.preferredLanguage, statusLabel: d.statusLabel, active: d.active,
+          inactive: d.inactive, onLeave: d.onLeave, terminated: d.terminated, accessRole: d.accessRole,
+          accessRoleHelp: d.accessRoleHelp, notes: d.notes, actionFailed: d.actionFailed, saving: d.saving,
+          employeeCreated: d.employeeCreated,
+        }}
+        managers={managers ?? []}
+        roles={roles ?? []}
+        teams={teams ?? []}
+      />
     </div>
 
     <div className="employees-content">
-    <section className="card stack employee-create-panel">
-      <h2>{d.add} {d.employee}</h2>
-      <form action={action} className="form-grid three-columns">
-        <div className="field"><label>{d.code}</label><input className="input" name="employeeCode" required /></div>
-        <div className="field"><label>{d.nameEnglish}</label><input className="input" name="nameEn" required /></div>
-        <div className="field"><label>{d.nameArabic}</label><input className="input" name="nameAr" dir="rtl" /></div>
-        <div className="field"><label>{d.position}</label><input className="input" name="position" /></div>
-        <div className="field"><label>{d.email}</label><input className="input" name="email" type="email" /></div>
-        <div className="field"><label>{d.phone}</label><input className="input" name="phone" /></div>
-        <div className="field"><label>{d.branch}</label><select className="select" name="branchId"><option value="">—</option>{branches?.map((b) => <option key={b.id} value={b.id}>{b.name_en}</option>)}</select></div>
-        <div className="field"><label>{d.team}</label><select className="select" name="teamId"><option value="">—</option>{teams?.map((t) => <option key={t.id} value={t.id}>{t.name_en}</option>)}</select></div>
-        <div className="field"><label>{d.manager}</label><select className="select" name="managerEmployeeId"><option value="">—</option>{managers?.map((m) => <option key={m.id} value={m.id}>{m.name_en}</option>)}</select></div>
-        <div className="field"><label>{d.hireDate}</label><input className="input" name="hireDate" type="date" /></div>
-        <div className="field"><label>{d.preferredLanguage}</label><select className="select" name="preferredLocale"><option value="en">English</option><option value="ar">العربية</option></select></div>
-        <div className="field"><label>{d.statusLabel}</label><select className="select" name="status"><option value="active">{d.active}</option><option value="inactive">{d.inactive}</option><option value="on_leave">{d.onLeave}</option><option value="terminated">{d.terminated}</option></select></div>
-        <div className="field"><label>{d.accessRole}</label><select className="select" defaultValue={defaultRoleId} name="roleId" required>{roles?.map((role) => <option key={role.id} value={role.id}>{role.name.replaceAll("_", " ")}</option>)}</select><small className="muted">{d.accessRoleHelp}</small></div>
-        <div className="field full"><label>{d.notes}</label><textarea className="input" name="notes" rows={2} /></div>
-        <div className="full"><button className="button">{d.add}</button></div>
-      </form>
-    </section>
-
-    <section className="card stack section-gap employee-directory">
+    <section className="card stack employee-directory">
       <form className="toolbar" method="get">
         <input className="input compact" name="q" defaultValue={filters.q} placeholder={`${d.search}…`} />
         <select className="select compact" name="branch" defaultValue={filters.branch ?? ""}><option value="">{d.allBranches}</option>{branches?.map((b) => <option key={b.id} value={b.id}>{b.name_en}</option>)}</select>
@@ -89,7 +87,7 @@ export default async function EmployeesPage({
         <button className="button">{d.search}</button>
         <Link className="button ghost" href={`/${locale}/employees`}>{d.clear}</Link>
       </form>
-      <div className="table-wrap desktop-only"><table><thead><tr><th>{d.code}</th><th>{d.nameEnglish}</th><th>{d.position}</th><th>{d.branch}</th><th>{d.team}</th><th>{d.accessRoles}</th><th>{d.statusLabel}</th><th>{d.actions}</th></tr></thead><tbody>
+      <div className="table-wrap"><table className="employee-table"><thead><tr><th className="employee-code-column">{d.code}</th><th>{d.nameEnglish}</th><th className="employee-optional-column">{d.position}</th><th className="employee-optional-column">{d.branch}</th><th>{d.team}</th><th className="employee-optional-column">{d.accessRoles}</th><th>{d.statusLabel}</th><th>{d.actions}</th></tr></thead><tbody>
         {employees?.map((row) => {
           const branch = Array.isArray(row.branches) ? row.branches[0] : row.branches;
           const team = Array.isArray(row.teams) ? row.teams[0] : row.teams;
@@ -98,41 +96,17 @@ export default async function EmployeesPage({
             return role?.name ? [role.name] : [];
           });
           return <tr key={row.id}>
-            <td className="code">{row.employee_code}</td>
-            <td><strong>{locale === "ar" && row.name_ar ? row.name_ar : row.name_en}</strong></td>
-            <td>{row.position ?? "—"}</td>
-            <td>{branch?.name_en ?? "—"}</td>
-            <td>{team?.name_en ?? "—"}</td>
-            <td><div className="role-badges">{roleNames.length ? roleNames.map((name) => <span className="badge" key={name}>{name}</span>) : <span className="muted">{d.noRoles}</span>}</div></td>
+            <td className="code employee-code-column">{row.employee_code}</td>
+            <td><Link className="employee-name-link" href={`/${locale}/employees/${row.id}`}><strong>{locale === "ar" && row.name_ar ? row.name_ar : row.name_en}</strong><small className="employee-code-inline code">{row.employee_code}</small></Link></td>
+            <td className="employee-optional-column"><OverflowTooltip text={row.position ?? d.noPosition} /></td>
+            <td className="employee-optional-column"><OverflowTooltip text={branch?.name_en ?? d.unassigned} /></td>
+            <td><OverflowTooltip text={team?.name_en ?? d.notSet} /></td>
+            <td className="employee-optional-column"><div className="role-badges">{roleNames.length ? roleNames.map((name) => <span className="badge" key={name}>{name}</span>) : <span className="muted">{d.noRoles}</span>}</div></td>
             <td><span className={`badge status-${row.status}`}>{statusText(row.status, d)}</span></td>
             <td><Link className="text-link" href={`/${locale}/employees/${row.id}`}>{d.edit}</Link></td>
           </tr>;
         })}
       </tbody></table>{!employees?.length ? <div className="empty">{d.empty}</div> : null}</div>
-      <div className="mobile-only employee-card-list">
-        {employees?.map((row) => {
-          const branch = Array.isArray(row.branches) ? row.branches[0] : row.branches;
-          const team = Array.isArray(row.teams) ? row.teams[0] : row.teams;
-          const roleNames = (row.employee_role_assignments ?? []).flatMap((assignment) => {
-            const role = Array.isArray(assignment.roles) ? assignment.roles[0] : assignment.roles;
-            return role?.name ? [role.name] : [];
-          });
-          return <article className="employee-card" key={row.id}>
-            <div className="employee-card-head">
-              <div><strong>{locale === "ar" && row.name_ar ? row.name_ar : row.name_en}</strong><div className="muted code">{row.employee_code}</div></div>
-              <span className={`badge status-${row.status}`}>{statusText(row.status, d)}</span>
-            </div>
-            <div className="employee-card-meta">
-              <span>{row.position ?? d.noPosition}</span>
-              <span>{branch?.name_en ?? d.allBranches}</span>
-              {team?.name_en ? <span>{team.name_en}</span> : null}
-            </div>
-            <div className="role-badges">{roleNames.length ? roleNames.map((name) => <span className="badge" key={name}>{name}</span>) : <span className="muted">{d.noRoles}</span>}</div>
-            <Link className="button ghost full-width" href={`/${locale}/employees/${row.id}`}>{d.manageEmployee}</Link>
-          </article>;
-        })}
-        {!employees?.length ? <div className="empty">{d.empty}</div> : null}
-      </div>
     </section>
     </div>
   </>;

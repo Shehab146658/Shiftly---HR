@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { archiveEmployee, updateEmployee, updateEmployeeRoles } from "../../actions";
+import { ActionForm } from "@/components/action-form";
 import { getTenantPageContext } from "@/lib/page-context";
 
 export default async function EmployeeDetailsPage({ params }: { params: Promise<{ locale: string; employeeId: string }> }) {
@@ -41,12 +42,12 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
         <h1 className="page-title">{locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en}</h1>
         <p className="muted code">{employee.employee_code}</p>
       </div>
-      {employee.status !== "terminated" ? <form action={archiveAction}><button className="button danger">{d.archiveEmployee}</button></form> : null}
+      {employee.status !== "terminated" ? <ActionForm action={archiveAction} confirmMessage={d.archiveEmployeeConfirm} errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.employeeArchived}><button className="button danger" type="submit">{d.archiveEmployee}</button></ActionForm> : null}
     </div>
 
     <section className="card stack">
       <h2>{d.employeeDetails}</h2>
-      <form action={action} className="form-grid three-columns">
+      <ActionForm action={action} className="form-grid three-columns" errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.employeeUpdated}>
         <div className="field"><label>{d.code}</label><input className="input" name="employeeCode" defaultValue={employee.employee_code} required /></div>
         <div className="field"><label>{d.nameEnglish}</label><input className="input" name="nameEn" defaultValue={employee.name_en} required /></div>
         <div className="field"><label>{d.nameArabic}</label><input className="input" name="nameAr" dir="rtl" defaultValue={employee.name_ar ?? ""} /></div>
@@ -61,7 +62,7 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
         <div className="field"><label>{d.statusLabel}</label><select className="select" name="status" defaultValue={employee.status}><option value="active">{d.active}</option><option value="inactive">{d.inactive}</option><option value="on_leave">{d.onLeave}</option><option value="terminated">{d.terminated}</option></select></div>
         <div className="field full"><label>{d.notes}</label><textarea className="input" name="notes" rows={3} defaultValue={employee.notes ?? ""} /></div>
         <div className="full"><button className="button">{d.update}</button></div>
-      </form>
+      </ActionForm>
     </section>
 
     <section className="card stack section-gap">
@@ -80,7 +81,7 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
           {employee.user_id ? d.accountLinked : d.accountPending}
         </span>
       </div>
-      <form action={rolesAction} className="stack">
+      <ActionForm action={rolesAction} className="stack" errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.rolesUpdated}>
         <div className="role-option-grid">
           {roles?.map((role) => <label className="role-option" key={role.id}>
             <input defaultChecked={assignedRoleIds.has(role.id)} name="roleIds" type="checkbox" value={role.id} />
@@ -92,7 +93,7 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
         </div>
         {!roles?.length ? <div className="empty">{d.empty}</div> : null}
         <div><button className="button">{d.saveRoles}</button></div>
-      </form>
+      </ActionForm>
     </section>
 
     <section className="card stack section-gap">
