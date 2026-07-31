@@ -708,7 +708,9 @@ tbody tr:last-child td { border-bottom: 0; }
   .stat-card strong { font-size: 1.55rem; }
   .balance-metrics { grid-template-columns: 1fr 1fr; }
   .leave-balance-card .card-heading { align-items: stretch; }
-  .leave-balance-card .card-heading form { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .leave-balance-card .card-heading form { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; width: 100%; }
+  .leave-balance-card .card-heading form .select { min-width: 0; width: 100%; }
+  .leave-balance-card .card-heading form .button { width: 100%; }
   .calendar-pager { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .calendar-pager strong { grid-column: 1 / -1; grid-row: 1; }
   .calendar-pager .button { min-height: 38px; padding: 7px 9px; font-size: .72rem; }
