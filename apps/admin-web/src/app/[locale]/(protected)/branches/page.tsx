@@ -8,10 +8,12 @@ export default async function BranchesPage({ params }: { params: Promise<{ local
   if (!membership) return <div className="card">{d.noCompany}</div>;
   const tenantId = membership.tenant_id;
   const { data, error } = await supabase.from("branches")
-    .select("id, code, name_en, name_ar, is_active, operational_day_start, maximum_shift_hours, week_start_isodow, default_schedule_visibility")
+    .select("id, code, name_en, name_ar, is_active, operational_day_start, maximum_shift_hours, week_start_isodow, weekly_rest_isodows, is_industrial_establishment, default_schedule_visibility")
     .eq("tenant_id", tenantId).order("name_en");
   if (error) throw error;
   const action = createBranch.bind(null, locale, tenantId);
+  const leaveCopy = locale === "ar" ? { weeklyRest: "أيام الراحة الأسبوعية", industrial: "منشأة صناعية", industrialHelp: "يُفعّل شرائح الإجازة المرضية الخاصة بالمنشآت الصناعية." } : { weeklyRest: "Weekly rest days", industrial: "Industrial establishment", industrialHelp: "Enables the statutory industrial sick-leave tiers." };
+  const weekdays = [[1, d.monday], [2, d.tuesday], [3, d.wednesday], [4, d.thursday], [5, d.friday], [6, d.saturday], [7, d.sunday]] as const;
 
   return <>
     <div className="page-head"><div><h1 className="page-title">{d.branches}</h1></div></div>
@@ -34,6 +36,8 @@ export default async function BranchesPage({ params }: { params: Promise<{ local
             <div className="field"><label>{d.operationalDayStart}</label><input className="input" type="time" name="operationalDayStart" defaultValue={String(row.operational_day_start).slice(0, 5)} required /></div>
             <div className="field"><label>{d.maximumShiftHours}</label><input className="input" type="number" min="1" max="24" name="maximumShiftHours" defaultValue={row.maximum_shift_hours} required /></div>
             <div className="field"><label>{d.weekStartsOn}</label><select className="select" name="weekStartIsodow" defaultValue={row.week_start_isodow}><option value="1">{d.monday}</option><option value="2">{d.tuesday}</option><option value="3">{d.wednesday}</option><option value="4">{d.thursday}</option><option value="5">{d.friday}</option><option value="6">{d.saturday}</option><option value="7">{d.sunday}</option></select></div>
+            <div className="field"><label>{leaveCopy.weeklyRest}</label><div className="weekday-checks">{weekdays.map(([value, label]) => <label key={value}><input defaultChecked={row.weekly_rest_isodows?.includes(value)} name="weeklyRestIsodows" type="checkbox" value={value} />{label}</label>)}</div></div>
+            <label className="role-option"><input defaultChecked={row.is_industrial_establishment} name="isIndustrialEstablishment" type="checkbox" /><span><strong>{leaveCopy.industrial}</strong><small>{leaveCopy.industrialHelp}</small></span></label>
             <div className="field"><label>{d.defaultVisibility}</label><select className="select" name="defaultScheduleVisibility" defaultValue={row.default_schedule_visibility}><option value="self">{d.selfOnly}</option><option value="team">{d.teamVisibility}</option><option value="branch">{d.branchVisibility}</option><option value="all">{d.everyone}</option></select></div>
             <button className="button secondary">{d.save}</button>
           </ActionForm>

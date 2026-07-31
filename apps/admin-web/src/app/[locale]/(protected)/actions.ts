@@ -74,11 +74,15 @@ export async function updateBranchSchedulingRules(locale: AppLocale, tenantId: s
     operationalDayStart: timeSchema,
     maximumShiftHours: z.coerce.number().int().min(1).max(24),
     weekStartIsodow: z.coerce.number().int().min(1).max(7),
+    weeklyRestIsodows: z.array(z.coerce.number().int().min(1).max(7)).min(1).max(6),
+    isIndustrialEstablishment: z.boolean(),
     defaultScheduleVisibility: z.enum(["self", "team", "branch", "all"]),
   }).parse({
     operationalDayStart: formData.get("operationalDayStart"),
     maximumShiftHours: formData.get("maximumShiftHours"),
     weekStartIsodow: formData.get("weekStartIsodow"),
+    weeklyRestIsodows: formData.getAll("weeklyRestIsodows"),
+    isIndustrialEstablishment: formData.get("isIndustrialEstablishment") === "on",
     defaultScheduleVisibility: formData.get("defaultScheduleVisibility"),
   });
   const supabase = await createSupabaseServerClient();
@@ -86,6 +90,8 @@ export async function updateBranchSchedulingRules(locale: AppLocale, tenantId: s
     operational_day_start: values.operationalDayStart,
     maximum_shift_hours: values.maximumShiftHours,
     week_start_isodow: values.weekStartIsodow,
+    weekly_rest_isodows: values.weeklyRestIsodows,
+    is_industrial_establishment: values.isIndustrialEstablishment,
     default_schedule_visibility: values.defaultScheduleVisibility,
   }).eq("tenant_id", idSchema.parse(tenantId)).eq("id", idSchema.parse(branchId));
   if (error) throw error;
@@ -159,6 +165,14 @@ const employeeFormSchema = z.object({
   preferredLocale: z.enum(["en", "ar"]),
   status: z.enum(["active", "inactive", "on_leave", "terminated"]),
   hireDate: dateSchema.optional(),
+  birthDate: dateSchema.optional(),
+  gender: z.enum(["female", "male", "unspecified"]),
+  priorServiceYears: z.coerce.number().min(0).max(100),
+  isPersonWithDisability: z.boolean(),
+  isDwarf: z.boolean(),
+  worksHazardous: z.boolean(),
+  worksUnhealthy: z.boolean(),
+  worksRemoteLocation: z.boolean(),
   branchId: optionalId,
   teamId: optionalId,
   managerEmployeeId: optionalId,
@@ -176,6 +190,14 @@ function parseEmployeeForm(formData: FormData) {
     preferredLocale: formData.get("preferredLocale") || "en",
     status: formData.get("status") || "active",
     hireDate: optionalString(formData.get("hireDate")),
+    birthDate: optionalString(formData.get("birthDate")),
+    gender: formData.get("gender") || "unspecified",
+    priorServiceYears: formData.get("priorServiceYears") || "0",
+    isPersonWithDisability: formData.get("isPersonWithDisability") === "on",
+    isDwarf: formData.get("isDwarf") === "on",
+    worksHazardous: formData.get("worksHazardous") === "on",
+    worksUnhealthy: formData.get("worksUnhealthy") === "on",
+    worksRemoteLocation: formData.get("worksRemoteLocation") === "on",
     branchId: optionalString(formData.get("branchId")),
     teamId: optionalString(formData.get("teamId")),
     managerEmployeeId: optionalString(formData.get("managerEmployeeId")),
@@ -195,6 +217,14 @@ function employeePayload(tenantId: string, values: z.infer<typeof employeeFormSc
     preferred_locale: values.preferredLocale,
     status: values.status,
     hire_date: values.hireDate ?? null,
+    birth_date: values.birthDate ?? null,
+    gender: values.gender,
+    prior_service_years: values.priorServiceYears,
+    is_person_with_disability: values.isPersonWithDisability,
+    is_dwarf: values.isDwarf,
+    works_hazardous: values.worksHazardous,
+    works_unhealthy: values.worksUnhealthy,
+    works_remote_location: values.worksRemoteLocation,
     branch_id: values.branchId ?? null,
     team_id: values.teamId ?? null,
     manager_employee_id: values.managerEmployeeId ?? null,
@@ -335,6 +365,204 @@ export async function updateEmployeeRoles(locale: AppLocale, tenantId: string, e
   revalidatePath(`/${locale}/employees`);
   revalidatePath(`/${locale}/employees/${employeeId}`);
   revalidatePath(`/${locale}/roles`);
+}
+
+const leaveDayPartSchema = z.enum(["full", "first_half", "second_half", "hours"]);
+const leaveTransactionKindSchema = z.enum(["adjustment", "carryover", "settlement", "holiday_credit", "reversal"]);
+
+function refreshLeavePaths(locale: AppLocale) {
+  revalidatePath(`/${locale}/leaves`);
+  revalidatePath(`/${locale}/dashboard`);
+  revalidatePath(`/${locale}/employees`);
+}
+
+export async function submitLeaveRequest(locale: AppLocale, tenantId: string, formData: FormData) {
+  const values = z.object({
+    employeeId: idSchema,
+    leaveTypeId: idSchema,
+    startDate: dateSchema,
+    endDate: dateSchema,
+    dayPart: leaveDayPartSchema,
+    requestedMinutes: z.coerce.number().int().min(1).max(720).optional(),
+    reason: z.string().trim().max(2000).optional(),
+    expectedDeliveryDate: dateSchema.optional(),
+    actualDeliveryDate: dateSchema.optional(),
+  }).parse({
+    employeeId: formData.get("employeeId"),
+    leaveTypeId: formData.get("leaveTypeId"),
+    startDate: formData.get("startDate"),
+    endDate: formData.get("endDate"),
+    dayPart: formData.get("dayPart") || "full",
+    requestedMinutes: optionalString(formData.get("requestedMinutes")),
+    reason: optionalString(formData.get("reason")),
+    expectedDeliveryDate: optionalString(formData.get("expectedDeliveryDate")),
+    actualDeliveryDate: optionalString(formData.get("actualDeliveryDate")),
+  });
+  idSchema.parse(tenantId);
+
+  const document = formData.get("supportingDocument");
+  const hasDocument = document instanceof File && document.size > 0;
+  if (hasDocument) {
+    if (document.size > 10 * 1024 * 1024) throw new Error("Supporting documents must be 10 MB or smaller.");
+    if (!["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(document.type)) {
+      throw new Error("Supporting documents must be PDF, JPG, PNG, or WebP.");
+    }
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data: requestId, error } = await supabase.rpc("submit_leave_request", {
+    p_employee_id: values.employeeId,
+    p_leave_type_id: values.leaveTypeId,
+    p_start_date: values.startDate,
+    p_end_date: values.endDate,
+    p_day_part: values.dayPart,
+    p_requested_minutes: values.requestedMinutes ?? null,
+    p_reason: values.reason ?? "",
+    p_has_document: hasDocument,
+    p_expected_delivery_date: values.expectedDeliveryDate ?? null,
+    p_actual_delivery_date: values.actualDeliveryDate ?? null,
+  });
+  if (error) throw error;
+  const parsedRequestId = idSchema.parse(requestId);
+
+  if (hasDocument) {
+    const safeName = document.name.normalize("NFKD").replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "document";
+    const objectPath = `${tenantId}/${values.employeeId}/${parsedRequestId}/${Date.now()}-${safeName}`;
+    const { error: uploadError } = await supabase.storage.from("leave-documents").upload(objectPath, document, {
+      contentType: document.type,
+      upsert: false,
+    });
+    if (uploadError) {
+      await supabase.rpc("cancel_leave_request", { p_request_id: parsedRequestId, p_reason: "Document upload failed" });
+      throw uploadError;
+    }
+    const { error: attachError } = await supabase.rpc("attach_leave_document", {
+      p_request_id: parsedRequestId,
+      p_document_path: objectPath,
+    });
+    if (attachError) {
+      await supabase.rpc("cancel_leave_request", { p_request_id: parsedRequestId, p_reason: "Document attachment failed" });
+      throw attachError;
+    }
+  }
+
+  refreshLeavePaths(locale);
+}
+
+export async function reviewLeaveRequest(locale: AppLocale, requestId: string, decision: "approved" | "rejected", formData: FormData) {
+  const note = z.string().trim().max(2000).optional().parse(optionalString(formData.get("reviewNote")));
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("review_leave_request", {
+    p_request_id: idSchema.parse(requestId),
+    p_decision: z.enum(["approved", "rejected"]).parse(decision),
+    p_note: note ?? null,
+  });
+  if (error) throw error;
+  refreshLeavePaths(locale);
+}
+
+export async function cancelLeaveRequest(locale: AppLocale, requestId: string, formData: FormData) {
+  const reason = z.string().trim().min(2).max(1000).parse(formData.get("cancellationReason"));
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("cancel_leave_request", {
+    p_request_id: idSchema.parse(requestId),
+    p_reason: reason,
+  });
+  if (error) throw error;
+  refreshLeavePaths(locale);
+}
+
+export async function adjustLeaveBalance(locale: AppLocale, formData: FormData) {
+  const values = z.object({
+    employeeId: idSchema,
+    balanceCode: z.string().trim().min(2).max(60).regex(/^[a-z0-9_]+$/),
+    leaveYear: z.coerce.number().int().min(2000).max(2200),
+    units: z.coerce.number().min(-1000).max(1000).refine((value) => value !== 0),
+    kind: leaveTransactionKindSchema,
+    reason: z.string().trim().min(2).max(1000),
+  }).parse({
+    employeeId: formData.get("employeeId"),
+    balanceCode: formData.get("balanceCode"),
+    leaveYear: formData.get("leaveYear"),
+    units: formData.get("units"),
+    kind: formData.get("kind") || "adjustment",
+    reason: formData.get("reason"),
+  });
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("adjust_leave_balance", {
+    p_employee_id: values.employeeId,
+    p_balance_code: values.balanceCode,
+    p_leave_year: values.leaveYear,
+    p_units: values.units,
+    p_reason: values.reason,
+    p_kind: values.kind,
+  });
+  if (error) throw error;
+  refreshLeavePaths(locale);
+}
+
+export async function createPublicHoliday(locale: AppLocale, tenantId: string, formData: FormData) {
+  const values = z.object({
+    holidayDate: dateSchema,
+    nameEn: z.string().trim().min(2).max(150),
+    nameAr: z.string().trim().min(2).max(150),
+    religiousScope: z.enum(["all", "muslim", "non_muslim"]),
+    sourceReference: z.string().trim().max(500).optional(),
+    isPaid: z.boolean(),
+  }).parse({
+    holidayDate: formData.get("holidayDate"),
+    nameEn: formData.get("nameEn"),
+    nameAr: formData.get("nameAr"),
+    religiousScope: formData.get("religiousScope") || "all",
+    sourceReference: optionalString(formData.get("sourceReference")),
+    isPaid: formData.get("isPaid") === "on",
+  });
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("public_holidays").insert({
+    tenant_id: idSchema.parse(tenantId),
+    holiday_date: values.holidayDate,
+    name_en: values.nameEn,
+    name_ar: values.nameAr,
+    religious_scope: values.religiousScope,
+    source_reference: values.sourceReference ?? null,
+    is_paid: values.isPaid,
+  });
+  if (error) throw error;
+  refreshLeavePaths(locale);
+}
+
+export async function deletePublicHoliday(locale: AppLocale, tenantId: string, holidayId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("public_holidays").delete()
+    .eq("tenant_id", idSchema.parse(tenantId)).eq("id", idSchema.parse(holidayId));
+  if (error) throw error;
+  refreshLeavePaths(locale);
+}
+
+export async function updateLeaveType(locale: AppLocale, tenantId: string, leaveTypeId: string, formData: FormData) {
+  const values = z.object({
+    isActive: z.boolean(),
+    requiresDocument: z.boolean(),
+    requiresReason: z.boolean(),
+    minNoticeDays: z.coerce.number().int().min(0).max(365),
+    maxDaysPerRequest: z.coerce.number().positive().max(1000).optional(),
+  }).parse({
+    isActive: formData.get("isActive") === "on",
+    requiresDocument: formData.get("requiresDocument") === "on",
+    requiresReason: formData.get("requiresReason") === "on",
+    minNoticeDays: formData.get("minNoticeDays") || "0",
+    maxDaysPerRequest: optionalString(formData.get("maxDaysPerRequest")),
+  });
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("leave_types").update({
+    is_active: values.isActive,
+    requires_document: values.requiresDocument,
+    requires_reason: values.requiresReason,
+    min_notice_days: values.minNoticeDays,
+    max_days_per_request: values.maxDaysPerRequest ?? null,
+  }).eq("tenant_id", idSchema.parse(tenantId)).eq("id", idSchema.parse(leaveTypeId));
+  if (error) throw error;
+  refreshLeavePaths(locale);
 }
 
 export async function createShiftTemplate(locale: AppLocale, tenantId: string, formData: FormData) {

@@ -34,6 +34,15 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
   const archiveAction = archiveEmployee.bind(null, locale, tenantId, employeeId);
   const rolesAction = updateEmployeeRoles.bind(null, locale, tenantId, employeeId);
   const assignedRoleIds = new Set(assignedRoleRows?.map((row) => row.role_id) ?? []);
+  const leaveCopy = locale === "ar" ? {
+    statutoryProfile: "بيانات استحقاق الإجازات", statutoryHelp: "تُستخدم هذه البيانات لحساب الحد الأدنى القانوني تلقائيًا.",
+    birthDate: "تاريخ الميلاد", gender: "النوع", female: "أنثى", male: "ذكر", unspecified: "غير محدد", priorService: "سنوات خدمة سابقة",
+    disability: "شخص ذو إعاقة", dwarf: "من الأقزام", hazardous: "يعمل في أعمال خطرة", unhealthy: "يعمل في أعمال ضارة بالصحة", remote: "يعمل في منطقة نائية",
+  } : {
+    statutoryProfile: "Statutory leave profile", statutoryHelp: "These facts drive the protected legal minimum calculation.",
+    birthDate: "Birth date", gender: "Gender", female: "Female", male: "Male", unspecified: "Unspecified", priorService: "Prior service years",
+    disability: "Person with disability", dwarf: "Person with dwarfism", hazardous: "Hazardous work", unhealthy: "Unhealthy work", remote: "Remote-location work",
+  };
 
   return <>
     <div className="page-head">
@@ -58,8 +67,12 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
         <div className="field"><label>{d.team}</label><select className="select" name="teamId" defaultValue={employee.team_id ?? ""}><option value="">—</option>{teams?.map((t) => <option key={t.id} value={t.id}>{t.name_en}</option>)}</select></div>
         <div className="field"><label>{d.manager}</label><select className="select" name="managerEmployeeId" defaultValue={employee.manager_employee_id ?? ""}><option value="">—</option>{managers?.map((m) => <option key={m.id} value={m.id}>{m.name_en}</option>)}</select></div>
         <div className="field"><label>{d.hireDate}</label><input className="input" name="hireDate" type="date" defaultValue={employee.hire_date ?? ""} /></div>
+        <div className="field"><label>{leaveCopy.birthDate}</label><input className="input" name="birthDate" type="date" defaultValue={employee.birth_date ?? ""} /></div>
+        <div className="field"><label>{leaveCopy.gender}</label><select className="select" name="gender" defaultValue={employee.gender ?? "unspecified"}><option value="unspecified">{leaveCopy.unspecified}</option><option value="female">{leaveCopy.female}</option><option value="male">{leaveCopy.male}</option></select></div>
+        <div className="field"><label>{leaveCopy.priorService}</label><input className="input" min="0" max="100" name="priorServiceYears" step="0.25" type="number" defaultValue={employee.prior_service_years ?? 0} /></div>
         <div className="field"><label>{d.preferredLanguage}</label><select className="select" name="preferredLocale" defaultValue={employee.preferred_locale}><option value="en">English</option><option value="ar">العربية</option></select></div>
         <div className="field"><label>{d.statusLabel}</label><select className="select" name="status" defaultValue={employee.status}><option value="active">{d.active}</option><option value="inactive">{d.inactive}</option><option value="on_leave">{d.onLeave}</option><option value="terminated">{d.terminated}</option></select></div>
+        <div className="field full"><label>{leaveCopy.statutoryProfile}</label><small className="muted">{leaveCopy.statutoryHelp}</small><div className="role-option-grid statutory-flags"><label className="role-option"><input defaultChecked={employee.is_person_with_disability} name="isPersonWithDisability" type="checkbox" /><span><strong>{leaveCopy.disability}</strong></span></label><label className="role-option"><input defaultChecked={employee.is_dwarf} name="isDwarf" type="checkbox" /><span><strong>{leaveCopy.dwarf}</strong></span></label><label className="role-option"><input defaultChecked={employee.works_hazardous} name="worksHazardous" type="checkbox" /><span><strong>{leaveCopy.hazardous}</strong></span></label><label className="role-option"><input defaultChecked={employee.works_unhealthy} name="worksUnhealthy" type="checkbox" /><span><strong>{leaveCopy.unhealthy}</strong></span></label><label className="role-option"><input defaultChecked={employee.works_remote_location} name="worksRemoteLocation" type="checkbox" /><span><strong>{leaveCopy.remote}</strong></span></label></div></div>
         <div className="field full"><label>{d.notes}</label><textarea className="input" name="notes" rows={3} defaultValue={employee.notes ?? ""} /></div>
         <div className="full"><button className="button">{d.update}</button></div>
       </ActionForm>
