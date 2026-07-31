@@ -78,6 +78,7 @@ button { cursor: pointer; }
 .sidebar-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sidebar .brand { color: white; padding-inline: 10px; }
 .sidebar-close, .menu-button, .sidebar-overlay { display: none; }
+.shell-menu-button { position: fixed; }
 .nav { display: grid; gap: 7px; }
 .nav a { padding: 11px 12px; border-radius: 10px; color: #d6def0; font-weight: 700; }
 .nav a:hover { background: rgba(255,255,255,.09); color: white; }
@@ -402,6 +403,22 @@ textarea.input { resize: vertical; min-height: 44px; }
     background: var(--surface);
     color: var(--text);
   }
+  .shell-menu-button {
+    position: fixed;
+    z-index: 70;
+    top: 12px;
+    inset-inline-start: 18px;
+    transition: inset-inline-start .2s ease, background .2s ease, color .2s ease, border-color .2s ease;
+  }
+  .shell-menu-button-open {
+    inset-inline-start: calc(min(320px, 86vw) + 6px);
+    border-color: rgba(255,255,255,.72);
+    background: #182743;
+    color: white;
+    box-shadow: 0 10px 26px rgba(15, 28, 54, .24);
+  }
+  .menu-button-close { font-size: 1.65rem; line-height: 1; }
+  .topbar-start { padding-inline-start: 54px; }
   .menu-button-lines { display: grid; gap: 4px; width: 19px; }
   .menu-button-lines i { display: block; height: 2px; border-radius: 999px; background: currentColor; }
   .topbar-product { display: block; }
@@ -409,6 +426,8 @@ textarea.input { resize: vertical; min-height: 44px; }
 @media (max-width: 640px) {
   .content { padding: 18px 14px 30px; }
   .topbar { padding-inline: 14px; }
+  .shell-menu-button { inset-inline-start: 14px; }
+  .shell-menu-button-open { inset-inline-start: calc(min(320px, 86vw) + 5px); }
   .three-columns, .branch-grid, .two-columns, .role-option-grid { grid-template-columns: 1fr; }
   .compact { width: 100%; }
   .page-title { font-size: 1.5rem; }

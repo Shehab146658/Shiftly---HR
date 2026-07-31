@@ -55,6 +55,20 @@ export function AppShell({
   return (
     <div className="shell">
       <button
+        aria-controls="primary-navigation"
+        aria-expanded={menuOpen}
+        aria-label={menuOpen
+          ? (locale === "ar" ? "إغلاق القائمة" : "Close navigation")
+          : (locale === "ar" ? "فتح القائمة" : "Open navigation")}
+        className={`menu-button shell-menu-button${menuOpen ? " shell-menu-button-open" : ""}`}
+        onClick={() => setMenuOpen((open) => !open)}
+        type="button"
+      >
+        {menuOpen
+          ? <span aria-hidden="true" className="menu-button-close">×</span>
+          : <span aria-hidden="true" className="menu-button-lines"><i /><i /><i /></span>}
+      </button>
+      <button
         aria-label={locale === "ar" ? "إغلاق القائمة" : "Close navigation"}
         className={`sidebar-overlay${menuOpen ? " sidebar-overlay-visible" : ""}`}
         onClick={() => setMenuOpen(false)}
@@ -92,16 +106,6 @@ export function AppShell({
       <div className="main">
         <header className="topbar">
           <div className="topbar-start">
-            <button
-              aria-controls="primary-navigation"
-              aria-expanded={menuOpen}
-              aria-label={locale === "ar" ? "فتح القائمة" : "Open navigation"}
-              className="menu-button"
-              onClick={() => setMenuOpen(true)}
-              type="button"
-            >
-              <span aria-hidden="true" className="menu-button-lines"><i /><i /><i /></span>
-            </button>
             <div className="topbar-identity">
               <Link className="topbar-brand-link" href={`/${locale}/dashboard`}><BrandMark compact /></Link>
               <strong title={companyName ?? d.product}>{companyName ?? d.product}</strong>
