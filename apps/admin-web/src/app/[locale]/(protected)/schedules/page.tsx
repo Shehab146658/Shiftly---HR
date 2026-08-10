@@ -47,7 +47,7 @@ export default async function SchedulesPage({
       <h2>{d.createSchedule}</h2>
       <ActionForm action={action} className="form-grid" errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.scheduleCreated}>
         <div className="field"><label>{d.branch}</label><select className="select" name="branchId" required><option value="">—</option>{branches?.map((b) => <option key={b.id} value={b.id}>{locale === "ar" && b.name_ar ? b.name_ar : b.name_en}</option>)}</select></div>
-        <div className="field"><label>{d.weekStart}</label><input className="input" name="weekStart" type="date" required /></div>
+        <div className="field"><label>{d.weekDate}</label><input className="input" name="weekStart" type="date" required /><small>{d.weekDateHelp}</small></div>
         <div className="field"><label>{d.visibility}</label><select className="select" name="visibility" defaultValue="self"><option value="self">{d.selfOnly}</option><option value="team">{d.teamVisibility}</option><option value="branch">{d.branchVisibility}</option><option value="all">{d.everyone}</option></select></div>
         <div className="field"><label>{d.notes}</label><input className="input" name="notes" /></div>
         <div className="full"><button className="button">{d.create}</button></div>

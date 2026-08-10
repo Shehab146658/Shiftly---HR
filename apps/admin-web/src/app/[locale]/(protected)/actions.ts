@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AppLocale } from "@/lib/i18n";
+import { configuredWeekStart } from "@/lib/scheduling";
 
 const idSchema = z.string().uuid();
 const codeSchema = z.string().trim().min(2).max(30).regex(/^[A-Za-z0-9_-]+$/);
@@ -652,10 +653,30 @@ export async function createWeeklySchedule(locale: AppLocale, tenantId: string, 
     notes: optionalString(formData.get("notes")),
   });
   const supabase = await createSupabaseServerClient();
+  const tenantIdValue = idSchema.parse(tenantId);
+  const { data: branch, error: branchError } = await supabase.from("branches")
+    .select("week_start_isodow")
+    .eq("tenant_id", tenantIdValue)
+    .eq("id", values.branchId)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (branchError) throw branchError;
+  if (!branch) throw new Error("The selected branch is unavailable.");
+  const normalizedWeekStart = configuredWeekStart(values.weekStart, branch.week_start_isodow);
+
+  const { data: existing, error: existingError } = await supabase.from("weekly_schedules")
+    .select("id")
+    .eq("tenant_id", tenantIdValue)
+    .eq("branch_id", values.branchId)
+    .eq("week_start", normalizedWeekStart)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (existing) redirect(`/${locale}/schedules/${existing.id}`);
+
   const { data, error } = await supabase.from("weekly_schedules").insert({
-    tenant_id: idSchema.parse(tenantId),
+    tenant_id: tenantIdValue,
     branch_id: values.branchId,
-    week_start: values.weekStart,
+    week_start: normalizedWeekStart,
     visibility: values.visibility,
     notes: values.notes ?? null,
   }).select("id").single();
