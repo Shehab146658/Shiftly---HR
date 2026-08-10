@@ -24,6 +24,7 @@
 - Attendance evidence, calculated workdays, configurable grace periods, overtime thresholds, and missing-time balances.
 - Audited manual punches, pending evidence approval/rejection, date and workforce filters, summary totals, and CSV export.
 - Worked-time pairing for split shifts and clocked breaks instead of treating the day as one continuous span.
+- Repeatable attendance preview data with realistic present, late, overtime, early-departure, incomplete, absent, OFF, and pending-geofence cases.
 
 ## Experience hardening
 

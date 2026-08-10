@@ -38,6 +38,12 @@ $env:SUPABASE_SECRET_KEY="<local-secret-key>"
 npm run seed:demo
 ```
 
+For realistic attendance examples, run
+[`supabase/demo/seed_attendance_preview.sql`](../supabase/demo/seed_attendance_preview.sql)
+in Supabase Studio after creating the demo tenant. The repeatable dataset includes
+on-time, late, overtime, early departure, incomplete, absent, OFF, and
+pending-review cases without replacing non-demo schedules or punches.
+
 ## Admin portal
 
 ```powershell
