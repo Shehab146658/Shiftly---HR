@@ -782,7 +782,7 @@ tbody tr:last-child td { border-bottom: 0; }
   .modal-panel { width: 100%; max-height: 92dvh; border-radius: 22px 22px 0 0; }
   .employee-create-modal { padding: 18px 15px 24px; }
   .modal-head { margin-bottom: 18px; }
-  .modal-actions { position: sticky; bottom: 0; padding: 13px 0 0; background: linear-gradient(transparent, white 25%); }
+  .modal-actions { position: static; padding: 18px 0 0; background: transparent; }
   .modal-actions .button { flex: 1; }
   .action-feedback { top: auto; bottom: 18px; inset-inline: 16px; width: auto; }
   .employee-optional-column, .employee-code-column { display: none; }
