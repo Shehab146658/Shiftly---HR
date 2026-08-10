@@ -21,6 +21,19 @@ The current release adds:
 - Database-enforced schedule visibility and branch-scoped manager writes.
 - Real seed schedules for Gate Way, The One, Berry Rose, and Onovi for 17–23 July 2026.
 
+## Milestone 3 — Attendance operations in progress
+
+The administration foundation now includes:
+
+- Configurable branch grace periods, overtime threshold, mobile clock, selfie, and geofence policies.
+- Audited manual check-in and check-out corrections.
+- Automatic attendance-day calculations from published schedules.
+- Split-shift and clocked-break punch pairing, lateness, early leave, overtime, missing time, and final balance.
+- Pending location-evidence approval with mandatory rejection reasons.
+- Date, employee, branch, and status report filters plus CSV export.
+
+Native employee GPS/selfie capture and fingerprint-device synchronization remain planned attendance work.
+
 ## Milestone 1 — Foundation
 
 The foundation established:

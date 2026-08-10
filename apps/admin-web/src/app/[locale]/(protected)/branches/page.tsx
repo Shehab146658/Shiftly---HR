@@ -8,11 +8,20 @@ export default async function BranchesPage({ params }: { params: Promise<{ local
   if (!membership) return <div className="card">{d.noCompany}</div>;
   const tenantId = membership.tenant_id;
   const { data, error } = await supabase.from("branches")
-    .select("id, code, name_en, name_ar, is_active, operational_day_start, maximum_shift_hours, week_start_isodow, weekly_rest_isodows, is_industrial_establishment, default_schedule_visibility")
+    .select("id, code, name_en, name_ar, is_active, operational_day_start, maximum_shift_hours, week_start_isodow, weekly_rest_isodows, is_industrial_establishment, default_schedule_visibility, late_grace_minutes, early_departure_grace_minutes, overtime_threshold_minutes, geofence_latitude, geofence_longitude, geofence_radius_metres, mobile_clock_enabled, attendance_selfie_required")
     .eq("tenant_id", tenantId).order("name_en");
   if (error) throw error;
   const action = createBranch.bind(null, locale, tenantId);
   const leaveCopy = locale === "ar" ? { weeklyRest: "أيام الراحة الأسبوعية", industrial: "منشأة صناعية", industrialHelp: "يُفعّل شرائح الإجازة المرضية الخاصة بالمنشآت الصناعية." } : { weeklyRest: "Weekly rest days", industrial: "Industrial establishment", industrialHelp: "Enables the statutory industrial sick-leave tiers." };
+  const attendanceCopy = locale === "ar" ? {
+    title: "قواعد الحضور", late: "سماح التأخير (دقيقة)", early: "سماح الانصراف المبكر (دقيقة)", overtime: "حد بدء الإضافي (دقيقة)",
+    latitude: "خط عرض الفرع", longitude: "خط طول الفرع", radius: "نطاق الموقع بالمتر", mobile: "السماح بالبصمة من الهاتف", selfie: "صورة شخصية مطلوبة",
+    mobileHelp: "يتحقق النظام من موقع الفرع ويحتفظ بالصورة كدليل للحضور.",
+  } : {
+    title: "Attendance rules", late: "Late grace (minutes)", early: "Early-departure grace (minutes)", overtime: "Overtime threshold (minutes)",
+    latitude: "Branch latitude", longitude: "Branch longitude", radius: "Geofence radius (metres)", mobile: "Allow mobile clock", selfie: "Require attendance selfie",
+    mobileHelp: "Shiftly validates the branch location and keeps the selfie as attendance evidence.",
+  };
   const weekdays = [[1, d.monday], [2, d.tuesday], [3, d.wednesday], [4, d.thursday], [5, d.friday], [6, d.saturday], [7, d.sunday]] as const;
 
   return <>
@@ -39,6 +48,19 @@ export default async function BranchesPage({ params }: { params: Promise<{ local
             <div className="field"><label>{leaveCopy.weeklyRest}</label><div className="weekday-checks">{weekdays.map(([value, label]) => <label key={value}><input defaultChecked={row.weekly_rest_isodows?.includes(value)} name="weeklyRestIsodows" type="checkbox" value={value} />{label}</label>)}</div></div>
             <label className="role-option"><input defaultChecked={row.is_industrial_establishment} name="isIndustrialEstablishment" type="checkbox" /><span><strong>{leaveCopy.industrial}</strong><small>{leaveCopy.industrialHelp}</small></span></label>
             <div className="field"><label>{d.defaultVisibility}</label><select className="select" name="defaultScheduleVisibility" defaultValue={row.default_schedule_visibility}><option value="self">{d.selfOnly}</option><option value="team">{d.teamVisibility}</option><option value="branch">{d.branchVisibility}</option><option value="all">{d.everyone}</option></select></div>
+            <h3 className="full">{attendanceCopy.title}</h3>
+            <div className="form-grid three-columns attendance-rule-grid">
+              <div className="field"><label>{attendanceCopy.late}</label><input className="input" defaultValue={row.late_grace_minutes} max="240" min="0" name="lateGraceMinutes" type="number" /></div>
+              <div className="field"><label>{attendanceCopy.early}</label><input className="input" defaultValue={row.early_departure_grace_minutes} max="240" min="0" name="earlyDepartureGraceMinutes" type="number" /></div>
+              <div className="field"><label>{attendanceCopy.overtime}</label><input className="input" defaultValue={row.overtime_threshold_minutes} max="480" min="0" name="overtimeThresholdMinutes" type="number" /></div>
+              <div className="field"><label>{attendanceCopy.latitude}</label><input className="input" defaultValue={row.geofence_latitude ?? ""} max="90" min="-90" name="geofenceLatitude" step="0.000001" type="number" /></div>
+              <div className="field"><label>{attendanceCopy.longitude}</label><input className="input" defaultValue={row.geofence_longitude ?? ""} max="180" min="-180" name="geofenceLongitude" step="0.000001" type="number" /></div>
+              <div className="field"><label>{attendanceCopy.radius}</label><input className="input" defaultValue={row.geofence_radius_metres} max="5000" min="20" name="geofenceRadiusMetres" type="number" /></div>
+            </div>
+            <div className="role-option-grid">
+              <label className="role-option"><input defaultChecked={row.mobile_clock_enabled} name="mobileClockEnabled" type="checkbox" /><span><strong>{attendanceCopy.mobile}</strong><small>{attendanceCopy.mobileHelp}</small></span></label>
+              <label className="role-option"><input defaultChecked={row.attendance_selfie_required} name="attendanceSelfieRequired" type="checkbox" /><span><strong>{attendanceCopy.selfie}</strong><small>{attendanceCopy.mobileHelp}</small></span></label>
+            </div>
             <button className="button secondary">{d.save}</button>
           </ActionForm>
         </section>;

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type AppIconName = "dashboard" | "branches" | "teams" | "employees" | "shifts" | "schedules" | "leaves" | "roles" | "audit" | "profile";
+export type AppIconName = "dashboard" | "branches" | "teams" | "employees" | "shifts" | "schedules" | "attendance" | "leaves" | "roles" | "audit" | "profile";
 
 const iconPaths: Record<AppIconName, ReactNode> = {
   dashboard: <><rect height="7" rx="1.5" width="7" x="3" y="3" /><rect height="7" rx="1.5" width="7" x="14" y="3" /><rect height="7" rx="1.5" width="7" x="3" y="14" /><rect height="7" rx="1.5" width="7" x="14" y="14" /></>,
@@ -9,6 +9,7 @@ const iconPaths: Record<AppIconName, ReactNode> = {
   employees: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
   shifts: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
   schedules: <><rect height="18" rx="2" width="18" x="3" y="4" /><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></>,
+  attendance: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2M7.5 3.8 5.7 2M16.5 3.8 18.3 2" /><path d="m8.5 16.5 2 2 4.5-5" /></>,
   leaves: <><path d="M12 3c3.5 2.4 6.2 5.3 6.2 9.1A6.2 6.2 0 1 1 5.8 12C5.8 8.3 8.5 5.4 12 3Z" /><path d="M8.5 13.2 10.8 15l4.6-5" /></>,
   roles: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" /></>,
   audit: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2" /></>,

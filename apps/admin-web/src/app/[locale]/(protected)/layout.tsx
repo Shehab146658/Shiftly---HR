@@ -3,6 +3,9 @@ import { AppShell } from "@/components/app-shell";
 import { getActiveMembership, requireUser } from "@/lib/auth";
 import { isLocale } from "@/lib/i18n";
 
+// Authenticated tenant pages depend on cookies and must never be prerendered as public static output.
+export const dynamic = "force-dynamic";
+
 export default async function ProtectedLayout({ children, params }: { children: React.ReactNode; params: Promise<{ locale: string }> }) {
   const { locale: rawLocale } = await params;
   if (!isLocale(rawLocale)) notFound();

@@ -20,7 +20,8 @@
 
 ## Employee lifecycle
 
-- [ ] HR can create an employee with branch, team, manager, contact details, hire date, language, and status.
+- [ ] HR can create an employee with branch, optional team, manager, contact details, hire date, language, and status.
+- [ ] HR can leave the team empty without blocking employee creation or scheduling.
 - [ ] Employee search filters by text, branch, team, and status.
 - [ ] HR can edit an employee.
 - [ ] HR can archive an employee without deleting historical schedule or audit data.
@@ -50,6 +51,9 @@
 ## Weekly schedules
 
 - [ ] Manager can create a schedule only on the configured branch week-start day.
+- [ ] Manager can search the employee roster and select one or more people before choosing dates and working hours.
+- [ ] Manager can assign the same shift to multiple selected weekdays in one operation.
+- [ ] Temporary staff from another branch can be selected without changing their permanent branch assignment.
 - [ ] Manager can add a shift using a template.
 - [ ] Manager can add a custom shift using start and end times.
 - [ ] Manager can add OFF, leave, training, and assignment entries.
@@ -61,6 +65,18 @@
 - [ ] Published schedules can be locked.
 - [ ] Reopening a published or locked schedule requires `schedules.unlock` and a reason of at least five characters.
 - [ ] Status transitions are recorded.
+- [ ] Overlapping same-day or cross-midnight shifts are rejected transactionally.
+
+## Attendance operations
+
+- [ ] Publishing a schedule creates a calculated attendance day for every scheduled employee.
+- [ ] Authorized users can add audited manual check-in and check-out corrections.
+- [ ] Branch rules configure late grace, early-departure grace, overtime threshold, mobile clock, selfie requirement, and geofence.
+- [ ] Complete punch pairs calculate worked time correctly for split shifts and clocked breaks.
+- [ ] Pending mobile or geofence evidence is excluded until a manager approves it.
+- [ ] Rejected attendance evidence requires a review reason.
+- [ ] Attendance reports filter by date, employee, branch, and status and export the visible rows to CSV.
+- [ ] Report totals show lateness, overtime, missing time, and final time balance.
 
 ## Employee visibility and mobile
 

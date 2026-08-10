@@ -1,5 +1,5 @@
 begin;
-select plan(36);
+select plan(44);
 
 select has_table('public', 'employee_assignments', 'employee assignment history exists');
 select has_table('public', 'shift_templates', 'shift templates exist');
@@ -17,6 +17,20 @@ select has_function('public', 'can_view_weekly_schedule', array['uuid','uuid','u
 select has_function('public', 'can_view_schedule_entry', array['uuid','uuid','uuid','uuid'], 'schedule entry visibility helper exists');
 select has_function('public', 'set_weekly_schedule_status', array['uuid','schedule_status','text'], 'controlled status transition RPC exists');
 select has_function('public', 'copy_weekly_schedule', array['uuid','date'], 'schedule copy RPC exists');
+select has_function(
+  'public',
+  'bulk_assign_schedule_entries',
+  array['uuid','uuid[]','date[]','schedule_entry_type','uuid','time without time zone','time without time zone','smallint','integer','text','text'],
+  'employee-first bulk schedule assignment RPC exists'
+);
+select ok(
+  (select is_nullable = 'YES' from information_schema.columns where table_schema = 'public' and table_name = 'employees' and column_name = 'team_id'),
+  'employee team assignment is optional'
+);
+select ok(
+  (select is_nullable = 'YES' from information_schema.columns where table_schema = 'public' and table_name = 'employee_assignments' and column_name = 'team_id'),
+  'assignment-history team is optional'
+);
 select ok(
   (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = 'public.employee_assignments'::regclass),
   'RLS is enabled on employee assignments'
@@ -211,6 +225,84 @@ select lives_ok(
       '40000000-0000-0000-0000-000000000001'
     )$$,
   'valid draft schedule entry is accepted'
+);
+
+select is(
+  public.bulk_assign_schedule_entries(
+    '50000000-0000-0000-0000-000000000001',
+    array['30000000-0000-0000-0000-000000000001'::uuid],
+    array['2026-07-18'::date, '2026-07-19'::date],
+    'shift'::public.schedule_entry_type,
+    '40000000-0000-0000-0000-000000000001'
+  ),
+  2,
+  'planner assigns selected employees to selected days in one action'
+);
+
+select is(
+  public.bulk_assign_schedule_entries(
+    '50000000-0000-0000-0000-000000000001',
+    array['30000000-0000-0000-0000-000000000001'::uuid],
+    array['2026-07-17'::date],
+    'shift'::public.schedule_entry_type,
+    null,
+    '20:00',
+    '22:00',
+    0::smallint,
+    0
+  ),
+  1,
+  'planner adds a non-overlapping split-shift segment automatically'
+);
+
+select throws_ok(
+  $$select public.bulk_assign_schedule_entries(
+    '50000000-0000-0000-0000-000000000001',
+    array['30000000-0000-0000-0000-000000000001'::uuid],
+    array['2026-07-17'::date],
+    'shift'::public.schedule_entry_type,
+    null,
+    '18:00',
+    '21:00',
+    0::smallint,
+    0
+  )$$,
+  'P0001',
+  'Schedule shifts cannot overlap for the same employee',
+  'overlapping split shifts are rejected'
+);
+
+select is(
+  public.bulk_assign_schedule_entries(
+    '50000000-0000-0000-0000-000000000001',
+    array['30000000-0000-0000-0000-000000000001'::uuid],
+    array['2026-07-18'::date],
+    'shift'::public.schedule_entry_type,
+    null,
+    '22:00',
+    '02:00',
+    1::smallint,
+    0
+  ),
+  1,
+  'planner accepts a valid overnight split segment'
+);
+
+select throws_ok(
+  $$select public.bulk_assign_schedule_entries(
+    '50000000-0000-0000-0000-000000000001',
+    array['30000000-0000-0000-0000-000000000001'::uuid],
+    array['2026-07-19'::date],
+    'shift'::public.schedule_entry_type,
+    null,
+    '01:00',
+    '03:00',
+    0::smallint,
+    0
+  )$$,
+  'P0001',
+  'Schedule shifts cannot overlap for the same employee',
+  'an overnight shift blocks overlapping hours on the next work date'
 );
 
 select throws_ok(

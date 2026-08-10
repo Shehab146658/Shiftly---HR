@@ -72,6 +72,7 @@ export default async function AuditPage({
     shift_templates: d.auditShift,
     weekly_schedules: d.auditSchedule,
     schedule_entries: d.auditScheduleEntry,
+    attendance_punches: d.auditAttendancePunch,
   };
 
   const recordName = (record: JsonRecord) => {
@@ -133,6 +134,10 @@ export default async function AuditPage({
       const scheduleId = String(record.schedule_id ?? "");
       name = `${employeeName(record.employee_id) ?? d.auditScheduleEntry}${typeof record.work_date === "string" ? ` · ${record.work_date}` : ""}`;
       if (scheduleId) href = `/${locale}/schedules/${scheduleId}`;
+    } else if (type === "attendance_punches") {
+      const employeeId = String(record.employee_id ?? "");
+      name = `${employeeName(employeeId) ?? d.auditAttendancePunch}${typeof record.work_date === "string" ? ` · ${record.work_date}` : ""}`;
+      href = `/${locale}/attendance`;
     }
     return { label: entityLabels[type] ?? humanize(type), name, href, before, after };
   };

@@ -77,6 +77,14 @@ export async function updateBranchSchedulingRules(locale: AppLocale, tenantId: s
     weeklyRestIsodows: z.array(z.coerce.number().int().min(1).max(7)).min(1).max(6),
     isIndustrialEstablishment: z.boolean(),
     defaultScheduleVisibility: z.enum(["self", "team", "branch", "all"]),
+    lateGraceMinutes: z.coerce.number().int().min(0).max(240),
+    earlyDepartureGraceMinutes: z.coerce.number().int().min(0).max(240),
+    overtimeThresholdMinutes: z.coerce.number().int().min(0).max(480),
+    geofenceLatitude: z.coerce.number().min(-90).max(90).optional(),
+    geofenceLongitude: z.coerce.number().min(-180).max(180).optional(),
+    geofenceRadiusMetres: z.coerce.number().int().min(20).max(5000),
+    mobileClockEnabled: z.boolean(),
+    attendanceSelfieRequired: z.boolean(),
   }).parse({
     operationalDayStart: formData.get("operationalDayStart"),
     maximumShiftHours: formData.get("maximumShiftHours"),
@@ -84,7 +92,18 @@ export async function updateBranchSchedulingRules(locale: AppLocale, tenantId: s
     weeklyRestIsodows: formData.getAll("weeklyRestIsodows"),
     isIndustrialEstablishment: formData.get("isIndustrialEstablishment") === "on",
     defaultScheduleVisibility: formData.get("defaultScheduleVisibility"),
+    lateGraceMinutes: formData.get("lateGraceMinutes") || "0",
+    earlyDepartureGraceMinutes: formData.get("earlyDepartureGraceMinutes") || "0",
+    overtimeThresholdMinutes: formData.get("overtimeThresholdMinutes") || "30",
+    geofenceLatitude: optionalString(formData.get("geofenceLatitude")),
+    geofenceLongitude: optionalString(formData.get("geofenceLongitude")),
+    geofenceRadiusMetres: formData.get("geofenceRadiusMetres") || "150",
+    mobileClockEnabled: formData.get("mobileClockEnabled") === "on",
+    attendanceSelfieRequired: formData.get("attendanceSelfieRequired") === "on",
   });
+  if ((values.geofenceLatitude === undefined) !== (values.geofenceLongitude === undefined)) {
+    throw new Error("Enter both branch latitude and longitude, or leave both empty.");
+  }
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.from("branches").update({
     operational_day_start: values.operationalDayStart,
@@ -93,6 +112,14 @@ export async function updateBranchSchedulingRules(locale: AppLocale, tenantId: s
     weekly_rest_isodows: values.weeklyRestIsodows,
     is_industrial_establishment: values.isIndustrialEstablishment,
     default_schedule_visibility: values.defaultScheduleVisibility,
+    late_grace_minutes: values.lateGraceMinutes,
+    early_departure_grace_minutes: values.earlyDepartureGraceMinutes,
+    overtime_threshold_minutes: values.overtimeThresholdMinutes,
+    geofence_latitude: values.geofenceLatitude ?? null,
+    geofence_longitude: values.geofenceLongitude ?? null,
+    geofence_radius_metres: values.geofenceRadiusMetres,
+    mobile_clock_enabled: values.mobileClockEnabled,
+    attendance_selfie_required: values.attendanceSelfieRequired,
   }).eq("tenant_id", idSchema.parse(tenantId)).eq("id", idSchema.parse(branchId));
   if (error) throw error;
   revalidatePath(`/${locale}/branches`);
@@ -693,6 +720,59 @@ export async function addScheduleEntry(locale: AppLocale, tenantId: string, sche
   revalidatePath(`/${locale}/schedules/${scheduleId}`);
 }
 
+export async function bulkAssignScheduleEntries(locale: AppLocale, tenantId: string, scheduleId: string, formData: FormData) {
+  const values = z.object({
+    employeeIds: z.array(z.string().uuid()).min(1, "Select at least one employee.").max(100),
+    workDates: z.array(dateSchema).min(1, "Select at least one work day.").max(7),
+    entryType: z.enum(["shift", "off", "leave", "training", "assignment"]),
+    shiftTemplateId: optionalId,
+    customStartTime: timeSchema.optional(),
+    customEndTime: timeSchema.optional(),
+    breakMinutes: z.coerce.number().int().min(0).max(480),
+    positionLabel: z.string().trim().max(150).optional(),
+    notes: z.string().trim().max(1000).optional(),
+  }).superRefine((value, ctx) => {
+    if (value.entryType !== "shift") return;
+    const usesTemplate = Boolean(value.shiftTemplateId);
+    const usesCustom = Boolean(value.customStartTime && value.customEndTime);
+    if (usesTemplate === usesCustom) {
+      ctx.addIssue({ code: "custom", message: "Choose a shift template or enter exact start and end times." });
+    }
+  }).parse({
+    employeeIds: [...new Set(formData.getAll("employeeIds").map(String))],
+    workDates: [...new Set(formData.getAll("workDates").map(String))],
+    entryType: formData.get("entryType") || "shift",
+    shiftTemplateId: optionalString(formData.get("shiftTemplateId")),
+    customStartTime: optionalString(formData.get("customStartTime")),
+    customEndTime: optionalString(formData.get("customEndTime")),
+    breakMinutes: formData.get("breakMinutes") || "0",
+    positionLabel: optionalString(formData.get("positionLabel")),
+    notes: optionalString(formData.get("notes")),
+  });
+
+  idSchema.parse(tenantId);
+  const usesCustomTimes = values.entryType === "shift" && !values.shiftTemplateId;
+  const endsNextDay = usesCustomTimes
+    && Boolean(values.customStartTime && values.customEndTime)
+    && values.customEndTime! <= values.customStartTime!;
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("bulk_assign_schedule_entries", {
+    p_schedule_id: idSchema.parse(scheduleId),
+    p_employee_ids: values.employeeIds,
+    p_work_dates: values.workDates,
+    p_entry_type: values.entryType,
+    p_shift_template_id: values.entryType === "shift" ? values.shiftTemplateId ?? null : null,
+    p_custom_start_time: usesCustomTimes ? values.customStartTime ?? null : null,
+    p_custom_end_time: usesCustomTimes ? values.customEndTime ?? null : null,
+    p_end_day_offset: endsNextDay ? 1 : 0,
+    p_break_minutes: values.entryType === "shift" ? values.breakMinutes : 0,
+    p_position_label: values.positionLabel ?? null,
+    p_notes: values.notes ?? null,
+  });
+  if (error) throw error;
+  revalidatePath(`/${locale}/schedules/${scheduleId}`);
+}
+
 export async function deleteScheduleEntry(locale: AppLocale, tenantId: string, scheduleId: string, entryId: string) {
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.from("schedule_entries").delete()
@@ -725,4 +805,58 @@ export async function copyWeeklySchedule(locale: AppLocale, sourceScheduleId: st
   });
   if (error) throw error;
   redirect(`/${locale}/schedules/${data}`);
+}
+
+export async function recordManualAttendancePunch(locale: AppLocale, tenantId: string, formData: FormData) {
+  const values = z.object({
+    employeeId: z.string().uuid(),
+    branchId: optionalId,
+    workDate: dateSchema,
+    punchType: z.enum(["check_in", "check_out"]),
+    occurredAt: z.string().datetime({ offset: true }),
+    notes: z.string().trim().max(1000).optional(),
+  }).parse({
+    employeeId: formData.get("employeeId"),
+    branchId: optionalString(formData.get("branchId")),
+    workDate: formData.get("workDate"),
+    punchType: formData.get("punchType"),
+    occurredAt: formData.get("occurredAt"),
+    notes: optionalString(formData.get("notes")),
+  });
+  idSchema.parse(tenantId);
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("record_attendance_punch", {
+    p_employee_id: values.employeeId,
+    p_punch_type: values.punchType,
+    p_occurred_at: values.occurredAt,
+    p_source: "manual",
+    p_work_date: values.workDate,
+    p_branch_id: values.branchId ?? null,
+    p_notes: values.notes ?? null,
+  });
+  if (error) throw error;
+  revalidatePath(`/${locale}/attendance`);
+}
+
+export async function refreshAttendancePeriod(locale: AppLocale, tenantId: string, formData: FormData) {
+  const values = z.object({ dateFrom: dateSchema, dateTo: dateSchema }).refine((value) => value.dateTo >= value.dateFrom, {
+    message: "End date must be on or after start date.",
+  }).parse({ dateFrom: formData.get("dateFrom"), dateTo: formData.get("dateTo") });
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("refresh_attendance_period", {
+    p_tenant_id: idSchema.parse(tenantId), p_date_from: values.dateFrom, p_date_to: values.dateTo,
+  });
+  if (error) throw error;
+  revalidatePath(`/${locale}/attendance`);
+}
+
+export async function reviewAttendancePunch(locale: AppLocale, punchId: string, decision: "valid" | "rejected", formData: FormData) {
+  const noteValue = optionalString(formData.get("note"));
+  const note = (decision === "rejected" ? z.string().trim().min(3).max(1000) : z.string().trim().max(1000).optional()).parse(noteValue);
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("review_attendance_punch", {
+    p_punch_id: idSchema.parse(punchId), p_decision: decision, p_note: note ?? null,
+  });
+  if (error) throw error;
+  revalidatePath(`/${locale}/attendance`);
 }

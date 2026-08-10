@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { ActionForm } from "@/components/action-form";
+import { EmployeeOrganizationFields } from "@/components/employee-organization-fields";
 
 type Option = { id: string; name_en: string };
+type TeamOption = Option & { branch_id?: string | null };
 type RoleOption = { id: string; name: string };
 
 export function EmployeeCreateDialog({
@@ -17,7 +19,7 @@ export function EmployeeCreateDialog({
 }: {
   action: (formData: FormData) => Promise<void>;
   branches: Option[];
-  teams: Option[];
+  teams: TeamOption[];
   managers: Option[];
   roles: RoleOption[];
   defaultRoleId?: string;
@@ -45,9 +47,7 @@ export function EmployeeCreateDialog({
           <div className="field"><label>{labels.position}</label><input className="input" name="position" /></div>
           <div className="field"><label>{labels.email}</label><input className="input" name="email" type="email" /></div>
           <div className="field"><label>{labels.phone}</label><input className="input" name="phone" /></div>
-          <div className="field"><label>{labels.branch}</label><select className="select" name="branchId"><option value="">—</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name_en}</option>)}</select></div>
-          <div className="field"><label>{labels.team}</label><select className="select" name="teamId"><option value="">—</option>{teams.map((team) => <option key={team.id} value={team.id}>{team.name_en}</option>)}</select></div>
-          <div className="field"><label>{labels.manager}</label><select className="select" name="managerEmployeeId"><option value="">—</option>{managers.map((manager) => <option key={manager.id} value={manager.id}>{manager.name_en}</option>)}</select></div>
+          <EmployeeOrganizationFields branches={branches} labels={labels} managers={managers} teams={teams} />
           <div className="field"><label>{labels.hireDate}</label><input className="input" name="hireDate" type="date" /></div>
           <div className="field"><label>{labels.preferredLanguage}</label><select className="select" name="preferredLocale"><option value="en">English</option><option value="ar">العربية</option></select></div>
           <div className="field"><label>{labels.statusLabel}</label><select className="select" name="status"><option value="active">{labels.active}</option><option value="inactive">{labels.inactive}</option><option value="on_leave">{labels.onLeave}</option><option value="terminated">{labels.terminated}</option></select></div>

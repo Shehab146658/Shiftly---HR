@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { addScheduleEntry, copyWeeklySchedule, deleteScheduleEntry, transitionSchedule } from "../../actions";
+import { bulkAssignScheduleEntries, copyWeeklySchedule, deleteScheduleEntry, transitionSchedule } from "../../actions";
 import { ActionForm } from "@/components/action-form";
+import { ScheduleAssignmentPlanner } from "@/components/schedule-assignment-planner";
 import { getTenantPageContext } from "@/lib/page-context";
-import { addIsoDays, formatScheduleTime, weekdayKey, weekDates } from "@/lib/scheduling";
+import { formatScheduleTime, weekdayKey, weekDates } from "@/lib/scheduling";
+
+export const dynamic = "force-dynamic";
 
 function entryText(entry: Record<string, unknown>, d: ReturnType<typeof import("@/lib/i18n").getDictionary>) {
   const type = String(entry.entry_type);
@@ -53,13 +56,33 @@ export default async function ScheduleDetailsPage({ params }: { params: Promise<
     entryMap.set(key, current);
   }
 
-  const addAction = addScheduleEntry.bind(null, locale, tenantId, scheduleId, schedule.branch_id);
+  const addAction = bulkAssignScheduleEntries.bind(null, locale, tenantId, scheduleId);
   const publishAction = transitionSchedule.bind(null, locale, scheduleId, "published");
   const lockAction = transitionSchedule.bind(null, locale, scheduleId, "locked");
   const reopenAction = transitionSchedule.bind(null, locale, scheduleId, "draft");
   const archiveAction = transitionSchedule.bind(null, locale, scheduleId, "archived");
   const copyAction = copyWeeklySchedule.bind(null, locale, scheduleId);
   const editable = schedule.status === "draft";
+  const scheduledPeople = new Set((entries ?? []).map((entry) => entry.employee_id));
+  const assignedDays = new Set((entries ?? []).map((entry) => `${entry.employee_id}:${entry.work_date}`));
+  const possibleVisibleDays = Math.max(boardEmployees.length * 7, 1);
+  const coverage = Math.min(100, Math.round((assignedDays.size / possibleVisibleDays) * 100));
+  const plannerEmployees = (allEmployees ?? []).map((employee) => {
+    const employeeBranch = Array.isArray(employee.branches) ? employee.branches[0] : employee.branches;
+    return {
+      id: employee.id,
+      code: employee.employee_code,
+      name: locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en,
+      position: employee.position,
+      branchName: employeeBranch?.name_en ?? null,
+      belongsToScheduleBranch: (branchEmployees ?? []).some((branchEmployee) => branchEmployee.id === employee.id),
+    };
+  });
+  const plannerDays = dates.map((date) => ({ value: date, dayLabel: d[weekdayKey(date)], shortLabel: date.slice(5) }));
+  const plannerShifts = (shifts ?? []).map((shift) => ({
+    id: shift.id,
+    label: `${shift.code} · ${locale === "ar" && shift.name_ar ? shift.name_ar : shift.name_en} (${formatScheduleTime(shift.start_time)}–${formatScheduleTime(shift.end_time)}${shift.end_day_offset ? "+1" : ""})`,
+  }));
 
   return <>
     <div className="page-head">
@@ -78,27 +101,33 @@ export default async function ScheduleDetailsPage({ params }: { params: Promise<
 
     {!editable ? <div className="notice section-gap">{d.scheduleLockedHelp}</div> : null}
 
-    {editable ? <section className="card stack">
-      <h2>{d.addEntry}</h2>
-      <p className="muted">{d.useTemplateOrCustom}</p>
-      <ActionForm action={addAction} className="form-grid three-columns" errorMessage={d.actionFailed} pendingMessage={d.saving} resetOnSuccess successMessage={d.scheduleEntrySaved}>
-        <div className="field"><label>{d.employee}</label><select className="select" name="employeeId" required><option value="">—</option>{allEmployees?.map((employee) => {
-          const employeeBranch = Array.isArray(employee.branches) ? employee.branches[0] : employee.branches;
-          return <option key={employee.id} value={employee.id}>{employee.employee_code} · {locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en}{employeeBranch?.name_en ? ` (${employeeBranch.name_en})` : ""}</option>;
-        })}</select></div>
-        <div className="field"><label>{d.workDate}</label><input className="input" type="date" min={schedule.week_start} max={addIsoDays(schedule.week_start, 6)} defaultValue={schedule.week_start} name="workDate" required /></div>
-        <div className="field"><label>{d.segment}</label><input className="input" type="number" min="1" max="10" defaultValue="1" name="segmentNo" required /></div>
-        <div className="field"><label>{d.entryType}</label><select className="select" name="entryType" defaultValue="shift"><option value="shift">{d.shift}</option><option value="off">{d.off}</option><option value="leave">{d.leave}</option><option value="training">{d.training}</option><option value="assignment">{d.assignment}</option></select></div>
-        <div className="field"><label>{d.shiftTemplate}</label><select className="select" name="shiftTemplateId"><option value="">{d.customTimes}</option>{shifts?.map((shift) => <option key={shift.id} value={shift.id}>{shift.code} · {locale === "ar" && shift.name_ar ? shift.name_ar : shift.name_en} ({formatScheduleTime(shift.start_time)}–{formatScheduleTime(shift.end_time)}{shift.end_day_offset ? "+1" : ""})</option>)}</select></div>
-        <div className="field"><label>{d.position}</label><input className="input" name="positionLabel" /></div>
-        <div className="field"><label>{d.startTime}</label><input className="input" type="time" name="customStartTime" /></div>
-        <div className="field"><label>{d.endTime}</label><input className="input" type="time" name="customEndTime" /></div>
-        <div className="field"><label>{d.nextDay}</label><select className="select" name="endDayOffset"><option value="0">No</option><option value="1">Yes</option></select></div>
-        <div className="field"><label>{d.breakMinutes}</label><input className="input" type="number" min="0" max="480" defaultValue="0" name="breakMinutes" /></div>
-        <div className="field full"><label>{d.notes}</label><input className="input" name="notes" /></div>
-        <div className="full"><button className="button">{d.add}</button></div>
-      </ActionForm>
-    </section> : null}
+    <div className="schedule-coverage-strip section-gap">
+      <div><span>{d.branchStaff}</span><strong>{branchEmployees?.length ?? 0}</strong></div>
+      <div><span>{d.scheduledPeople}</span><strong>{scheduledPeople.size}</strong></div>
+      <div><span>{d.assignedDays}</span><strong>{assignedDays.size}</strong></div>
+      <div><span>{d.weekCoverage}</span><strong>{coverage}%</strong></div>
+    </div>
+
+    {editable ? <ScheduleAssignmentPlanner
+      action={addAction}
+      days={plannerDays}
+      employees={plannerEmployees}
+      labels={{
+        schedulePlanner: d.schedulePlanner, assignWorkingTime: d.assignWorkingTime, schedulePlannerHelp: d.schedulePlannerHelp,
+        entries: d.entries, stepEmployees: d.stepEmployees, stepEmployeesHelp: d.stepEmployeesHelp, searchEmployees: d.searchEmployees,
+        employeeScope: d.employeeScope, scheduleBranchStaff: d.scheduleBranchStaff, allCompanyStaff: d.allCompanyStaff,
+        selectVisible: d.selectVisible, clearSelection: d.clearSelection, noMatchingEmployees: d.noMatchingEmployees,
+        peopleSelected: d.peopleSelected, stepDays: d.stepDays, stepDaysHelp: d.stepDaysHelp, stepHours: d.stepHours,
+        stepHoursHelp: d.stepHoursHelp, entryType: d.entryType, shift: d.shift, off: d.off, leave: d.leave,
+        training: d.training, assignment: d.assignment, shiftTemplate: d.shiftTemplate, exactHours: d.exactHours,
+        breakMinutes: d.breakMinutes, startTime: d.startTime, endTime: d.endTime, endsNextDay: d.endsNextDay,
+        sameDayShift: d.sameDayShift, overnightDetected: d.overnightDetected, overnightAutomatic: d.overnightAutomatic,
+        replaceDayHelp: d.replaceDayHelp, position: d.position, optionalOverride: d.optionalOverride, notes: d.notes,
+        splitShiftHelp: d.splitShiftHelp, assignmentPreview: d.assignmentPreview, assignToSchedule: d.assignToSchedule,
+        actionFailed: d.actionFailed, saving: d.saving, scheduleEntriesSaved: d.scheduleEntriesSaved,
+      }}
+      shifts={plannerShifts}
+    /> : null}
 
     <section className="card stack section-gap">
       <div className="card-heading"><h2>{d.scheduleBoard}</h2><span className="muted">{schedule.notes}</span></div>

@@ -1,9 +1,5 @@
 import { notFound } from "next/navigation";
-import { direction, isLocale, locales } from "@/lib/i18n";
-
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
-}
+import { direction, isLocale } from "@/lib/i18n";
 
 export default async function LocaleLayout({
   children,

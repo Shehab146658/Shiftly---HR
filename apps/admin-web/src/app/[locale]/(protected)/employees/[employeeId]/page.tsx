@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { archiveEmployee, updateEmployee, updateEmployeeRoles } from "../../actions";
 import { ActionForm } from "@/components/action-form";
+import { EmployeeOrganizationFields } from "@/components/employee-organization-fields";
 import { getTenantPageContext } from "@/lib/page-context";
 
 export default async function EmployeeDetailsPage({ params }: { params: Promise<{ locale: string; employeeId: string }> }) {
@@ -20,7 +21,7 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
   ] = await Promise.all([
     supabase.from("employees").select("*").eq("tenant_id", tenantId).eq("id", employeeId).maybeSingle(),
     supabase.from("branches").select("id, name_en").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
-    supabase.from("teams").select("id, name_en").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
+    supabase.from("teams").select("id, name_en, branch_id").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
     supabase.from("employees").select("id, name_en").eq("tenant_id", tenantId).neq("id", employeeId).neq("status", "terminated").order("name_en"),
     supabase.from("employee_assignments").select("id, position, effective_from, effective_to, reason, branches(name_en), teams(name_en), manager:employees!employee_assignments_manager_employee_id_fkey(name_en)").eq("tenant_id", tenantId).eq("employee_id", employeeId).order("effective_from", { ascending: false }),
     supabase.from("roles").select("id, name, description").eq("tenant_id", tenantId).neq("name", "owner").order("name"),
@@ -63,9 +64,15 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
         <div className="field"><label>{d.position}</label><input className="input" name="position" defaultValue={employee.position ?? ""} /></div>
         <div className="field"><label>{d.email}</label><input className="input" name="email" type="email" defaultValue={employee.email ?? ""} /></div>
         <div className="field"><label>{d.phone}</label><input className="input" name="phone" defaultValue={employee.phone ?? ""} /></div>
-        <div className="field"><label>{d.branch}</label><select className="select" name="branchId" defaultValue={employee.branch_id ?? ""}><option value="">—</option>{branches?.map((b) => <option key={b.id} value={b.id}>{b.name_en}</option>)}</select></div>
-        <div className="field"><label>{d.team}</label><select className="select" name="teamId" defaultValue={employee.team_id ?? ""}><option value="">—</option>{teams?.map((t) => <option key={t.id} value={t.id}>{t.name_en}</option>)}</select></div>
-        <div className="field"><label>{d.manager}</label><select className="select" name="managerEmployeeId" defaultValue={employee.manager_employee_id ?? ""}><option value="">—</option>{managers?.map((m) => <option key={m.id} value={m.id}>{m.name_en}</option>)}</select></div>
+        <EmployeeOrganizationFields
+          branches={branches ?? []}
+          defaultBranchId={employee.branch_id ?? ""}
+          defaultManagerId={employee.manager_employee_id ?? ""}
+          defaultTeamId={employee.team_id ?? ""}
+          labels={{ branch: d.branch, noBranch: d.unassigned, teamOptional: d.teamOptional, noTeam: d.noTeam, teamOptionalHelp: d.teamOptionalHelp, manager: d.manager, noManager: d.none }}
+          managers={managers ?? []}
+          teams={teams ?? []}
+        />
         <div className="field"><label>{d.hireDate}</label><input className="input" name="hireDate" type="date" defaultValue={employee.hire_date ?? ""} /></div>
         <div className="field"><label>{leaveCopy.birthDate}</label><input className="input" name="birthDate" type="date" defaultValue={employee.birth_date ?? ""} /></div>
         <div className="field"><label>{leaveCopy.gender}</label><select className="select" name="gender" defaultValue={employee.gender ?? "unspecified"}><option value="unspecified">{leaveCopy.unspecified}</option><option value="female">{leaveCopy.female}</option><option value="male">{leaveCopy.male}</option></select></div>
@@ -116,7 +123,7 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
           const branch = Array.isArray(row.branches) ? row.branches[0] : row.branches;
           const team = Array.isArray(row.teams) ? row.teams[0] : row.teams;
           const manager = Array.isArray(row.manager) ? row.manager[0] : row.manager;
-          return <tr key={row.id}><td>{row.effective_from}</td><td>{row.effective_to ?? d.current}</td><td>{branch?.name_en ?? "—"}</td><td>{team?.name_en ?? "—"}</td><td>{row.position ?? "—"}</td><td>{manager?.name_en ?? "—"}</td><td>{row.reason ?? "—"}</td></tr>;
+          return <tr key={row.id}><td>{row.effective_from}</td><td>{row.effective_to ?? d.current}</td><td>{branch?.name_en ?? d.unassigned}</td><td>{team?.name_en ?? d.noTeam}</td><td>{row.position ?? d.notSet}</td><td>{manager?.name_en ?? d.none}</td><td>{row.reason ?? "—"}</td></tr>;
         })}
       </tbody></table>{!assignments?.length ? <div className="empty">{d.empty}</div> : null}</div>
     </section>

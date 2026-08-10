@@ -3,6 +3,8 @@ import { createWeeklySchedule } from "../actions";
 import { ActionForm } from "@/components/action-form";
 import { getTenantPageContext } from "@/lib/page-context";
 
+export const dynamic = "force-dynamic";
+
 function statusLabel(status: string, d: ReturnType<typeof import("@/lib/i18n").getDictionary>) {
   if (status === "published") return d.published;
   if (status === "locked") return d.locked;

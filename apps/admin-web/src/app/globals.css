@@ -663,6 +663,99 @@ tbody tr:last-child td { border-bottom: 0; }
 .weekday-checks label { display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-muted); font-size: .73rem; font-weight: 750; }
 .statutory-flags { margin-top: 9px; }
 
+/* Attendance operations */
+.attendance-punch-modal { width: min(760px, 100%); padding: 24px; }
+.attendance-stats .stat-card strong { font-size: clamp(1.35rem, 2vw, 2rem); }
+.attendance-filter { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)) auto auto; align-items: end; }
+.attendance-filter .field { min-width: 0; }
+.attendance-table { min-width: 1380px; }
+.attendance-table th, .attendance-table td { white-space: nowrap; }
+.attendance-table .employee-name-link { min-width: 150px; }
+.time-balance { display: inline-flex; min-width: 68px; justify-content: center; padding: 5px 8px; border-radius: 8px; font-weight: 900; }
+.time-balance.positive { background: #e8f7f1; color: #08734e; }
+.time-balance.negative { background: #fff0ef; color: #b42318; }
+.attendance-present { background: #e8f7f1; color: #08734e; }
+.attendance-late { background: #fff4e5; color: #9a5b00; }
+.attendance-incomplete { background: #fef3c7; color: #92400e; }
+.attendance-absent { background: #fde5e2; color: #9b2c23; }
+.attendance-off { background: #eef2f7; color: #475569; }
+.attendance-leave { background: #f3e8ff; color: #7e22ce; }
+.attendance-unscheduled { background: #e8f0ff; color: #3150a8; }
+.pending-evidence { max-width: 150px; color: #9a5b00; }
+.exception-list { display: grid; gap: 10px; }
+.exception-card { display: grid; grid-template-columns: minmax(210px, 1fr) minmax(260px, 1fr) minmax(300px, 1.2fr); align-items: center; gap: 18px; padding: 15px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-muted); }
+.exception-card h3 { margin: 8px 0 4px; font-size: 1rem; }
+.exception-card p { margin: 0; color: var(--muted); font-size: .8rem; }
+.exception-card dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.exception-card dl > div { min-width: 0; }
+.exception-card dt { color: var(--muted); font-size: .68rem; font-weight: 850; text-transform: uppercase; }
+.exception-card dd { margin: 4px 0 0; overflow: hidden; font-size: .8rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.exception-actions { display: grid; gap: 7px; }
+.exception-actions form { display: grid; grid-template-columns: minmax(120px, 1fr) auto; gap: 6px; }
+.attendance-rule-grid { padding: 13px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface-muted); }
+
+/* Employee-first weekly schedule planner */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.schedule-coverage-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.schedule-coverage-strip > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; padding: 13px 15px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface); box-shadow: 0 8px 24px rgba(29, 45, 78, .05); }
+.schedule-coverage-strip span { overflow: hidden; color: var(--muted); font-size: .78rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.schedule-coverage-strip strong { color: var(--primary-strong); font-size: 1.25rem; }
+.schedule-planner-card { margin-top: 14px; overflow: hidden; padding: 0; }
+.planner-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 22px 24px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, #f8faff 0%, #eef3ff 100%); }
+.planner-heading h2 { margin: 6px 0 5px; }
+.planner-heading p { margin: 0; max-width: 720px; line-height: 1.55; }
+.planner-summary { display: grid; place-items: center; flex: 0 0 auto; min-width: 78px; min-height: 70px; padding: 9px; border: 1px solid #d7e0ff; border-radius: 15px; background: rgba(255,255,255,.82); box-shadow: 0 8px 22px rgba(49,91,234,.09); }
+.planner-summary strong { color: var(--primary); font-size: 1.5rem; line-height: 1; }
+.planner-summary span { color: var(--muted); font-size: .7rem; font-weight: 800; text-transform: uppercase; }
+.schedule-planner-form { display: grid; }
+.planner-step { display: grid; gap: 16px; padding: 22px 24px; border-bottom: 1px solid var(--border); }
+.planner-step-title { display: flex; align-items: flex-start; gap: 11px; }
+.planner-step-title > span { display: grid; place-items: center; flex: 0 0 auto; width: 28px; height: 28px; border-radius: 9px; background: var(--primary); color: white; font-size: .78rem; font-weight: 900; box-shadow: 0 6px 15px rgba(49,91,234,.22); }
+.planner-step-title h3 { margin: 1px 0 3px; font-size: 1rem; }
+.planner-step-title p { margin: 0; color: var(--muted); font-size: .82rem; line-height: 1.45; }
+.employee-picker-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
+.employee-search { flex: 1 1 240px; }
+.segmented-control { display: inline-flex; padding: 3px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-muted); }
+.segmented-control button { min-height: 34px; padding: 6px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: .76rem; font-weight: 850; }
+.segmented-control button.active { background: var(--surface); color: var(--primary-strong); box-shadow: 0 4px 12px rgba(29,45,78,.09); }
+.text-button.muted-button { color: var(--muted); }
+.employee-picker-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; max-height: 300px; overflow: auto; padding: 2px; }
+.employee-picker-option { display: grid; grid-template-columns: auto 38px minmax(0, 1fr) auto; align-items: center; gap: 9px; min-width: 0; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); cursor: pointer; transition: border-color .15s ease, background .15s ease, box-shadow .15s ease; }
+.employee-picker-option:hover { border-color: #b9c9fa; background: #fbfcff; }
+.employee-picker-option.selected { border-color: #91a9ff; background: #f0f4ff; box-shadow: inset 0 0 0 1px rgba(49,91,234,.09); }
+.employee-picker-option input { accent-color: var(--primary); }
+.picker-avatar { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(145deg, #e5ebff, #dce5ff); color: var(--primary-strong); font-size: .72rem; font-weight: 900; }
+.picker-copy { min-width: 0; }
+.picker-copy strong, .picker-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-copy strong { font-size: .86rem; }
+.picker-copy small { margin-top: 3px; color: var(--muted); font-size: .7rem; }
+.picker-branch { max-width: 115px; overflow: hidden; padding: 5px 7px; border-radius: 8px; background: #fff4e5; color: #8a5500; font-size: .66rem; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }
+.picker-branch.home { background: #e8f7f1; color: #0f7a55; }
+.selection-caption { margin: -4px 0 0; color: var(--muted); font-size: .78rem; }
+.selection-caption strong { color: var(--primary); }
+.day-picker-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.day-picker-option { position: relative; display: grid; justify-items: center; gap: 4px; min-width: 0; padding: 12px 7px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); cursor: pointer; transition: border-color .15s ease, background .15s ease, transform .15s ease; }
+.day-picker-option:hover { border-color: #b9c9fa; transform: translateY(-1px); }
+.day-picker-option.selected { border-color: var(--primary); background: #eef3ff; color: var(--primary-strong); box-shadow: inset 0 0 0 1px rgba(49,91,234,.12); }
+.day-picker-option input { position: absolute; top: 7px; inset-inline-end: 7px; accent-color: var(--primary); }
+.day-picker-option strong { max-width: 100%; overflow: hidden; font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
+.day-picker-option small { color: var(--muted); font-size: .69rem; }
+.planner-fields { align-items: end; }
+.planner-fields .span-two { grid-column: span 2; }
+.overnight-indicator { display: flex; align-items: center; gap: 10px; min-height: 66px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-muted); color: var(--muted); }
+.overnight-indicator > span { display: grid; place-items: center; flex: 0 0 auto; width: 29px; height: 29px; border-radius: 9px; background: #e6ebf3; font-weight: 900; }
+.overnight-indicator strong, .overnight-indicator small { display: block; }
+.overnight-indicator strong { color: var(--text); font-size: .8rem; }
+.overnight-indicator small { margin-top: 3px; font-size: .67rem; line-height: 1.3; }
+.overnight-indicator.active { border-color: #c9b8f7; background: #f7f2ff; color: #6d28d9; }
+.overnight-indicator.active > span { background: #e9ddff; }
+.compact-notice { padding: 11px 13px; font-size: .8rem; }
+.planner-tip { margin: -3px 0 0; padding: 10px 12px; border-radius: 10px; background: #f6f8fc; color: var(--muted); font-size: .76rem; line-height: 1.5; }
+.planner-submit-bar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 17px 24px; background: #f8faff; }
+.planner-submit-bar > div { display: grid; gap: 3px; }
+.planner-submit-bar strong { color: var(--primary-strong); }
+.planner-submit-bar span { color: var(--muted); font-size: .74rem; }
+
 @media (max-width: 1000px) {
   .shell { display: block; }
   .shell .sidebar { width: min(320px, 86vw); z-index: 60; overflow-y: auto; }
@@ -674,6 +767,11 @@ tbody tr:last-child td { border-bottom: 0; }
   .calendar-toolbar { display: grid; }
   .calendar-pager { justify-content: space-between; }
   .policy-grid { grid-template-columns: 1fr; }
+  .employee-picker-list { grid-template-columns: 1fr; }
+  .day-picker-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .attendance-filter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .exception-card { grid-template-columns: 1fr 1fr; }
+  .exception-actions { grid-column: 1 / -1; }
 }
 
 @media (max-width: 640px) {
@@ -698,6 +796,28 @@ tbody tr:last-child td { border-bottom: 0; }
   .employee-table th:nth-last-child(2), .employee-table td:nth-last-child(2) { max-width: 78px; }
   .employee-table .badge { padding: 4px 6px; font-size: .67rem; }
   .employee-table .text-link { font-size: .76rem; }
+  .schedule-coverage-strip { grid-template-columns: 1fr 1fr; }
+  .schedule-coverage-strip > div { align-items: flex-start; flex-direction: column; padding: 11px 12px; }
+  .planner-heading, .planner-step, .planner-submit-bar { padding-inline: 15px; }
+  .planner-heading { align-items: center; }
+  .planner-heading h2 { font-size: 1.18rem; }
+  .planner-summary { min-width: 64px; min-height: 62px; }
+  .employee-picker-tools { align-items: stretch; flex-direction: column; }
+  .employee-search, .segmented-control, .employee-picker-tools .text-button { width: 100%; }
+  .segmented-control { display: grid; grid-template-columns: 1fr 1fr; }
+  .employee-picker-option { grid-template-columns: auto 36px minmax(0, 1fr); }
+  .picker-branch { grid-column: 2 / -1; max-width: 100%; }
+  .day-picker-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .planner-fields .span-two { grid-column: auto; }
+  .planner-submit-bar { align-items: stretch; flex-direction: column; }
+  .planner-submit-bar .button { width: 100%; }
+  .attendance-punch-modal { padding: 18px 15px 24px; }
+  .attendance-filter { grid-template-columns: 1fr 1fr; align-items: stretch; }
+  .attendance-filter .field:nth-child(n+3), .attendance-filter .button { grid-column: 1 / -1; width: 100%; }
+  .exception-card { grid-template-columns: 1fr; gap: 13px; }
+  .exception-actions { grid-column: auto; }
+  .exception-card dl { grid-template-columns: 1fr 1fr 1fr; }
+  .exception-actions form { grid-template-columns: 1fr; }
   .profile-hero { grid-template-columns: auto minmax(0, 1fr); align-items: start; padding: 17px; }
   .profile-avatar-large { width: 64px; height: 64px; border-radius: 19px; font-size: 1.15rem; }
   .profile-identity h2 { font-size: 1.25rem; }

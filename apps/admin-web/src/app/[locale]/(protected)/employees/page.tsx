@@ -65,7 +65,8 @@ export default async function EmployeesPage({
         labels={{
           addEmployee: d.addEmployee, addEmployeeHelp: d.addEmployeeHelp, employeeDirectory: d.employeeDirectory,
           close: d.close, cancel: d.cancel, code: d.code, nameEnglish: d.nameEnglish, nameArabic: d.nameArabic,
-          position: d.position, email: d.email, phone: d.phone, branch: d.branch, team: d.team, manager: d.manager,
+          position: d.position, email: d.email, phone: d.phone, branch: d.branch, teamOptional: d.teamOptional,
+          noTeam: d.noTeam, teamOptionalHelp: d.teamOptionalHelp, noBranch: d.unassigned, manager: d.manager, noManager: d.none,
           hireDate: d.hireDate, preferredLanguage: d.preferredLanguage, statusLabel: d.statusLabel, active: d.active,
           inactive: d.inactive, onLeave: d.onLeave, terminated: d.terminated, accessRole: d.accessRole,
           accessRoleHelp: d.accessRoleHelp, notes: d.notes, actionFailed: d.actionFailed, saving: d.saving,
