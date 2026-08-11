@@ -48,6 +48,10 @@ For payroll demonstrations, run
 [`supabase/demo/seed_payroll_preview.sql`](../supabase/demo/seed_payroll_preview.sql)
 after the demo tenant exists. It adds anonymized sample compensation only for employees who do not already have compensation and never overwrites real payroll data.
 
+For employee-finance and sales demonstrations, run
+[`supabase/demo/seed_business_preview.sql`](../supabase/demo/seed_business_preview.sql)
+after the demo tenant and payroll compensation exist. It adds one clearly marked interest-free loan statement, approved and pending sales, a tiered incentive policy, a branch target, and calculated bonus results without changing user-created records.
+
 ## Admin portal
 
 ```powershell

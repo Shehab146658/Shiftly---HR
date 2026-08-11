@@ -930,6 +930,139 @@ export async function acknowledgePayslip(locale: AppLocale, resultId: string, pa
   refreshPayrollPaths(locale, undefined, resultId);
 }
 
+const loanPaymentMethodSchema = z.enum(["cash", "bank_transfer", "settlement", "adjustment"]);
+const employeeLoanStatusSchema = z.enum(["active", "paused", "written_off"]);
+const performanceScopeSchema = z.enum(["branch", "team", "employee"]);
+const bonusBasisSchema = z.enum(["fixed_amount", "salary_percentage", "sales_percentage"]);
+
+function refreshLoanPaths(locale: AppLocale, loanId?: string) {
+  revalidatePath(`/${locale}/loans`);
+  if (loanId) revalidatePath(`/${locale}/loans/${loanId}`);
+  revalidatePath(`/${locale}/payroll`);
+  revalidatePath(`/${locale}/dashboard`);
+}
+
+function refreshPerformancePaths(locale: AppLocale) {
+  revalidatePath(`/${locale}/performance`);
+  revalidatePath(`/${locale}/payroll`);
+  revalidatePath(`/${locale}/dashboard`);
+}
+
+export async function submitLoanRequest(locale: AppLocale, defaultEmployeeId: string, formData: FormData) {
+  const values = z.object({ employeeId: idSchema, amount: z.coerce.number().positive().max(1_000_000_000), installments: z.coerce.number().int().min(1).max(120), startMonth: dateSchema, purpose: z.string().trim().min(3).max(2000) }).parse({
+    employeeId: optionalString(formData.get("employeeId")) ?? defaultEmployeeId, amount: formData.get("amount"), installments: formData.get("installments"), startMonth: formData.get("startMonth"), purpose: formData.get("purpose"),
+  });
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("submit_loan_request", { p_employee_id: values.employeeId, p_amount: values.amount, p_installments: values.installments, p_start_month: values.startMonth, p_purpose: values.purpose });
+  if (error) throw error;
+  refreshLoanPaths(locale);
+}
+
+export async function cancelLoanRequest(locale: AppLocale, requestId: string, formData: FormData) {
+  const reason = z.string().trim().max(1000).optional().parse(optionalString(formData.get("reason")));
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("cancel_loan_request", { p_request_id: idSchema.parse(requestId), p_reason: reason ?? "" });
+  if (error) throw error;
+  refreshLoanPaths(locale);
+}
+
+export async function reviewLoanRequest(locale: AppLocale, requestId: string, approve: boolean, formData: FormData) {
+  const values = z.object({ amount: z.coerce.number().positive().max(1_000_000_000).optional(), installments: z.coerce.number().int().min(1).max(120).optional(), startMonth: dateSchema.optional(), note: z.string().trim().max(2000).optional() }).parse({
+    amount: optionalString(formData.get("approvedAmount")), installments: optionalString(formData.get("approvedInstallments")), startMonth: optionalString(formData.get("approvedStartMonth")), note: optionalString(formData.get("decisionNote")),
+  });
+  if (approve && (!values.amount || !values.installments || !values.startMonth)) throw new Error("Approved amount, installment count, and start month are required.");
+  if (!approve && (!values.note || values.note.length < 2)) throw new Error("A rejection reason is required.");
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("review_loan_request", { p_request_id: idSchema.parse(requestId), p_approve: approve, p_amount: values.amount ?? 0, p_installments: values.installments ?? 1, p_start_month: values.startMonth ?? new Date().toISOString().slice(0, 8) + "01", p_note: values.note ?? "" });
+  if (error) throw error;
+  refreshLoanPaths(locale, data ? idSchema.parse(data) : undefined);
+}
+
+export async function recordLoanPayment(locale: AppLocale, loanId: string, formData: FormData) {
+  const values = z.object({ amount: z.coerce.number().positive().max(1_000_000_000), paymentDate: dateSchema, method: loanPaymentMethodSchema, reference: z.string().trim().max(150).optional(), notes: z.string().trim().max(2000).optional() }).parse({
+    amount: formData.get("amount"), paymentDate: formData.get("paymentDate"), method: formData.get("method"), reference: optionalString(formData.get("reference")), notes: optionalString(formData.get("notes")),
+  });
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("record_loan_payment", { p_loan_id: idSchema.parse(loanId), p_amount: values.amount, p_payment_date: values.paymentDate, p_method: values.method, p_reference: values.reference ?? "", p_notes: values.notes ?? "" });
+  if (error) throw error;
+  refreshLoanPaths(locale, loanId);
+}
+
+export async function rescheduleLoanInstallment(locale: AppLocale, loanId: string, installmentId: string, formData: FormData) {
+  const values = z.object({ dueDate: dateSchema, reason: z.string().trim().min(2).max(1000) }).parse({ dueDate: formData.get("dueDate"), reason: formData.get("reason") });
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("reschedule_loan_installment", { p_installment_id: idSchema.parse(installmentId), p_due_date: values.dueDate, p_reason: values.reason });
+  if (error) throw error;
+  refreshLoanPaths(locale, loanId);
+}
+
+export async function setEmployeeLoanStatus(locale: AppLocale, loanId: string, nextStatus: "active" | "paused" | "written_off", formData: FormData) {
+  const status = employeeLoanStatusSchema.parse(nextStatus);
+  const note = z.string().trim().max(2000).optional().parse(optionalString(formData.get("statusNote")));
+  if (status === "written_off" && (!note || note.length < 2)) throw new Error("A write-off reason is required.");
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("set_employee_loan_status", { p_loan_id: idSchema.parse(loanId), p_status: status, p_note: note ?? "" });
+  if (error) throw error;
+  refreshLoanPaths(locale, loanId);
+}
+
+export async function recordSalesEntry(locale: AppLocale, tenantId: string, formData: FormData) {
+  const values = z.object({ businessDate: dateSchema, branchId: idSchema, employeeId: optionalId, amount: z.coerce.number().min(0).max(1_000_000_000), currencyCode: z.string().trim().length(3).transform((value) => value.toUpperCase()), reference: z.string().trim().max(150).optional(), notes: z.string().trim().max(2000).optional() }).parse({
+    businessDate: formData.get("businessDate"), branchId: formData.get("branchId"), employeeId: optionalString(formData.get("employeeId")), amount: formData.get("amount"), currencyCode: formData.get("currencyCode"), reference: optionalString(formData.get("reference")), notes: optionalString(formData.get("notes")),
+  });
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("record_sales_entry", { p_tenant_id: idSchema.parse(tenantId), p_business_date: values.businessDate, p_branch_id: values.branchId, p_employee_id: values.employeeId ?? null, p_amount: values.amount, p_currency: values.currencyCode, p_reference: values.reference ?? "", p_notes: values.notes ?? "" });
+  if (error) throw error;
+  refreshPerformancePaths(locale);
+}
+
+export async function reviewSalesEntry(locale: AppLocale, entryId: string, approve: boolean, formData: FormData) {
+  const note = z.string().trim().max(1000).optional().parse(optionalString(formData.get("reviewNote")));
+  if (!approve && (!note || note.length < 2)) throw new Error("A rejection reason is required.");
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("review_sales_entry", { p_entry_id: idSchema.parse(entryId), p_approve: approve, p_note: note ?? "" });
+  if (error) throw error;
+  refreshPerformancePaths(locale);
+}
+
+export async function createBonusPolicy(locale: AppLocale, tenantId: string, formData: FormData) {
+  const values = z.object({ code: codeSchema, nameEn: z.string().trim().min(2).max(150), nameAr: z.string().trim().max(150).optional(), basis: bonusBasisSchema, thresholdOne: z.coerce.number().min(0).max(10000), valueOne: z.coerce.number().min(0).max(1_000_000), thresholdTwo: z.coerce.number().min(0).max(10000), valueTwo: z.coerce.number().min(0).max(1_000_000), thresholdThree: z.coerce.number().min(0).max(10000).optional(), valueThree: z.coerce.number().min(0).max(1_000_000).optional(), effectiveFrom: dateSchema, effectiveTo: dateSchema.optional() }).parse({
+    code: formData.get("code"), nameEn: formData.get("nameEn"), nameAr: optionalString(formData.get("nameAr")), basis: formData.get("basis"), thresholdOne: formData.get("thresholdOne"), valueOne: formData.get("valueOne"), thresholdTwo: formData.get("thresholdTwo"), valueTwo: formData.get("valueTwo"), thresholdThree: optionalString(formData.get("thresholdThree")), valueThree: optionalString(formData.get("valueThree")), effectiveFrom: formData.get("effectiveFrom"), effectiveTo: optionalString(formData.get("effectiveTo")),
+  });
+  const tiers = [{ min_percentage: values.thresholdOne, value: values.valueOne }, { min_percentage: values.thresholdTwo, value: values.valueTwo }];
+  if (values.thresholdThree !== undefined && values.valueThree !== undefined) tiers.push({ min_percentage: values.thresholdThree, value: values.valueThree });
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("create_bonus_policy", { p_tenant_id: idSchema.parse(tenantId), p_code: values.code, p_name_en: values.nameEn, p_name_ar: values.nameAr ?? "", p_basis: values.basis, p_tiers: tiers, p_effective_from: values.effectiveFrom, p_effective_to: values.effectiveTo ?? null });
+  if (error) throw error;
+  refreshPerformancePaths(locale);
+}
+
+export async function createSalesTarget(locale: AppLocale, tenantId: string, formData: FormData) {
+  const values = z.object({ code: codeSchema, name: z.string().trim().min(2).max(150), startDate: dateSchema, endDate: dateSchema, scope: performanceScopeSchema, scopeId: idSchema, targetAmount: z.coerce.number().positive().max(1_000_000_000), currencyCode: z.string().trim().length(3).transform((value) => value.toUpperCase()), policyId: idSchema }).refine((value) => value.endDate >= value.startDate, { message: "Target end must be on or after the start." }).parse({
+    code: formData.get("code"), name: formData.get("name"), startDate: formData.get("startDate"), endDate: formData.get("endDate"), scope: formData.get("scope"), scopeId: formData.get("scopeId"), targetAmount: formData.get("targetAmount"), currencyCode: formData.get("currencyCode"), policyId: formData.get("policyId"),
+  });
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("create_sales_target", { p_tenant_id: idSchema.parse(tenantId), p_code: values.code, p_name: values.name, p_start: values.startDate, p_end: values.endDate, p_scope: values.scope, p_scope_id: values.scopeId, p_amount: values.targetAmount, p_currency: values.currencyCode, p_policy_id: values.policyId });
+  if (error) throw error;
+  refreshPerformancePaths(locale);
+}
+
+export async function calculateBonusTarget(locale: AppLocale, targetId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("calculate_bonus_target", { p_target_id: idSchema.parse(targetId) });
+  if (error) throw error;
+  refreshPerformancePaths(locale);
+}
+
+export async function reviewBonusTarget(locale: AppLocale, targetId: string, approve: boolean, formData: FormData) {
+  const note = z.string().trim().max(1000).optional().parse(optionalString(formData.get("reviewNote")));
+  if (!approve && (!note || note.length < 2)) throw new Error("A rejection reason is required.");
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("review_bonus_target", { p_target_id: idSchema.parse(targetId), p_approve: approve, p_note: note ?? "" });
+  if (error) throw error;
+  refreshPerformancePaths(locale);
+}
+
 export async function createShiftTemplate(locale: AppLocale, tenantId: string, formData: FormData) {
   const values = z.object({
     code: codeSchema,

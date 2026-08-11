@@ -123,6 +123,34 @@
 - [ ] Payslips itemize earnings and deductions, show the attendance summary, print cleanly to PDF, and support receipt acknowledgement.
 - [ ] Cross-tenant payroll relationships and anonymous payroll RPC calls are rejected.
 
+## Loans and employee advances
+
+- [ ] Employee can request an interest-free loan or advance with amount, purpose, installment count, and preferred start month.
+- [ ] Managers see only requests belonging to their branch or team unless they have company-wide financial access.
+- [ ] An approver can adjust the approved amount, number of installments, and start month before approval.
+- [ ] Approval creates an exact installment schedule whose total equals the approved principal, including rounding on the final installment.
+- [ ] Rejection requires a reason and notifies the linked employee account.
+- [ ] Employee can cancel a submitted personal request without deleting its history.
+- [ ] Authorized staff can pause or resume an active loan, reschedule an unpaid installment with a reason, and retain its original due date.
+- [ ] Manual payments allocate oldest-first, update installment status, total paid, and remaining balance transactionally.
+- [ ] Early settlement closes the loan at zero remaining balance.
+- [ ] Eligible unpaid installments appear once in payroll calculation and become deducted only after payroll publication.
+- [ ] Employee statement shows approved amount, paid amount, remaining balance, repayment progress, schedule, and payment ledger.
+- [ ] Cross-tenant loan relationships and anonymous loan RPC calls are rejected.
+
+## Sales, targets, and bonuses
+
+- [ ] Manager can submit a daily branch total or employee-attributed sale with date, amount, currency, reference, and notes.
+- [ ] Submitted sales remain excluded from target results until approved.
+- [ ] Sales rejection requires a reason and preserves the original entry.
+- [ ] Authorized users can define reusable tier policies using fixed amount, salary percentage, or employee-sales percentage payouts.
+- [ ] Targets can apply to one branch, team, or employee and reject invalid cross-tenant scope records.
+- [ ] Branch totals prefer explicit branch-total entries and do not double-count employee attribution when both exist.
+- [ ] Recalculation snapshots target, policy, approved sales, employee sales, and base salary inputs.
+- [ ] Bonus results require a separate approval before they become eligible for payroll.
+- [ ] Approved bonuses enter the matching payroll period once and become paid only at payroll publication.
+- [ ] Sales, target, and bonus pages remain usable at a 390px mobile viewport.
+
 ## Employee visibility and mobile
 
 - [ ] Mobile web navigation opens from a burger button and closes by link, overlay, close button, or Escape.

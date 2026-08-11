@@ -17,6 +17,12 @@
 - Auditable payroll periods that snapshot policy, attendance, leave, overtime, absence, additions, deductions, and net pay.
 - Controlled payroll calculation, review, approval, lock, and payslip-publication stages with descriptive status history.
 - Manual reasoned earnings and deductions, printable bilingual payslips, and employee receipt acknowledgement.
+- Employee loan and salary-advance requests with approval, interest-free installment generation, pause/resume, rescheduling, partial payments, early settlement, and payroll deductions.
+- A mobile-responsive loan statement with progress, installment status, original and revised due dates, and an immutable payment ledger.
+- Daily branch and employee sales submission with review gates and rejection reasons.
+- Branch, team, and individual targets backed by reusable tiered bonus policies using fixed, salary-percentage, or employee-sales-percentage payouts.
+- Auditable bonus calculation and approval results that flow into payroll and become paid only at payroll publication.
+- Repeatable preview data for an active loan, installment history, approved/pending sales, a branch target, and calculated incentive results.
 - Persistent employee access-role assignment with pending-account support, membership synchronization, RLS, audit logging, and tests.
 - Tenant-member profile pages with clickable owner and employee identities.
 - Reusable save, update, archive, publish, and assignment feedback with pending, success, and failure states.

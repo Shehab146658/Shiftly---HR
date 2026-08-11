@@ -73,6 +73,14 @@ export default async function AuditPage({
     weekly_schedules: d.auditSchedule,
     schedule_entries: d.auditScheduleEntry,
     attendance_punches: d.auditAttendancePunch,
+    loan_requests: locale === "ar" ? "طلب سلفة" : "Loan request",
+    employee_loans: locale === "ar" ? "سلفة موظف" : "Employee loan",
+    loan_installments: locale === "ar" ? "قسط سلفة" : "Loan installment",
+    loan_payments: locale === "ar" ? "دفعة سلفة" : "Loan payment",
+    sales_entries: locale === "ar" ? "قيد مبيعات" : "Sales entry",
+    bonus_policies: locale === "ar" ? "سياسة مكافأة" : "Bonus policy",
+    sales_targets: locale === "ar" ? "هدف مبيعات" : "Sales target",
+    bonus_results: locale === "ar" ? "نتيجة مكافأة" : "Bonus result",
     payroll_settings: locale === "ar" ? "سياسة الرواتب" : "Payroll policy",
     employee_compensation: locale === "ar" ? "هيكل أجر الموظف" : "Employee compensation",
     payroll_periods: locale === "ar" ? "دورة الرواتب" : "Payroll period",
@@ -142,6 +150,19 @@ export default async function AuditPage({
       const employeeId = String(record.employee_id ?? "");
       name = `${employeeName(employeeId) ?? d.auditAttendancePunch}${typeof record.work_date === "string" ? ` · ${record.work_date}` : ""}`;
       href = `/${locale}/attendance`;
+    } else if (["loan_requests", "employee_loans"].includes(type)) {
+      const employeeId = String(record.employee_id ?? "");
+      const loanId = type === "employee_loans" ? String(record.id ?? row.entity_id ?? "") : "";
+      name = `${employeeName(employeeId) ?? entityLabels[type]}${typeof record.loan_number === "string" ? ` · ${record.loan_number}` : ""}`;
+      href = loanId ? `/${locale}/loans/${loanId}` : `/${locale}/loans`;
+    } else if (["loan_installments", "loan_payments"].includes(type)) {
+      const linkedLoanId = String(record.loan_id ?? "");
+      name = typeof record.installment_number === "number" ? `${entityLabels[type]} #${record.installment_number}` : entityLabels[type];
+      href = linkedLoanId ? `/${locale}/loans/${linkedLoanId}` : `/${locale}/loans`;
+    } else if (["sales_entries", "bonus_policies", "sales_targets", "bonus_results"].includes(type)) {
+      const employeeId = String(record.employee_id ?? "");
+      name = recordName(record) ?? (employeeName(employeeId) ? `${entityLabels[type]} · ${employeeName(employeeId)}` : entityLabels[type]);
+      href = `/${locale}/performance`;
     }
     return { label: entityLabels[type] ?? humanize(type), name, href, before, after };
   };

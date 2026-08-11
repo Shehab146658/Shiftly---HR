@@ -1,7 +1,7 @@
 # Shiftly HR Project Status
 
 **Current milestone:** Milestone 6 — Business modules
-**Status:** Core payroll complete; loans, sales, bonuses, tasks, and announcements are next
+**Status:** Payroll, loans, sales, targets, and bonuses complete; tasks and announcements are next
 **Release:** `0.3.0-preview`
 **Last updated:** 11 August 2026
 
@@ -37,6 +37,11 @@
 - Payroll policy snapshots with configurable day/hour standards, overtime, time, absence, currency, rounding, tax, and insurance switches.
 - Payroll calculations from attendance and approved unpaid-leave inputs, including itemized automatic and manual components.
 - Controlled calculation, review, approval, lock, and publication workflow with employee payslips and receipt acknowledgement.
+- Employee self-service loan and advance requests with guarded approval, exact interest-free installment schedules, pause/resume, reasoned rescheduling, partial payments, early settlement, and complete statements.
+- Loan installments automatically enter eligible payroll periods and become paid only when payroll is published.
+- Daily branch and employee sales submission with manager review, rejection reasons, and tenant-secure reporting.
+- Branch, team, and employee targets with fixed, salary-percentage, or employee-sales-percentage tiered bonus policies.
+- Calculated incentive results retain their inputs and policy snapshot, require approval, enter payroll automatically, and link back to the publishing payroll period.
 
 ## Experience hardening
 
@@ -52,9 +57,9 @@
 ## Validation gates
 
 - Static repository checks: passed.
-- Next.js lint, TypeScript, 30 unit tests, and production build: passed.
+- Next.js lint, TypeScript, 33 unit tests, and production build: passed.
 - Supabase migration reset and database lint: passed.
-- Supabase pgTAP: 232 tests passed.
+- Supabase pgTAP: 314 tests passed.
 - Flutter sources were unchanged in this increment; the Flutter SDK is not installed in the current workstation environment, so analyzer and device tests remain an environment-dependent release check.
 - Production JavaScript dependency audit: passed after verified transitive security overrides.
 - Manual acceptance scenarios in `docs/ACCEPTANCE_TESTS.md`.

@@ -979,12 +979,49 @@ tbody tr:last-child td { border-bottom: 0; }
 .payslip-money-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; padding: 20px; background: #f6f8fc; }.payslip-money-grid > div { padding: 16px; border: 1px solid var(--border); border-radius: 13px; background: white; }.payslip-money-grid span,.payslip-money-grid strong { display: block; }.payslip-money-grid span { color: var(--muted); font-size: .72rem; }.payslip-money-grid strong { margin-top: 7px; font-size: 1.35rem; }.payslip-money-grid .payslip-net { border-color: #b9dfd1; background: #effaf6; }.payslip-money-grid .payslip-net strong { color: #087353; }
 .payslip-lines { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 22px; }.payslip-lines h2,.payslip-attendance h2 { margin: 0 0 12px; font-size: .95rem; }.payslip-lines > div > div { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border); }.payslip-lines span small { display: block; margin-top: 3px; color: var(--muted); font-size: .65rem; }.payslip-attendance { padding: 0 22px 22px; }.payslip-attendance > div { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 7px; }.payslip-attendance span { padding: 9px; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); font-size: .64rem; }.payslip-attendance strong { display: block; margin-top: 5px; color: var(--text); font-size: .85rem; }.payslip-document footer { display: flex; justify-content: space-between; padding: 14px 22px; border-top: 1px solid var(--border); color: var(--muted); font-size: .65rem; }
 
+/* Employee financial services and performance */
+.business-stats { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.business-stats .stat-card strong { font-size: clamp(1.25rem,2vw,1.78rem); overflow-wrap: anywhere; }
+.business-create-panel { border: 1px dashed #aec0ea; border-radius: 14px; background: linear-gradient(145deg,#fbfcff,#f4f7ff); }
+.business-create-panel > summary { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 14px 16px; cursor: pointer; list-style: none; }
+.business-create-panel > summary strong,.business-create-panel > summary small { display: block; }.business-create-panel > summary small { margin-top: 4px; color: var(--muted); font-size: .7rem; }
+.business-create-panel > .action-form-fields { padding: 0 16px 16px; }
+.business-form { grid-template-columns: repeat(4,minmax(140px,1fr)); align-items: end; }
+.compact-business-form .action-form-fields { display: grid; grid-template-columns: repeat(4,minmax(100px,1fr)) auto; align-items: center; gap: 8px; }
+.request-card-list,.loan-list,.installment-list,.sales-ledger,.target-grid { display: grid; gap: 11px; }
+.loan-request-card { padding: 15px; border: 1px solid var(--border); border-radius: 15px; background: white; box-shadow: 0 9px 25px rgba(28,43,74,.045); }
+.loan-request-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin: 12px 0; }
+.loan-request-metrics > div { padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-muted); }
+.loan-request-metrics span,.loan-request-metrics strong { display: block; }.loan-request-metrics span { color: var(--muted); font-size: .64rem; }.loan-request-metrics strong { margin-top: 4px; font-size: .82rem; }
+.loan-review-grid { display: grid; grid-template-columns: minmax(0,2fr) minmax(230px,.8fr); gap: 9px; margin-top: 12px; }
+.business-note { margin: 8px 0; padding: 9px 11px; border-inline-start: 3px solid #9db0e3; border-radius: 7px; background: #f6f8fd; color: var(--muted); font-size: .72rem; }
+.request-status-submitted,.sales-status-submitted,.bonus-status-calculated { background: #fff4d8; color: #8b5d00; }.request-status-approved,.sales-status-approved,.bonus-status-approved,.bonus-status-paid { background: #dcf7e9; color: #087353; }.request-status-rejected,.sales-status-rejected,.bonus-status-rejected { background: #fde5e2; color: #9b2c23; }.request-status-cancelled { background: #eef1f6; color: #566174; }
+.loan-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.loan-list-item { display: grid; gap: 11px; padding: 15px; border: 1px solid var(--border); border-radius: 15px; color: var(--text); background: white; box-shadow: 0 10px 28px rgba(29,45,78,.05); transition: transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+.loan-list-item:hover { border-color: #a9bce9; box-shadow: 0 15px 34px rgba(29,45,78,.1); transform: translateY(-2px); }
+.loan-list-head,.loan-list-metrics,.loan-status-actions,.sales-review-actions,.target-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.loan-list-head strong,.loan-list-head small { display: block; }.loan-list-head small { margin-top: 4px; color: var(--muted); font-size: .68rem; }
+.loan-progress,.target-progress { overflow: hidden; height: 8px; border-radius: 99px; background: #e7ebf3; }.loan-progress span,.target-progress span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#425cc7,#36b69a); }.loan-progress.large { height: 12px; }
+.loan-list-metrics { color: var(--muted); font-size: .72rem; }.loan-list-metrics strong { color: var(--text); }
+.loan-status-active { background: #dcf7e9; color: #087353; }.loan-status-paused { background: #fff4d8; color: #8b5d00; }.loan-status-settled { background: #e4ebff; color: #294aaa; }.loan-status-written_off { background: #fde5e2; color: #9b2c23; }
+.loan-identity { display: flex; align-items: center; justify-content: space-between; gap: 15px; }.loan-status-actions > details { position: relative; }.loan-writeoff-form { position: absolute; z-index: 5; inset-inline-end: 0; width: 330px; margin-top: 8px; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: white; box-shadow: 0 15px 35px rgba(28,43,74,.14); }
+.installment-card { display: grid; grid-template-columns: 85px repeat(2,minmax(140px,1fr)) auto; align-items: center; gap: 14px; padding: 13px; border: 1px solid var(--border); border-radius: 13px; background: white; }
+.installment-card > div span,.installment-card > div strong,.installment-card > div small { display: block; }.installment-card > div span { color: var(--muted); font-size: .62rem; }.installment-card > div strong { margin-top: 4px; }.installment-card > div small { margin-top: 3px; color: var(--muted); font-size: .64rem; }
+.installment-number { display: grid; place-items: center; min-height: 54px; border-radius: 10px; background: #edf1ff; }.installment-number strong { color: var(--primary); font-size: 1.15rem; }
+.installment-reschedule { grid-column: 1 / -1; border-top: 1px dashed var(--border); padding-top: 8px; }.installment-reschedule > summary { color: var(--primary); cursor: pointer; font-size: .7rem; font-weight: 900; }.installment-reschedule .action-form-fields { display: grid; grid-template-columns: 160px minmax(180px,1fr) auto; gap: 8px; margin-top: 8px; }
+.installment-status-scheduled { background: #e7f0ff; color: #2456a4; }.installment-status-partial,.installment-status-deferred { background: #fff4d8; color: #8b5d00; }.installment-status-paid,.installment-status-deducted { background: #dcf7e9; color: #087353; }.installment-status-waived { background: #eef1f6; color: #566174; }
+.business-table { min-width: 760px; }
+.sales-entry { padding: 13px 14px; border: 1px solid var(--border); border-radius: 13px; background: white; }.sales-entry-main { display: grid; grid-template-columns: 95px minmax(170px,1fr) minmax(120px,.4fr) auto; align-items: center; gap: 13px; }.sales-entry-main strong,.sales-entry-main small { display: block; }.sales-entry-main small { margin-top: 4px; color: var(--muted); font-size: .66rem; }.sales-date { color: var(--muted); font-size: .72rem; font-weight: 800; }.sales-review-actions { justify-content: flex-end; margin-top: 10px; }.sales-review-actions .inline-form .action-form-fields { display: grid; grid-template-columns: minmax(180px,1fr) auto; gap: 7px; }
+.policy-chip-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }.policy-chip { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-muted); }.policy-chip strong,.policy-chip small { display: block; }.policy-chip small { margin-top: 4px; color: var(--muted); font-size: .65rem; }.policy-chip > div { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.target-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }.target-card { display: grid; gap: 13px; padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: white; box-shadow: 0 10px 28px rgba(29,45,78,.05); }.target-card-head,.target-scope,.target-progress-label { display: flex; align-items: center; justify-content: space-between; gap: 10px; }.target-card-head strong,.target-card-head small { display: block; }.target-card-head small { margin-top: 4px; color: var(--muted); font-size: .65rem; }.target-scope { justify-content: flex-start; }.target-progress-label span { color: var(--muted); font-size: .68rem; }.target-progress-label strong { color: var(--primary); font-size: 1.15rem; }.target-progress { overflow: hidden; }.target-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }.target-metrics > div { padding: 9px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-muted); }.target-metrics span,.target-metrics strong { display: block; }.target-metrics span { color: var(--muted); font-size: .61rem; }.target-metrics strong { margin-top: 4px; font-size: .76rem; overflow-wrap: anywhere; }.target-actions { justify-content: flex-start; }.target-actions .inline-form .action-form-fields { display: grid; grid-template-columns: minmax(140px,1fr) auto; gap: 7px; }.bonus-result-list { border-top: 1px dashed var(--border); padding-top: 9px; }.bonus-result-list > summary { color: var(--primary); cursor: pointer; font-size: .7rem; font-weight: 900; }.bonus-result-list > div { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 9px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: .72rem; }
+
 @media (max-width: 1180px) {
   .workflow-step-form { grid-template-columns: 80px repeat(3, minmax(140px, 1fr)); }
   .workflow-step-form > :nth-child(n+5) { grid-column: auto; }
   .workflow-step-form > button { grid-column: 1 / -1; }
   .payroll-period-form { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .payroll-period-form .button { grid-column: 1 / -1; }
+  .business-form { grid-template-columns: repeat(3,minmax(0,1fr)); }
 }
 
 @media (max-width: 1000px) {
@@ -1013,6 +1050,11 @@ tbody tr:last-child td { border-bottom: 0; }
   .payroll-action-bar { align-items: stretch; flex-direction: column; }
   .payroll-actions { justify-content: flex-start; }
   .payroll-result-body { grid-template-columns: 1fr; }
+  .business-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .loan-list,.target-grid,.policy-chip-list { grid-template-columns: 1fr; }
+  .loan-review-grid { grid-template-columns: 1fr; }
+  .compact-business-form .action-form-fields { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .compact-business-form .button { grid-column: 1 / -1; }
 }
 
 @media (max-width: 640px) {
@@ -1122,6 +1164,17 @@ tbody tr:last-child td { border-bottom: 0; }
   .payroll-metric-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .payslip-list-item { grid-template-columns: minmax(0,1fr) auto; }.payslip-list-item > span:last-child { grid-column: 1 / -1; }
   .payslip-identifiers,.payslip-money-grid,.payslip-lines { grid-template-columns: 1fr; }.payslip-attendance > div { grid-template-columns: repeat(2,minmax(0,1fr)); }.payslip-header { padding: 20px 16px; }.payslip-lines,.payslip-money-grid { padding: 16px; }.payslip-attendance { padding: 0 16px 16px; }
+  .business-form { grid-template-columns: 1fr; }
+  .business-create-panel > summary { align-items: stretch; flex-direction: column; }
+  .business-create-panel > summary .button { width: 100%; }
+  .loan-request-metrics { grid-template-columns: 1fr 1fr; }
+  .compact-business-form .action-form-fields,.sales-review-actions .inline-form .action-form-fields,.target-actions .inline-form .action-form-fields { grid-template-columns: 1fr; }
+  .loan-identity { align-items: stretch; flex-direction: column; }.loan-status-actions,.loan-status-actions > * { width: 100%; }.loan-status-actions .button { width: 100%; }.loan-writeoff-form { position: static; width: 100%; }
+  .installment-card { grid-template-columns: 64px minmax(0,1fr) auto; }.installment-card > div:nth-child(3) { grid-column: 2 / -1; }.installment-reschedule .action-form-fields { grid-template-columns: 1fr; }
+  .sales-entry-main { grid-template-columns: minmax(0,1fr) auto; }.sales-date { grid-column: 1 / -1; }.sales-entry-main > strong { grid-column: 1; }.sales-entry-main > .badge { grid-column: 2; grid-row: 2; }
+  .policy-chip { align-items: stretch; flex-direction: column; }.policy-chip > div { justify-content: flex-start; }
+  .target-metrics { grid-template-columns: 1fr 1fr; }.target-metrics > div:last-child { grid-column: 1 / -1; }
+  .target-actions,.target-actions > * { width: 100%; }.target-actions .button { width: 100%; }
 }
 
 @media print {
