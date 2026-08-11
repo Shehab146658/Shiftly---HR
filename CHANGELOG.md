@@ -4,6 +4,9 @@
 
 ### Added
 
+- Accessible reusable creation dialogs with keyboard focus management, Escape/backdrop closing, and phone-sized bottom sheets across core administration workflows.
+- A 30-day people-operations pulse and management action queue on the home dashboard, with direct drill-down links to source workflows.
+- A localized protected-route recovery experience with safe retry, dashboard fallback, and support references.
 - A bilingual, permission-gated management reporting center spanning workforce, attendance, leave, requests, payroll, loans, sales targets, tasks, and announcement reach.
 - Date and branch filtering, executive KPI drill-downs, attendance and sales trends, branch scorecards, an operational health index, a prioritized action center, and CSV exports.
 - Reporting-specific read and export permissions for owners, HR, payroll, accounting, and scoped managers.
@@ -37,6 +40,9 @@
 
 ### Changed
 
+- Kept profile and sign-out controls reachable while the expanded sidebar navigation scrolls independently on desktop and mobile.
+- Upgraded Next.js to 16.3.0, aligned ESLint with the supported v9 release, and refreshed patched PostCSS, Nano ID, and Sharp dependency overrides.
+- Moved core add/create forms out of always-visible page content and into explicit action-driven dialogs.
 - Replaced the stacked mobile sidebar with an accessible burger-menu drawer.
 - Added mobile-first employee and role views with a single responsive employee table.
 - Reworked employee creation into an on-demand modal and mobile bottom sheet.

@@ -3,6 +3,9 @@
 ## Administration experience hardening
 
 - [ ] Selecting **Add employee** opens the creation dialog; the form is not shown before that action.
+- [ ] Branch, team, shift-template, weekly-schedule, role, payroll-period, loan-request, daily-sales, task, announcement, leave-balance, and holiday creation forms stay hidden until their action button is selected.
+- [ ] Creation dialogs close from the close button, backdrop, or Escape key and keep keyboard focus inside while open.
+- [ ] Creation dialogs become reachable bottom sheets without horizontal overflow at a 390px viewport.
 - [ ] The employee directory has one responsive list, without duplicate cards beneath it.
 - [ ] The Shiftly brand and signed-in account both open their relevant pages.
 - [ ] The dashboard owner card opens the owner profile.
@@ -10,6 +13,18 @@
 - [ ] Team `001` contains every active employee while existing branch assignments remain unchanged.
 - [ ] Saving or updating important records displays a pending state followed by a success or failure message.
 - [ ] The employee directory and creation dialog remain usable at a 390px mobile viewport.
+- [ ] The sidebar navigation scrolls independently and the account and sign-out controls remain visible at normal mobile zoom.
+- [ ] Unexpected protected-page failures show retry, dashboard recovery, and a support reference instead of a raw framework error.
+
+## Dashboard and discovery
+
+- [ ] The home dashboard shows branch distribution, employee status, schedule state, a 30-day people-operations pulse, and a prioritized action queue.
+- [ ] Every chart row links to the relevant operational page and remains keyboard accessible.
+- [ ] Management reports combine workforce, attendance, leave, requests, payroll, loans, sales, targets, tasks, and announcement reach.
+- [ ] Reporting date and branch filters update KPIs, trends, health, risk queues, and CSV exports consistently.
+- [ ] Global search finds authorized employees, branches, teams, requests, payroll periods, schedules, tasks, and announcements.
+- [ ] The `/` shortcut focuses global search unless the user is already typing in a field.
+- [ ] Navigation hides administration destinations the active role cannot read while preserving employee payroll self-service.
 
 ## Milestone 1 regression
 

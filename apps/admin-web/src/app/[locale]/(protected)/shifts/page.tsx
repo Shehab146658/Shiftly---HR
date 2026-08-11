@@ -1,5 +1,6 @@
 import { createShiftTemplate, toggleShiftTemplate } from "../actions";
 import { ActionForm } from "@/components/action-form";
+import { CreateDialog } from "@/components/create-dialog";
 import { getTenantPageContext } from "@/lib/page-context";
 
 function formatTime(value: string) {
@@ -18,9 +19,9 @@ export default async function ShiftTemplatesPage({ params }: { params: Promise<{
   if (error) throw error;
   const action = createShiftTemplate.bind(null, locale, tenantId);
 
+  const addShift = locale === "ar" ? "إضافة قالب وردية" : "Add shift template";
   return <>
-    <div className="page-head"><div><h1 className="page-title">{d.shifts}</h1><p className="muted">{shifts?.length ?? 0} {d.shifts.toLowerCase()}</p></div></div>
-    <section className="card stack">
+    <div className="page-head"><div><h1 className="page-title">{d.shifts}</h1><p className="muted">{shifts?.length ?? 0} {d.shifts.toLowerCase()}</p></div><CreateDialog closeLabel={d.close} description={locale === "ar" ? "أنشئ وردية قابلة لإعادة الاستخدام، بما في ذلك الورديات الليلية وفترات الراحة." : "Create a reusable working pattern, including overnight shifts and breaks."} eyebrow={d.shifts} title={addShift} triggerLabel={addShift}>
       <ActionForm action={action} className="form-grid three-columns" errorMessage={d.actionFailed} pendingMessage={d.saving} resetOnSuccess successMessage={d.shiftCreated}>
         <div className="field"><label>{d.code}</label><input className="input" name="code" placeholder="12_10" required /></div>
         <div className="field"><label>{d.nameEnglish}</label><input className="input" name="nameEn" placeholder="12 PM - 10 PM" required /></div>
@@ -31,9 +32,9 @@ export default async function ShiftTemplatesPage({ params }: { params: Promise<{
         <div className="field"><label>{d.nextDay}</label><select className="select" name="endDayOffset"><option value="0">No</option><option value="1">Yes</option></select></div>
         <div className="field"><label>{d.breakMinutes}</label><input className="input" type="number" min="0" max="480" name="breakMinutes" defaultValue="0" /></div>
         <div className="field"><label>{d.color}</label><input className="input color-input" type="color" name="colorHex" defaultValue="#2357D9" /></div>
-        <div className="full"><button className="button">{d.add}</button></div>
+        <div className="full"><button className="button">{addShift}</button></div>
       </ActionForm>
-    </section>
+    </CreateDialog></div>
 
     <section className="card stack section-gap">
       <div className="table-wrap"><table><thead><tr><th>{d.code}</th><th>{d.nameEnglish}</th><th>{d.scope}</th><th>{d.startTime}</th><th>{d.endTime}</th><th>{d.breakMinutes}</th><th>{d.statusLabel}</th><th>{d.actions}</th></tr></thead><tbody>

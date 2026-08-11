@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CompanyOnboarding } from "@/components/company-onboarding";
 import { OverflowTooltip } from "@/components/overflow-tooltip";
+import { InsightBars } from "@/components/insight-bars";
 import { getActiveMembership, requireUser } from "@/lib/auth";
 import { getDictionary, isLocale } from "@/lib/i18n";
 
@@ -20,16 +21,26 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
   if (!membership) return <CompanyOnboarding locale={locale} labels={d} />;
   const tenantId = membership.tenant_id;
-  const [branchesResult, teamsResult, employeesResult, ownersResult, schedulesResult, shiftsResult] = await Promise.all([
+  const today = new Date();
+  const dateTo = today.toISOString().slice(0, 10);
+  const pulseStart = new Date(today.getTime() - 29 * 86_400_000);
+  const dateFrom = pulseStart.toISOString().slice(0, 10);
+  const rangeStart = `${dateFrom}T00:00:00.000Z`;
+  const [branchesResult, teamsResult, employeesResult, ownersResult, schedulesResult, shiftsResult, attendanceResult, leaveResult, requestsResult, tasksResult, salesResult] = await Promise.all([
     supabase.from("branches").select("id, name_en, name_ar").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
     supabase.from("teams").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("is_active", true),
     supabase.from("employees").select("id, branch_id, status").eq("tenant_id", tenantId),
     supabase.from("memberships").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("is_owner", true).eq("status", "active"),
     supabase.from("weekly_schedules").select("id, status").eq("tenant_id", tenantId),
     supabase.from("shift_templates").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("is_active", true),
+    supabase.from("attendance_days").select("status,missing_minutes").eq("tenant_id", tenantId).gte("work_date", dateFrom).lte("work_date", dateTo),
+    supabase.from("leave_requests").select("status").eq("tenant_id", tenantId).gte("created_at", rangeStart),
+    supabase.from("hr_requests").select("status").eq("tenant_id", tenantId).gte("submitted_at", rangeStart),
+    supabase.from("tasks").select("status,due_at").eq("tenant_id", tenantId).gte("created_at", rangeStart),
+    supabase.from("sales_entries").select("status").eq("tenant_id", tenantId).gte("business_date", dateFrom).lte("business_date", dateTo),
   ]);
 
-  for (const result of [branchesResult, teamsResult, employeesResult, ownersResult, schedulesResult, shiftsResult]) {
+  for (const result of [branchesResult, teamsResult, employeesResult, ownersResult, schedulesResult, shiftsResult, attendanceResult, leaveResult, requestsResult, tasksResult, salesResult]) {
     if (result.error) throw result.error;
   }
 
@@ -37,6 +48,24 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   const employees = employeesResult.data ?? [];
   const schedules = schedulesResult.data ?? [];
   const activeEmployees = employees.filter((employee) => employee.status === "active").length;
+  const attendanceRows = attendanceResult.data ?? [];
+  const taskRows = tasksResult.data ?? [];
+  const attendanceComplete = attendanceRows.filter((row) => ["present", "late"].includes(row.status)).length;
+  const attendanceExceptions = attendanceRows.filter((row) => ["absent", "incomplete"].includes(row.status) || row.missing_minutes > 0).length;
+  const leaveApproved = (leaveResult.data ?? []).filter((row) => row.status === "approved").length;
+  const tasksDelivered = taskRows.filter((row) => row.status === "approved").length;
+  const pendingRequests = (requestsResult.data ?? []).filter((row) => !["approved", "rejected", "cancelled"].includes(row.status)).length;
+  const overdueTasks = taskRows.filter((row) => !["approved", "cancelled"].includes(row.status) && new Date(row.due_at) < today).length;
+  const pendingSales = (salesResult.data ?? []).filter((row) => row.status === "submitted").length;
+  const pulseCopy = locale === "ar" ? {
+    title: "نبض عمليات الموظفين", subtitle: `آخر 30 يومًا · ${dateFrom} إلى ${dateTo}`,
+    attendance: "أيام حضور مكتملة", leave: "إجازات معتمدة", tasks: "مهام منجزة", exceptions: "استثناءات حضور",
+    actions: "قائمة الإجراءات", actionsHelp: "بنود تحتاج مراجعة إدارية الآن.", requests: "طلبات معلقة", overdue: "مهام متأخرة", sales: "مبيعات بانتظار المراجعة", incomplete: "حضور غير مكتمل",
+  } : {
+    title: "People operations pulse", subtitle: `Last 30 days · ${dateFrom} to ${dateTo}`,
+    attendance: "Completed attendance days", leave: "Approved leave", tasks: "Tasks delivered", exceptions: "Attendance exceptions",
+    actions: "Action queue", actionsHelp: "Items that need management review now.", requests: "Pending requests", overdue: "Overdue tasks", sales: "Sales awaiting review", incomplete: "Incomplete attendance",
+  };
 
   const stats = [
     { label: d.totalEmployees, value: employees.length, detail: `${activeEmployees} ${d.active.toLowerCase()}`, href: `/${locale}/employees`, accent: "blue" },
@@ -146,6 +175,29 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
             <span>{status.label}</span><strong>{status.count}</strong><small>{d.openDirectory} →</small>
           </Link>)}
         </div>
+      </section>
+
+      <section className="dashboard-chart-grid" aria-label={pulseCopy.title}>
+        <InsightBars
+          items={[
+            { label: pulseCopy.attendance, value: attendanceComplete, color: "#315bea", href: `/${locale}/attendance` },
+            { label: pulseCopy.tasks, value: tasksDelivered, color: "#27a58b", href: `/${locale}/tasks` },
+            { label: pulseCopy.leave, value: leaveApproved, color: "#8b5cf6", href: `/${locale}/leaves` },
+            { label: pulseCopy.exceptions, value: attendanceExceptions, color: "#e28b32", href: `/${locale}/attendance` },
+          ]}
+          subtitle={pulseCopy.subtitle}
+          title={pulseCopy.title}
+        />
+        <InsightBars
+          items={[
+            { label: pulseCopy.requests, value: pendingRequests, color: "#526ed7", href: `/${locale}/requests` },
+            { label: pulseCopy.overdue, value: overdueTasks, color: "#d2544c", href: `/${locale}/tasks` },
+            { label: pulseCopy.sales, value: pendingSales, color: "#d68b2d", href: `/${locale}/performance` },
+            { label: pulseCopy.incomplete, value: attendanceExceptions, color: "#8b5cf6", href: `/${locale}/attendance` },
+          ]}
+          subtitle={pulseCopy.actionsHelp}
+          title={pulseCopy.actions}
+        />
       </section>
 
       <section className="dashboard-quick-section">

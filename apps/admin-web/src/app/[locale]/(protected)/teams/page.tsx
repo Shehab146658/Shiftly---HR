@@ -1,6 +1,7 @@
 import { assignAllEmployeesToTeam, createTeam } from "../actions";
 import { ActionForm } from "@/components/action-form";
 import { OverflowTooltip } from "@/components/overflow-tooltip";
+import { CreateDialog } from "@/components/create-dialog";
 import { getTenantPageContext } from "@/lib/page-context";
 
 export default async function TeamsPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -15,16 +16,16 @@ export default async function TeamsPage({ params }: { params: Promise<{ locale: 
   const action = createTeam.bind(null, locale, membership.tenant_id);
 
   return <>
-    <div className="page-head"><div><h1 className="page-title">{d.teams}</h1><p className="muted">{d.teamsHelp}</p></div></div>
-    <section className="card stack">
-      <div className="card-heading"><div><h2>{d.createTeam}</h2><p className="muted">{d.createTeamHelp}</p></div></div>
+    <div className="page-head"><div><h1 className="page-title">{d.teams}</h1><p className="muted">{d.teamsHelp}</p></div><CreateDialog closeLabel={d.close} description={d.createTeamHelp} eyebrow={d.teams} title={d.createTeam} triggerLabel={d.createTeam} width="medium">
       <ActionForm action={action} className="form-grid" errorMessage={d.actionFailed} pendingMessage={d.saving} resetOnSuccess successMessage={d.teamCreated}>
         <div className="field"><label>{d.code}</label><input className="input" name="code" required /></div>
         <div className="field"><label>{d.branch}</label><select className="select" name="branchId"><option value="">—</option>{branches?.map((b) => <option key={b.id} value={b.id}>{b.name_en}</option>)}</select></div>
         <div className="field"><label>{d.nameEnglish}</label><input className="input" name="nameEn" required /></div>
         <div className="field"><label>{d.nameArabic}</label><input className="input" name="nameAr" dir="rtl" /></div>
-        <div className="full"><button className="button">{d.add}</button></div>
+        <div className="full"><button className="button">{d.createTeam}</button></div>
       </ActionForm>
+    </CreateDialog></div>
+    <section className="card stack">
       <div className="table-wrap"><table><thead><tr><th>{d.code}</th><th>{d.nameEnglish}</th><th>{d.branch}</th><th>{d.teamMembers}</th><th>{d.statusLabel}</th><th>{d.actions}</th></tr></thead><tbody>
         {teams?.map((row) => {
           const branch = Array.isArray(row.branches) ? row.branches[0] : row.branches;

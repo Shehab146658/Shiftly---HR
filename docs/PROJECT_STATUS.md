@@ -1,7 +1,7 @@
 # Shiftly HR Project Status
 
 **Current milestone:** Milestone 7 — Product hardening and reporting
-**Status:** Feature-complete business operations; cross-module analytics, exports, accessibility, and UAT are next
+**Status:** Feature-complete business operations; creation-flow UX, cross-module analytics, dependency hardening, and UAT are in validation
 **Release:** `0.4.0-preview`
 **Last updated:** 11 August 2026
 
@@ -52,6 +52,7 @@
 - Executive metrics, operating trends, branch scorecards, risk queues, date and branch filters, and bilingual CSV exports provide a decision-ready owner and HR view.
 - Global search spans tenant-authorized people, organization records, requests, payroll, schedules, tasks, and communications, with a `/` keyboard shortcut.
 - Primary navigation now follows effective role permissions while preserving employee self-service destinations.
+- The main dashboard adds a 30-day people-operations pulse and live action queue that drill into attendance, leave, requests, tasks, and sales.
 
 ## Experience hardening
 
@@ -63,6 +64,9 @@
 - Employee creation opens on demand, and the directory uses one responsive table.
 - Long branch, team, and position labels expose their full value in contextual tooltips.
 - Important administration actions show pending, success, and failure feedback.
+- Core creation forms open only after an explicit action and use reusable accessible dialogs with keyboard focus control and mobile bottom-sheet presentation.
+- The enlarged navigation scrolls independently while account and sign-out actions remain reachable at normal zoom.
+- Unexpected route failures provide a localized retry and dashboard recovery experience.
 
 ## Validation gates
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createWeeklySchedule } from "../actions";
 import { ActionForm } from "@/components/action-form";
+import { CreateDialog } from "@/components/create-dialog";
 import { getTenantPageContext } from "@/lib/page-context";
 
 export const dynamic = "force-dynamic";
@@ -41,10 +42,7 @@ export default async function SchedulesPage({
   const action = createWeeklySchedule.bind(null, locale, tenantId);
 
   return <>
-    <div className="page-head"><div><h1 className="page-title">{d.schedules}</h1><p className="muted">{schedules?.length ?? 0} {d.schedules.toLowerCase()}</p></div></div>
-
-    <section className="card stack">
-      <h2>{d.createSchedule}</h2>
+    <div className="page-head"><div><h1 className="page-title">{d.schedules}</h1><p className="muted">{schedules?.length ?? 0} {d.schedules.toLowerCase()}</p></div><CreateDialog closeLabel={d.close} description={locale === "ar" ? "اختر الفرع وبداية الأسبوع، ثم افتح المخطط لإسناد الموظفين إلى الأيام والساعات." : "Choose the branch and week, then open the planner to assign people to exact days and hours."} eyebrow={d.schedules} title={d.createSchedule} triggerLabel={d.createSchedule} width="medium">
       <ActionForm action={action} className="form-grid" errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.scheduleCreated}>
         <div className="field"><label>{d.branch}</label><select className="select" name="branchId" required><option value="">—</option>{branches?.map((b) => <option key={b.id} value={b.id}>{locale === "ar" && b.name_ar ? b.name_ar : b.name_en}</option>)}</select></div>
         <div className="field"><label>{d.weekDate}</label><input className="input" name="weekStart" type="date" required /><small>{d.weekDateHelp}</small></div>
@@ -52,9 +50,9 @@ export default async function SchedulesPage({
         <div className="field"><label>{d.notes}</label><input className="input" name="notes" /></div>
         <div className="full"><button className="button">{d.create}</button></div>
       </ActionForm>
-    </section>
+    </CreateDialog></div>
 
-    <section className="card stack section-gap">
+    <section className="card stack">
       <form className="toolbar" method="get">
         <select className="select compact" name="branch" defaultValue={filters.branch ?? ""}><option value="">{d.allBranches}</option>{branches?.map((b) => <option key={b.id} value={b.id}>{b.name_en}</option>)}</select>
         <input className="input compact" type="date" name="week" defaultValue={filters.week} />

@@ -1,5 +1,6 @@
 import { createBranch, updateBranchSchedulingRules } from "../actions";
 import { ActionForm } from "@/components/action-form";
+import { CreateDialog } from "@/components/create-dialog";
 import { getTenantPageContext } from "@/lib/page-context";
 
 export default async function BranchesPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -24,16 +25,16 @@ export default async function BranchesPage({ params }: { params: Promise<{ local
   };
   const weekdays = [[1, d.monday], [2, d.tuesday], [3, d.wednesday], [4, d.thursday], [5, d.friday], [6, d.saturday], [7, d.sunday]] as const;
 
+  const addBranch = locale === "ar" ? "إضافة فرع" : "Add branch";
   return <>
-    <div className="page-head"><div><h1 className="page-title">{d.branches}</h1></div></div>
-    <section className="card stack">
+    <div className="page-head"><div><h1 className="page-title">{d.branches}</h1></div><CreateDialog closeLabel={d.close} description={locale === "ar" ? "أنشئ موقع عمل جديدًا ثم اضبط قواعد الجدولة والحضور الخاصة به." : "Create a work location, then configure its scheduling and attendance rules."} eyebrow={d.branches} title={addBranch} triggerLabel={addBranch} width="medium">
       <ActionForm action={action} className="form-grid" errorMessage={d.actionFailed} pendingMessage={d.saving} resetOnSuccess successMessage={d.branchCreated}>
         <div className="field"><label>{d.code}</label><input className="input" name="code" required /></div>
         <div className="field"><label>{d.nameEnglish}</label><input className="input" name="nameEn" required /></div>
         <div className="field"><label>{d.nameArabic}</label><input className="input" name="nameAr" dir="rtl" /></div>
-        <div className="field" style={{ alignSelf: "end" }}><button className="button">{d.add}</button></div>
+        <div className="full"><button className="button">{addBranch}</button></div>
       </ActionForm>
-    </section>
+    </CreateDialog></div>
 
     <div className="grid branch-grid section-gap">
       {data?.map((row) => {

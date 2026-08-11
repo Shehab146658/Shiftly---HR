@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createRole } from "../actions";
 import { ActionForm } from "@/components/action-form";
+import { CreateDialog } from "@/components/create-dialog";
 import { getTenantPageContext } from "@/lib/page-context";
 
 function displayRoleName(name: string) {
@@ -35,14 +36,13 @@ export default async function RolesPage({ params }: { params: Promise<{ locale: 
   return <>
     <div className="page-head role-page-head">
       <div><h1 className="page-title">{d.roleManagementTitle}</h1><p className="muted">{d.roleManagementHelp}</p></div>
-      <details className="role-create-popover">
-        <summary className="button">{d.createCustomRole}</summary>
-        <ActionForm action={createAction} className="card stack role-create-form" errorMessage={d.actionFailed} pendingMessage={d.saving} resetOnSuccess successMessage={d.roleCreated}>
+      <CreateDialog closeLabel={d.close} description={d.roleManagementHelp} eyebrow={d.roles} title={d.createCustomRole} triggerLabel={d.createCustomRole} width="medium">
+        <ActionForm action={createAction} className="stack role-create-form" errorMessage={d.actionFailed} pendingMessage={d.saving} resetOnSuccess successMessage={d.roleCreated}>
           <div className="field"><label>{d.roleName}</label><input className="input" name="name" placeholder={d.roleNamePlaceholder} required /></div>
           <div className="field"><label>{d.roleDescription}</label><textarea className="input" name="description" rows={3} /></div>
           <button className="button">{d.createRole}</button>
         </ActionForm>
-      </details>
+      </CreateDialog>
     </div>
 
     <section className="role-summary-grid">
