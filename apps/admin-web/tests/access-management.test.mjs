@@ -12,6 +12,7 @@ test("mobile shell exposes an accessible drawer instead of stacking navigation",
 
   assert.match(shell, /aria-expanded=\{menuOpen\}/);
   assert.match(shell, /sidebar-overlay-visible/);
+  assert.match(styles, /\.sidebar-overlay-visible[^}]*inset-inline-start: min\(320px, 86vw\)/);
   assert.match(shell, /setMenuOpen\(false\)/);
   assert.match(shell, /setMenuOpen\(\(open\) => !open\)/);
   assert.match(shell, /shell-menu-button-open/);

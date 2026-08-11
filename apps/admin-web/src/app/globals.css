@@ -358,7 +358,7 @@ textarea.input { resize: vertical; min-height: 44px; }
     overflow-y: auto;
   }
   [dir="rtl"] .sidebar { transform: translateX(105%); box-shadow: -20px 0 50px rgba(15, 23, 42, .24); }
-  .sidebar.sidebar-open, [dir="rtl"] .sidebar.sidebar-open { transform: translateX(0); visibility: visible; }
+  .sidebar.sidebar-open, [dir="rtl"] .sidebar.sidebar-open { z-index: 80; transform: translateX(0); visibility: visible; pointer-events: auto; }
   .sidebar-close {
     display: grid;
     place-items: center;
@@ -381,7 +381,7 @@ textarea.input { resize: vertical; min-height: 44px; }
     pointer-events: none;
     transition: opacity .2s ease;
   }
-  .sidebar-overlay-visible { display: block; opacity: 1; pointer-events: auto; }
+  .sidebar-overlay-visible { display: block; inset-inline-start: min(320px, 86vw); opacity: 1; pointer-events: auto; }
   .nav { grid-template-columns: 1fr; }
   .sidebar-footer { margin-top: auto; }
   .topbar {
