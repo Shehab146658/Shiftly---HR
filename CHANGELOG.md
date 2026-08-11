@@ -4,6 +4,8 @@
 
 ### Added
 
+- A mobile-first employee attendance clock with automatic operational-day selection, GPS/geofence validation, camera selfie evidence, online/offline state, recent punch history, and clear pending-approval feedback.
+- A private `attendance-selfies` evidence bucket with employee-scoped upload rules, protected review access, orphan cleanup, mobile camera MIME support, and database tests.
 - Accessible reusable creation dialogs with keyboard focus management, Escape/backdrop closing, and phone-sized bottom sheets across core administration workflows.
 - A 30-day people-operations pulse and management action queue on the home dashboard, with direct drill-down links to source workflows.
 - A localized protected-route recovery experience with safe retry, dashboard fallback, and support references.
@@ -40,6 +42,7 @@
 
 ### Changed
 
+- Standardized the remaining nested add flows—bonus policies, sales targets, loan payments, payroll adjustments, workflow versions, and approval steps—on the reusable creation dialog.
 - Kept profile and sign-out controls reachable while the expanded sidebar navigation scrolls independently on desktop and mobile.
 - Upgraded Next.js to 16.3.0, aligned ESLint with the supported v9 release, and refreshed patched PostCSS, Nano ID, and Sharp dependency overrides.
 - Moved core add/create forms out of always-visible page content and into explicit action-driven dialogs.

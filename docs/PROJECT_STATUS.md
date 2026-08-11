@@ -1,7 +1,7 @@
 # Shiftly HR Project Status
 
-**Current milestone:** Milestone 7 — Product hardening and reporting
-**Status:** Feature-complete business operations; creation-flow UX, cross-module analytics, dependency hardening, and UAT are in validation
+**Current milestone:** Milestone 7 — Product hardening and employee self-service
+**Status:** Feature-complete business operations; employee web attendance, creation-flow UX, cross-module analytics, and UAT are in validation
 **Release:** `0.4.0-preview`
 **Last updated:** 11 August 2026
 
@@ -53,6 +53,7 @@
 - Global search spans tenant-authorized people, organization records, requests, payroll, schedules, tasks, and communications, with a `/` keyboard shortcut.
 - Primary navigation now follows effective role permissions while preserving employee self-service destinations.
 - The main dashboard adds a 30-day people-operations pulse and live action queue that drill into attendance, leave, requests, tasks, and sales.
+- Employee self-service attendance now provides a mobile-first clock with automatic branch operational-day handling, GPS/geofence validation, private selfie evidence, offline safeguards, pending-approval feedback, and recent punch history.
 
 ## Experience hardening
 
@@ -65,6 +66,7 @@
 - Long branch, team, and position labels expose their full value in contextual tooltips.
 - Important administration actions show pending, success, and failure feedback.
 - Core creation forms open only after an explicit action and use reusable accessible dialogs with keyboard focus control and mobile bottom-sheet presentation.
+- Bonus policies, targets, loan payments, payroll adjustments, workflow cloning, and approval-step creation now follow the same on-demand dialog pattern.
 - The enlarged navigation scrolls independently while account and sign-out actions remain reachable at normal zoom.
 - Unexpected route failures provide a localized retry and dashboard recovery experience.
 
@@ -73,11 +75,11 @@
 - Static repository checks: passed.
 - Next.js lint, TypeScript, unit tests, and production build: passed.
 - Supabase migration reset and database lint: passed.
-- Supabase pgTAP includes reporting permissions and role-boundary coverage.
+- Supabase pgTAP includes reporting permissions, role boundaries, and private mobile-attendance evidence coverage.
 - Flutter sources were unchanged in this increment; the Flutter SDK is not installed in the current workstation environment, so analyzer and device tests remain an environment-dependent release check.
 - Production JavaScript dependency audit: passed after verified transitive security overrides.
 - Manual acceptance scenarios in `docs/ACCEPTANCE_TESTS.md`.
 
 ## Known dependency
 
-Native mobile GPS/selfie capture and fingerprint device integration remain the next attendance delivery slices. Fingerprint synchronization also depends on the manufacturer, model, and integration method.
+Native Flutter packaging and fingerprint device integration remain the next attendance delivery slices. Fingerprint synchronization also depends on the manufacturer, model, and integration method.

@@ -194,8 +194,22 @@
 ## Employee visibility and mobile
 
 - [ ] Mobile web navigation opens from a burger button and closes by link, overlay, close button, or Escape.
+- [ ] The navigation list scrolls independently at phone and short desktop heights while the signed-in profile and sign-out action remain reachable.
 - [ ] Employee records display as readable touch-friendly cards on phone-sized screens.
 - [ ] The employee directory appears before the creation form on phone-sized screens.
+
+## Employee self-service attendance
+
+- [ ] A linked employee with `attendance.clock` sees the current branch, operational workday shift, and the correct next clock action.
+- [ ] A check-in requests high-accuracy browser location and validates it against the branch radius in the database.
+- [ ] Branches requiring a selfie prevent submission until the employee captures or chooses an image.
+- [ ] Selfies upload only to a private tenant/employee path and linked evidence cannot be deleted by the employee after recording.
+- [ ] A punch outside the geofence or without location is stored as pending, excluded from calculations, and clearly tells the employee that approval is required.
+- [ ] A validated check-in changes the next action to check-out and appears immediately in recent history.
+- [ ] Offline state disables the clock action and recovers automatically when connectivity returns.
+- [ ] Cross-midnight punches use the branch operational-day boundary instead of midnight.
+- [ ] An unlinked account, missing branch, disabled mobile-clock policy, or missing permission produces a useful non-destructive explanation.
+- [ ] The clock remains touch-friendly at a 390px viewport and in both English and Arabic.
 
 - [ ] `self` visibility exposes only the linked employee's entries.
 - [ ] `team` visibility exposes colleagues in the same team.

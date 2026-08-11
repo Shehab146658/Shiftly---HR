@@ -39,3 +39,21 @@ test("branch administration exposes practical attendance rules", async () => {
   assert.match(actions, /attendance_selfie_required/);
   assert.match(actions, /overtime_threshold_minutes/);
 });
+
+test("employee self-service clock captures private selfie and geofence evidence", async () => {
+  const [page, clock, shell, migration] = await Promise.all([
+    readSource("../src/app/[locale]/(protected)/clock/page.tsx"),
+    readSource("../src/components/employee-clock.tsx"),
+    readSource("../src/components/app-shell.tsx"),
+    readSource("../../../supabase/migrations/202608110020_employee_self_service_attendance.sql"),
+  ]);
+  assert.match(page, /operational_day_start/);
+  assert.match(page, /attendance\.clock/);
+  assert.match(clock, /navigator\.geolocation\.getCurrentPosition/);
+  assert.match(clock, /attendance-selfies/);
+  assert.match(clock, /record_attendance_punch/);
+  assert.match(clock, /capture="user"/);
+  assert.match(shell, /\["clock", d\.clock, "attendance", "attendance\.clock"\]/);
+  assert.match(migration, /attendance_selfies_insert/);
+  assert.match(migration, /attendance_selfies_delete_orphan/);
+});

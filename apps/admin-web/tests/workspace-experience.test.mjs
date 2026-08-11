@@ -15,6 +15,17 @@ test("creation workflows use an accessible on-demand dialog", async () => {
     const source = await readSource(`../src/app/[locale]/(protected)/${page}/page.tsx`);
     assert.match(source, /<CreateDialog/);
   }
+
+  const [performance, loan, payroll, workflows] = await Promise.all([
+    readSource("../src/app/[locale]/(protected)/performance/page.tsx"),
+    readSource("../src/app/[locale]/(protected)/loans/[loanId]/page.tsx"),
+    readSource("../src/app/[locale]/(protected)/payroll/[periodId]/page.tsx"),
+    readSource("../src/app/[locale]/(protected)/requests/workflows/page.tsx"),
+  ]);
+  assert.match(performance, /title={copy\.newPolicy}[\s\S]*title={copy\.newTarget}/);
+  assert.match(loan, /title={copy\.record}/);
+  assert.match(payroll, /triggerLabel={`＋ \${copy\.adjustment}`}/);
+  assert.match(workflows, /title={copy\.clone}[\s\S]*title={copy\.addStep}/);
 });
 
 test("the mobile sidebar scrolls its navigation while keeping account actions reachable", async () => {
