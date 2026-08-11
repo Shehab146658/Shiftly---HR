@@ -50,6 +50,8 @@
 - Announcement readership records delivery, reading, and mandatory acknowledgement separately, with audience analytics for authorized managers.
 - A permission-gated management reporting center combines workforce, attendance, leave, payroll, sales, targets, loans, tasks, and announcement reach in one drill-down workspace.
 - Executive metrics, operating trends, branch scorecards, risk queues, date and branch filters, and bilingual CSV exports provide a decision-ready owner and HR view.
+- Global search spans tenant-authorized people, organization records, requests, payroll, schedules, tasks, and communications, with a `/` keyboard shortcut.
+- Primary navigation now follows effective role permissions while preserving employee self-service destinations.
 
 ## Experience hardening
 

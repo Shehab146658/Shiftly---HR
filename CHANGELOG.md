@@ -7,6 +7,8 @@
 - A bilingual, permission-gated management reporting center spanning workforce, attendance, leave, requests, payroll, loans, sales targets, tasks, and announcement reach.
 - Date and branch filtering, executive KPI drill-downs, attendance and sales trends, branch scorecards, an operational health index, a prioritized action center, and CSV exports.
 - Reporting-specific read and export permissions for owners, HR, payroll, accounting, and scoped managers.
+- A keyboard-accessible global search across authorized people, organization records, requests, payroll periods, schedules, tasks, and announcements.
+- Permission-aware primary navigation that removes dead-end administration links while preserving employee payroll and payslip self-service.
 
 - A tenant-scoped employee request catalogue for late arrival, early departure, hourly permission, attendance correction, branch exceptions, overtime, schedule changes, and general HR requests.
 - Versioned, immutable approval workflows with manager, owner, HR, or custom-role steps and any-one, all, or count-based approval rules.
