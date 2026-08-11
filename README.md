@@ -21,7 +21,7 @@ The current release adds:
 - Database-enforced schedule visibility and branch-scoped manager writes.
 - Real seed schedules for Gate Way, The One, Berry Rose, and Onovi for 17–23 July 2026.
 
-## Milestone 3 — Attendance operations in progress
+## Milestone 3 — Attendance operations
 
 The administration foundation now includes:
 
@@ -32,7 +32,7 @@ The administration foundation now includes:
 - Pending location-evidence approval with mandatory rejection reasons.
 - Date, employee, branch, and status report filters plus CSV export.
 
-Native employee GPS/selfie capture and fingerprint-device synchronization remain planned attendance work.
+The employee web and native Flutter clients both provide GPS/selfie attendance capture against the same guarded ingestion function. The native app also exposes schedules, requests, published payslips, tasks, announcements, and personal notifications in Arabic and English. Manufacturer-specific fingerprint synchronization remains dependent on the selected device model; CSV/import and adapter work is the next device-integration slice.
 
 ## Milestone 1 — Foundation
 
@@ -105,11 +105,10 @@ Change or delete this account outside local development.
 
 ### 5. Prepare and run the Flutter app
 
-The source-controlled Flutter code excludes generated platform folders. Generate them once:
+Android and iOS project folders are source-controlled with their required camera and foreground-location permission descriptions:
 
 ```bash
 cd apps/employee-mobile
-flutter create --platforms=android,ios --org com.shiftly.hr --project-name shiftly_employee .
 flutter pub get
 flutter run \
   --dart-define=SUPABASE_URL=http://127.0.0.1:54321 \

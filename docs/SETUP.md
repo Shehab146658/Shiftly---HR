@@ -62,7 +62,6 @@ npm run dev:web
 
 ```powershell
 cd apps/employee-mobile
-flutter create --platforms=android,ios --org com.shiftly.hr --project-name shiftly_employee .
 flutter pub get
 flutter run --dart-define=SUPABASE_URL=http://10.0.2.2:54321 --dart-define=SUPABASE_PUBLISHABLE_KEY=<publishable-key>
 ```

@@ -1,7 +1,7 @@
 name: shiftly_employee
 description: Shiftly HR employee mobile application.
 publish_to: "none"
-version: 0.2.0+2
+version: 0.4.0+4
 
 environment:
   sdk: ">=3.12.0 <4.0.0"
@@ -11,6 +11,8 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  geolocator: ^14.0.2
+  image_picker: ^1.2.1
   supabase_flutter: ^2.16.0
 
 dev_dependencies:

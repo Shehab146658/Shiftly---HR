@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shiftly_employee/src/localization.dart';
 
-({DateTime earliestStart, DateTime latestStart}) currentScheduleWindow(DateTime now) {
+({DateTime earliestStart, DateTime latestStart}) currentScheduleWindow(
+  DateTime now,
+) {
   final today = DateTime(now.year, now.month, now.day);
-  return (earliestStart: today.subtract(const Duration(days: 6)), latestStart: today);
+  return (
+    earliestStart: today.subtract(const Duration(days: 6)),
+    latestStart: today,
+  );
 }
 
 String scheduleIsoDate(DateTime date) =>
@@ -51,19 +56,28 @@ class _SchedulePageState extends State<SchedulePage> {
         .gte('week_start', scheduleIsoDate(window.earliestStart))
         .lte('week_start', scheduleIsoDate(window.latestStart))
         .inFilter('status', const ['published', 'locked']);
-    final scheduleIds = (schedules as List).map((row) => row['id'] as String).toList();
+    final scheduleIds = (schedules as List)
+        .map((row) => row['id'] as String)
+        .toList();
     if (scheduleIds.isEmpty) return const [];
 
     final rows = await client
         .from('schedule_entries')
-        .select('id, work_date, segment_no, entry_type, custom_start_time, custom_end_time, end_day_offset, notes, shift_templates(name_en, name_ar, start_time, end_time, end_day_offset), branch:branches!schedule_entries_scheduled_branch_id_fkey(name_en, name_ar)')
+        .select(
+          'id, work_date, segment_no, entry_type, custom_start_time, custom_end_time, end_day_offset, notes, shift_templates(name_en, name_ar, start_time, end_time, end_day_offset), branch:branches!schedule_entries_scheduled_branch_id_fkey(name_en, name_ar)',
+        )
         .eq('employee_id', employee['id'])
         .inFilter('schedule_id', scheduleIds)
         .gte('work_date', scheduleIsoDate(window.earliestStart))
-        .lte('work_date', scheduleIsoDate(window.latestStart.add(const Duration(days: 6))))
+        .lte(
+          'work_date',
+          scheduleIsoDate(window.latestStart.add(const Duration(days: 6))),
+        )
         .order('work_date')
         .order('segment_no');
-    return (rows as List).map((row) => Map<String, dynamic>.from(row as Map)).toList();
+    return (rows as List)
+        .map((row) => Map<String, dynamic>.from(row as Map))
+        .toList();
   }
 
   String _time(dynamic value) {
@@ -77,7 +91,8 @@ class _SchedulePageState extends State<SchedulePage> {
     final template = row['shift_templates'] as Map<String, dynamic>?;
     final start = template?['start_time'] ?? row['custom_start_time'];
     final end = template?['end_time'] ?? row['custom_end_time'];
-    final nextDay = (template?['end_day_offset'] ?? row['end_day_offset'] ?? 0) == 1;
+    final nextDay =
+        (template?['end_day_offset'] ?? row['end_day_offset'] ?? 0) == 1;
     final templateName = widget.locale.languageCode == 'ar'
         ? (template?['name_ar'] ?? template?['name_en'])
         : template?['name_en'];
@@ -97,11 +112,27 @@ class _SchedulePageState extends State<SchedulePage> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Padding(padding: const EdgeInsets.all(24), child: Text('${s.t('scheduleError')}\n${snapshot.error}', textAlign: TextAlign.center)));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  '${s.t('scheduleError')}\n${snapshot.error}',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
           }
           final entries = snapshot.data ?? const [];
           if (entries.isEmpty) {
-            return Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(widget.demoMode ? s.t('demoSchedule') : s.t('noSchedule'), textAlign: TextAlign.center)));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  widget.demoMode ? s.t('demoSchedule') : s.t('noSchedule'),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
           }
           return RefreshIndicator(
             onRefresh: () async {
@@ -121,10 +152,26 @@ class _SchedulePageState extends State<SchedulePage> {
                     : branch?['name_en'];
                 return Card(
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                    leading: CircleAvatar(child: Text((row['work_date'] as String).substring(8, 10))),
-                    title: Text(_entryLabel(row, s), style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text([row['work_date'], branchName, row['notes']].whereType<Object>().join(' · ')),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
+                    leading: CircleAvatar(
+                      child: Text(
+                        (row['work_date'] as String).substring(8, 10),
+                      ),
+                    ),
+                    title: Text(
+                      _entryLabel(row, s),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      [
+                        row['work_date'],
+                        branchName,
+                        row['notes'],
+                      ].whereType<Object>().join(' · '),
+                    ),
                   ),
                 );
               },

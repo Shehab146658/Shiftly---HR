@@ -4,6 +4,8 @@
 
 ### Added
 
+- A production-oriented Flutter employee workspace for Android and iOS with bilingual/RTL navigation, native camera/GPS attendance, schedule access, personal requests, published payslips, task actions, targeted announcements, and notifications.
+- Source-controlled Android/iOS packaging with camera, foreground-location, network, and photo-evidence permissions plus a CI Android compile gate.
 - A mobile-first employee attendance clock with automatic operational-day selection, GPS/geofence validation, camera selfie evidence, online/offline state, recent punch history, and clear pending-approval feedback.
 - A private `attendance-selfies` evidence bucket with employee-scoped upload rules, protected review access, orphan cleanup, mobile camera MIME support, and database tests.
 - Accessible reusable creation dialogs with keyboard focus management, Escape/backdrop closing, and phone-sized bottom sheets across core administration workflows.
@@ -42,6 +44,7 @@
 
 ### Changed
 
+- Replaced the schedule-only Flutter foundation and inactive dashboard tiles with guarded live employee workflows, localized recovery states, pull-to-refresh, and action feedback.
 - Standardized the remaining nested add flows—bonus policies, sales targets, loan payments, payroll adjustments, workflow versions, and approval steps—on the reusable creation dialog.
 - Kept profile and sign-out controls reachable while the expanded sidebar navigation scrolls independently on desktop and mobile.
 - Upgraded Next.js to 16.3.0, aligned ESLint with the supported v9 release, and refreshed patched PostCSS, Nano ID, and Sharp dependency overrides.

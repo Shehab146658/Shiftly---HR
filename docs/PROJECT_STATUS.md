@@ -54,6 +54,8 @@
 - Primary navigation now follows effective role permissions while preserving employee self-service destinations.
 - The main dashboard adds a 30-day people-operations pulse and live action queue that drill into attendance, leave, requests, tasks, and sales.
 - Employee self-service attendance now provides a mobile-first clock with automatic branch operational-day handling, GPS/geofence validation, private selfie evidence, offline safeguards, pending-approval feedback, and recent punch history.
+- The installable Flutter client now mirrors the core employee workspace with bilingual/RTL navigation, published schedules, native front-camera and precise-location attendance, recent punch evidence, personal notifications, request history, published payslips with receipt acknowledgement, task start actions, and announcement read/acknowledgement controls.
+- Android and iOS projects are source-controlled with production camera/location permission descriptions, and CI now compiles an Android debug artifact in addition to Flutter analysis and widget tests.
 
 ## Experience hardening
 
@@ -76,10 +78,10 @@
 - Next.js lint, TypeScript, unit tests, and production build: passed.
 - Supabase migration reset and database lint: passed.
 - Supabase pgTAP includes reporting permissions, role boundaries, and private mobile-attendance evidence coverage.
-- Flutter sources were unchanged in this increment; the Flutter SDK is not installed in the current workstation environment, so analyzer and device tests remain an environment-dependent release check.
+- Flutter 3.44 analysis and widget tests pass locally. CI additionally compiles the Android debug application; physical-device camera/location acceptance and signed store artifacts remain launch gates.
 - Production JavaScript dependency audit: passed after verified transitive security overrides.
 - Manual acceptance scenarios in `docs/ACCEPTANCE_TESTS.md`.
 
 ## Known dependency
 
-Native Flutter packaging and fingerprint device integration remain the next attendance delivery slices. Fingerprint synchronization also depends on the manufacturer, model, and integration method.
+Fingerprint device synchronization depends on the manufacturer, model, transport, and sample export/API. Native store signing, push-provider credentials, and physical-device camera/location acceptance remain environment-dependent launch gates.

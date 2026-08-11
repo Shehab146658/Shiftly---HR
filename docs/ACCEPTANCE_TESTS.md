@@ -110,6 +110,10 @@
 - [ ] Approval rules support any one approver, every resolved approver, or a configurable approval count.
 - [ ] Request and notification records remain invisible across tenant boundaries.
 - [ ] Notification bell shows unread approval assignments and request decisions on desktop and mobile.
+- [ ] Native Android/iOS employee dashboard switches completely between English and Arabic, including RTL layout.
+- [ ] Linked employee can capture a front-camera selfie and precise location, clock in/out, and immediately see the new punch and validation state.
+- [ ] Denied camera, denied location, disabled location services, offline network, unlinked employee, unassigned branch, and disabled mobile clock each show a recoverable localized state.
+- [ ] Native employee can review personal requests, acknowledge a published payslip, start an assigned task, acknowledge a mandatory announcement, and mark notifications read without accessing another employee's data.
 
 ## Leave operations
 
