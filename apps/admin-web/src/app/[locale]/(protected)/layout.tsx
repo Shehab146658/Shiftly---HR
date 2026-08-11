@@ -12,10 +12,15 @@ export default async function ProtectedLayout({ children, params }: { children: 
   const { user, supabase } = await requireUser(rawLocale);
   const membership = await getActiveMembership(user.id);
   const tenant = Array.isArray(membership?.tenants) ? membership.tenants[0] : membership?.tenants;
-  const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+  const [{ data: profile }, { data: notifications }] = await Promise.all([
+    supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+    tenant?.id
+      ? supabase.from("notifications").select("id, title_en, title_ar, body_en, body_ar, href, read_at, created_at").eq("tenant_id", tenant.id).eq("recipient_user_id", user.id).order("created_at", { ascending: false }).limit(12)
+      : Promise.resolve({ data: [] }),
+  ]);
 
   return (
-    <AppShell locale={rawLocale} userEmail={user.email ?? ""} userId={user.id} userName={profile?.full_name} isOwner={membership?.is_owner} companyName={tenant?.name_en}>
+    <AppShell locale={rawLocale} userEmail={user.email ?? ""} userId={user.id} userName={profile?.full_name} isOwner={membership?.is_owner} companyName={tenant?.name_en} tenantId={tenant?.id} notifications={notifications ?? []}>
       {children}
     </AppShell>
   );

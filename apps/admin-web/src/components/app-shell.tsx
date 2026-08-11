@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LanguageSwitch } from "@/components/language-switch";
 import { AppIcon, BrandMark, type AppIconName } from "@/components/brand-mark";
+import { NotificationCenter, type NotificationItem } from "@/components/notification-center";
 import { getDictionary, type AppLocale } from "@/lib/i18n";
 import { signOut } from "@/app/[locale]/(protected)/actions";
 
@@ -15,6 +16,8 @@ export function AppShell({
   userName,
   isOwner,
   companyName,
+  tenantId,
+  notifications = [],
   children,
 }: {
   locale: AppLocale;
@@ -23,6 +26,8 @@ export function AppShell({
   userName?: string | null;
   isOwner?: boolean;
   companyName?: string | null;
+  tenantId?: string;
+  notifications?: NotificationItem[];
   children: React.ReactNode;
 }) {
   const d = getDictionary(locale);
@@ -30,7 +35,7 @@ export function AppShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const items: Array<[string, string, AppIconName]> = [
     ["dashboard", d.dashboard, "dashboard"], ["branches", d.branches, "branches"], ["teams", d.teams, "teams"], ["employees", d.employees, "employees"],
-    ["shifts", d.shifts, "shifts"], ["schedules", d.schedules, "schedules"], ["attendance", d.attendance, "attendance"], ["leaves", d.leaves, "leaves"], ["roles", d.roles, "roles"], ["audit", d.audit, "audit"],
+    ["shifts", d.shifts, "shifts"], ["schedules", d.schedules, "schedules"], ["attendance", d.attendance, "attendance"], ["leaves", d.leaves, "leaves"], ["requests", d.requests, "requests"], ["roles", d.roles, "roles"], ["audit", d.audit, "audit"],
   ];
   const logout = signOut.bind(null, locale);
   const profileHref = `/${locale}/profiles/${userId}`;
@@ -111,7 +116,7 @@ export function AppShell({
               <strong title={companyName ?? d.product}>{companyName ?? d.product}</strong>
             </div>
           </div>
-          <LanguageSwitch locale={locale} />
+          <div className="topbar-actions"><NotificationCenter locale={locale} notifications={notifications} tenantId={tenantId} /><LanguageSwitch locale={locale} /></div>
         </header>
         <main className="content">{children}</main>
       </div>

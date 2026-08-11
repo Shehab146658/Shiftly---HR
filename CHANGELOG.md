@@ -4,6 +4,12 @@
 
 ### Added
 
+- A tenant-scoped employee request catalogue for late arrival, early departure, hourly permission, attendance correction, branch exceptions, overtime, schedule changes, and general HR requests.
+- Versioned, immutable approval workflows with manager, owner, HR, or custom-role steps and any-one, all, or count-based approval rules.
+- A bilingual request inbox with filters, workflow history, review actions, cancellations, attachment support, and mobile-first request cards.
+- A workflow administration screen that safely clones, edits, and activates new workflow versions without changing in-flight requests.
+- An in-app notification center for approval assignments and employee decisions.
+- Database Row-Level Security, guarded RPCs, storage policies, audit triggers, and pgTAP coverage for request operations.
 - Persistent employee access-role assignment with pending-account support, membership synchronization, RLS, audit logging, and tests.
 - Tenant-member profile pages with clickable owner and employee identities.
 - Reusable save, update, archive, publish, and assignment feedback with pending, success, and failure states.

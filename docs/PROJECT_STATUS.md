@@ -1,9 +1,9 @@
 # Shiftly HR Project Status
 
-**Current milestone:** Milestone 3 — Attendance
-**Status:** In progress after scheduling experience hardening
-**Release:** `0.2.0`
-**Last updated:** 10 August 2026
+**Current milestone:** Milestone 4 — Requests and approvals
+**Status:** In progress after the reusable approval engine release
+**Release:** `0.3.0-preview`
+**Last updated:** 11 August 2026
 
 ## Completed
 
@@ -25,6 +25,11 @@
 - Audited manual punches, pending evidence approval/rejection, date and workforce filters, summary totals, and CSV export.
 - Worked-time pairing for split shifts and clocked breaks instead of treating the day as one continuous span.
 - Repeatable attendance preview data with realistic present, late, overtime, early-departure, incomplete, absent, OFF, and pending-geofence cases.
+- Reusable request catalogue covering attendance permissions, corrections, branch exceptions, overtime, schedule changes, and general HR cases.
+- Versioned approval workflows with manager, owner, HR, and custom-role routing plus any, all, and count-based approval rules.
+- Bilingual request inbox, employee self-service submission, attachments, cancellations, detailed workflow history, and guarded review actions.
+- In-app notifications for approval assignments, approvals, and rejections.
+- Immutable active workflows so new policy versions never rewrite an in-flight request's approval path.
 
 ## Experience hardening
 
@@ -40,9 +45,9 @@
 ## Validation gates
 
 - Static repository checks: passed.
-- Next.js lint, TypeScript, 23 unit tests, and production build: passed.
+- Next.js lint, TypeScript, 27 unit tests, and production build: passed.
 - Supabase migration reset and database lint: passed.
-- Supabase pgTAP: 131 tests passed.
+- Supabase pgTAP: 160 tests passed.
 - Flutter sources were unchanged in this increment; the Flutter SDK is not installed in the current workstation environment, so analyzer and device tests remain an environment-dependent release check.
 - Production JavaScript dependency audit: passed after verified transitive security overrides.
 - Manual acceptance scenarios in `docs/ACCEPTANCE_TESTS.md`.

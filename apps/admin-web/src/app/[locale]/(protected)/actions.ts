@@ -395,6 +395,226 @@ export async function updateEmployeeRoles(locale: AppLocale, tenantId: string, e
   revalidatePath(`/${locale}/roles`);
 }
 
+const requestDecisionSchema = z.enum(["approved", "rejected"]);
+const approverKindSchema = z.enum(["manager", "owner", "hr", "role"]);
+const approvalModeSchema = z.enum(["any", "all", "count"]);
+
+function refreshRequestPaths(locale: AppLocale) {
+  revalidatePath(`/${locale}/requests`);
+  revalidatePath(`/${locale}/requests/workflows`);
+  revalidatePath(`/${locale}/dashboard`);
+}
+
+export async function submitHrRequest(locale: AppLocale, tenantId: string, formData: FormData) {
+  const values = z.object({
+    employeeId: idSchema,
+    requestTypeId: idSchema,
+    title: z.string().trim().max(180).optional(),
+    reason: z.string().trim().max(3000).optional(),
+    startDate: dateSchema.optional(),
+    endDate: dateSchema.optional(),
+    startTime: timeSchema.optional(),
+    endTime: timeSchema.optional(),
+    requestedMinutes: z.coerce.number().int().min(1).max(1440).optional(),
+    branchId: optionalId,
+  }).parse({
+    employeeId: formData.get("employeeId"),
+    requestTypeId: formData.get("requestTypeId"),
+    title: optionalString(formData.get("title")),
+    reason: optionalString(formData.get("reason")),
+    startDate: optionalString(formData.get("startDate")),
+    endDate: optionalString(formData.get("endDate")),
+    startTime: optionalString(formData.get("startTime")),
+    endTime: optionalString(formData.get("endTime")),
+    requestedMinutes: optionalString(formData.get("requestedMinutes")),
+    branchId: optionalString(formData.get("branchId")),
+  });
+  const parsedTenantId = idSchema.parse(tenantId);
+  const document = formData.get("supportingDocument");
+  const hasDocument = document instanceof File && document.size > 0;
+  if (hasDocument) {
+    if (document.size > 10 * 1024 * 1024) throw new Error("Supporting documents must be 10 MB or smaller.");
+    if (!["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(document.type)) {
+      throw new Error("Supporting documents must be PDF, JPG, PNG, or WebP.");
+    }
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data: requestId, error } = await supabase.rpc("submit_hr_request", {
+    p_employee_id: values.employeeId,
+    p_request_type_id: values.requestTypeId,
+    p_title: values.title ?? null,
+    p_reason: values.reason ?? null,
+    p_start_date: values.startDate ?? null,
+    p_end_date: values.endDate ?? null,
+    p_start_time: values.startTime ?? null,
+    p_end_time: values.endTime ?? null,
+    p_requested_minutes: values.requestedMinutes ?? null,
+    p_payload: values.branchId ? { branch_id: values.branchId } : {},
+    p_has_attachment: hasDocument,
+  });
+  if (error) throw error;
+  const parsedRequestId = idSchema.parse(requestId);
+
+  if (hasDocument) {
+    const safeName = document.name.normalize("NFKD").replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "document";
+    const objectPath = `${parsedTenantId}/${values.employeeId}/${parsedRequestId}/${Date.now()}-${safeName}`;
+    const { error: uploadError } = await supabase.storage.from("request-documents").upload(objectPath, document, {
+      contentType: document.type,
+      upsert: false,
+    });
+    if (uploadError) {
+      await supabase.rpc("cancel_hr_request", { p_request_id: parsedRequestId, p_reason: "Supporting document upload failed" });
+      throw uploadError;
+    }
+    const { error: attachError } = await supabase.rpc("attach_request_document", {
+      p_request_id: parsedRequestId,
+      p_object_path: objectPath,
+      p_file_name: document.name.slice(0, 250),
+      p_mime_type: document.type,
+      p_size_bytes: document.size,
+    });
+    if (attachError) {
+      await supabase.storage.from("request-documents").remove([objectPath]);
+      await supabase.rpc("cancel_hr_request", { p_request_id: parsedRequestId, p_reason: "Supporting document attachment failed" });
+      throw attachError;
+    }
+  }
+  refreshRequestPaths(locale);
+}
+
+export async function reviewHrRequest(locale: AppLocale, requestId: string, decision: "approved" | "rejected", formData: FormData) {
+  const note = z.string().trim().max(2000).optional().parse(optionalString(formData.get("reviewNote")));
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("review_hr_request", {
+    p_request_id: idSchema.parse(requestId),
+    p_decision: requestDecisionSchema.parse(decision),
+    p_note: note ?? null,
+  });
+  if (error) throw error;
+  refreshRequestPaths(locale);
+}
+
+export async function cancelHrRequest(locale: AppLocale, requestId: string, formData: FormData) {
+  const reason = z.string().trim().min(2).max(1000).parse(formData.get("cancellationReason"));
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("cancel_hr_request", {
+    p_request_id: idSchema.parse(requestId),
+    p_reason: reason,
+  });
+  if (error) throw error;
+  refreshRequestPaths(locale);
+}
+
+export async function cloneRequestWorkflow(locale: AppLocale, workflowId: string, formData: FormData) {
+  const values = z.object({
+    nameEn: z.string().trim().min(2).max(150),
+    nameAr: z.string().trim().min(2).max(150),
+  }).parse({ nameEn: formData.get("nameEn"), nameAr: formData.get("nameAr") });
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("clone_request_workflow", {
+    p_workflow_id: idSchema.parse(workflowId),
+    p_name_en: values.nameEn,
+    p_name_ar: values.nameAr,
+  });
+  if (error) throw error;
+  refreshRequestPaths(locale);
+}
+
+export async function addRequestWorkflowStep(locale: AppLocale, tenantId: string, workflowId: string, formData: FormData) {
+  const values = z.object({
+    stepOrder: z.coerce.number().int().min(1).max(50),
+    nameEn: z.string().trim().min(2).max(150),
+    nameAr: z.string().trim().min(2).max(150),
+    approverKind: approverKindSchema,
+    roleId: optionalId,
+    approvalMode: approvalModeSchema,
+    approvalsRequired: z.coerce.number().int().min(1).max(50),
+    slaHours: z.coerce.number().int().min(1).max(8760).optional(),
+  }).parse({
+    stepOrder: formData.get("stepOrder"),
+    nameEn: formData.get("nameEn"),
+    nameAr: formData.get("nameAr"),
+    approverKind: formData.get("approverKind"),
+    roleId: optionalString(formData.get("roleId")),
+    approvalMode: formData.get("approvalMode") || "any",
+    approvalsRequired: formData.get("approvalsRequired") || "1",
+    slaHours: optionalString(formData.get("slaHours")),
+  });
+  if (values.approverKind === "role" && !values.roleId) throw new Error("Choose a role for a role-based approval step.");
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("approval_workflow_steps").insert({
+    tenant_id: idSchema.parse(tenantId),
+    workflow_id: idSchema.parse(workflowId),
+    step_order: values.stepOrder,
+    name_en: values.nameEn,
+    name_ar: values.nameAr,
+    approver_kind: values.approverKind,
+    role_id: values.approverKind === "role" ? values.roleId : null,
+    approval_mode: values.approvalMode,
+    approvals_required: values.approvalsRequired,
+    sla_hours: values.slaHours ?? null,
+  });
+  if (error) throw error;
+  refreshRequestPaths(locale);
+}
+
+export async function updateRequestWorkflowStep(locale: AppLocale, tenantId: string, stepId: string, formData: FormData) {
+  const values = z.object({
+    stepOrder: z.coerce.number().int().min(1).max(50),
+    nameEn: z.string().trim().min(2).max(150),
+    nameAr: z.string().trim().min(2).max(150),
+    approverKind: approverKindSchema,
+    roleId: optionalId,
+    approvalMode: approvalModeSchema,
+    approvalsRequired: z.coerce.number().int().min(1).max(50),
+    slaHours: z.coerce.number().int().min(1).max(8760).optional(),
+  }).parse({
+    stepOrder: formData.get("stepOrder"), nameEn: formData.get("nameEn"), nameAr: formData.get("nameAr"),
+    approverKind: formData.get("approverKind"), roleId: optionalString(formData.get("roleId")),
+    approvalMode: formData.get("approvalMode") || "any", approvalsRequired: formData.get("approvalsRequired") || "1",
+    slaHours: optionalString(formData.get("slaHours")),
+  });
+  if (values.approverKind === "role" && !values.roleId) throw new Error("Choose a role for a role-based approval step.");
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("approval_workflow_steps").update({
+    step_order: values.stepOrder, name_en: values.nameEn, name_ar: values.nameAr,
+    approver_kind: values.approverKind, role_id: values.approverKind === "role" ? values.roleId : null,
+    approval_mode: values.approvalMode, approvals_required: values.approvalsRequired, sla_hours: values.slaHours ?? null,
+  }).eq("tenant_id", idSchema.parse(tenantId)).eq("id", idSchema.parse(stepId));
+  if (error) throw error;
+  refreshRequestPaths(locale);
+}
+
+export async function deleteRequestWorkflowStep(locale: AppLocale, tenantId: string, stepId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("approval_workflow_steps").delete()
+    .eq("tenant_id", idSchema.parse(tenantId)).eq("id", idSchema.parse(stepId));
+  if (error) throw error;
+  refreshRequestPaths(locale);
+}
+
+export async function activateRequestWorkflow(locale: AppLocale, workflowId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("activate_request_workflow", { p_workflow_id: idSchema.parse(workflowId) });
+  if (error) throw error;
+  refreshRequestPaths(locale);
+}
+
+export async function markNotificationRead(locale: AppLocale, notificationId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("mark_notification_read", { p_notification_id: idSchema.parse(notificationId) });
+  if (error) throw error;
+  revalidatePath(`/${locale}`, "layout");
+}
+
+export async function markAllNotificationsRead(locale: AppLocale, tenantId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("mark_all_notifications_read", { p_tenant_id: idSchema.parse(tenantId) });
+  if (error) throw error;
+  revalidatePath(`/${locale}`, "layout");
+}
+
 const leaveDayPartSchema = z.enum(["full", "first_half", "second_half", "hours"]);
 const leaveTransactionKindSchema = z.enum(["adjustment", "carryover", "settlement", "holiday_credit", "reversal"]);
 

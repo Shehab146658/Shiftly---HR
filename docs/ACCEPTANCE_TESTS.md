@@ -78,6 +78,24 @@
 - [ ] Attendance reports filter by date, employee, branch, and status and export the visible rows to CSV.
 - [ ] Report totals show lateness, overtime, missing time, and final time balance.
 
+## Requests and approval workflows
+
+- [ ] Employee can submit late-arrival, early-departure, hourly-permission, attendance-correction, branch-exception, overtime, schedule-change, and general HR requests.
+- [ ] Request forms show the operational fields required by the selected request type.
+- [ ] Required reasons and attachments are enforced in the database as well as the interface.
+- [ ] A request without a linked manager skips the unresolvable manager step and reaches the next valid approver.
+- [ ] Only people resolved by the active workflow step can approve or reject a request.
+- [ ] Rejection requires a reason and notifies the linked employee account.
+- [ ] Employee can cancel an open personal request with a reason.
+- [ ] Request history records submission, every completed step, final decision, and cancellation.
+- [ ] Active workflow versions cannot be edited or deleted.
+- [ ] HR or owners can clone an active workflow, edit the draft steps, then activate it for new requests.
+- [ ] Existing requests remain attached to the workflow version used at submission time.
+- [ ] Approval steps support line manager, owner, HR, and a selected custom role.
+- [ ] Approval rules support any one approver, every resolved approver, or a configurable approval count.
+- [ ] Request and notification records remain invisible across tenant boundaries.
+- [ ] Notification bell shows unread approval assignments and request decisions on desktop and mobile.
+
 ## Employee visibility and mobile
 
 - [ ] Mobile web navigation opens from a burger button and closes by link, overlay, close button, or Escape.
