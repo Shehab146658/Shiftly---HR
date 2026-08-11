@@ -1061,6 +1061,7 @@ tbody tr:last-child td { border-bottom: 0; }
 @media (max-width: 1000px) {
   .shell { display: block; }
   .shell .sidebar { width: min(320px, 86vw); z-index: 60; overflow-y: auto; }
+  .shell .sidebar.sidebar-open, [dir="rtl"] .shell .sidebar.sidebar-open { z-index: 80; visibility: visible; pointer-events: auto; transform: translateX(0); }
   .topbar-brand-link { display: inline-flex; }
   .topbar-identity { display: flex; align-items: center; gap: 11px; }
   .topbar-identity > strong { display: none; }
