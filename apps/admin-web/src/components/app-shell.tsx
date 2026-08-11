@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { LanguageSwitch } from "@/components/language-switch";
 import { AppIcon, BrandMark, type AppIconName } from "@/components/brand-mark";
 import { NotificationCenter, type NotificationItem } from "@/components/notification-center";
+import { GlobalSearch } from "@/components/global-search";
 import { getDictionary, type AppLocale } from "@/lib/i18n";
 import { signOut } from "@/app/[locale]/(protected)/actions";
 
@@ -120,6 +121,7 @@ export function AppShell({
               <strong title={companyName ?? d.product}>{companyName ?? d.product}</strong>
             </div>
           </div>
+          <GlobalSearch locale={locale} />
           <div className="topbar-actions"><NotificationCenter locale={locale} notifications={notifications} tenantId={tenantId} /><LanguageSwitch locale={locale} /></div>
         </header>
         <main className="content">{children}</main>
