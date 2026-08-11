@@ -13,6 +13,10 @@
 - Versioned approval workflows for every statutory and company leave type, using the same manager, owner, HR, custom-role, any/all/count approval engine.
 - A leave administration workspace for policy controls, secure supporting documents, public holidays, employee balance adjustments, and an immutable transaction ledger.
 - Leave request cancellation, signed document access, descriptive approval history, step-aware review responsibility, and employee notifications.
+- Effective-dated employee compensation for monthly, daily, hourly, mixed, and commission salary arrangements.
+- Auditable payroll periods that snapshot policy, attendance, leave, overtime, absence, additions, deductions, and net pay.
+- Controlled payroll calculation, review, approval, lock, and payslip-publication stages with descriptive status history.
+- Manual reasoned earnings and deductions, printable bilingual payslips, and employee receipt acknowledgement.
 - Persistent employee access-role assignment with pending-account support, membership synchronization, RLS, audit logging, and tests.
 - Tenant-member profile pages with clickable owner and employee identities.
 - Reusable save, update, archive, publish, and assignment feedback with pending, success, and failure states.

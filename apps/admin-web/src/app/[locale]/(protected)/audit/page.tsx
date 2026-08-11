@@ -73,6 +73,10 @@ export default async function AuditPage({
     weekly_schedules: d.auditSchedule,
     schedule_entries: d.auditScheduleEntry,
     attendance_punches: d.auditAttendancePunch,
+    payroll_settings: locale === "ar" ? "سياسة الرواتب" : "Payroll policy",
+    employee_compensation: locale === "ar" ? "هيكل أجر الموظف" : "Employee compensation",
+    payroll_periods: locale === "ar" ? "دورة الرواتب" : "Payroll period",
+    payroll_components: locale === "ar" ? "بند راتب" : "Payroll component",
   };
 
   const recordName = (record: JsonRecord) => {

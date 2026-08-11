@@ -44,6 +44,10 @@ in Supabase Studio after creating the demo tenant. The repeatable dataset includ
 on-time, late, overtime, early departure, incomplete, absent, OFF, and
 pending-review cases without replacing non-demo schedules or punches.
 
+For payroll demonstrations, run
+[`supabase/demo/seed_payroll_preview.sql`](../supabase/demo/seed_payroll_preview.sql)
+after the demo tenant exists. It adds anonymized sample compensation only for employees who do not already have compensation and never overwrites real payroll data.
+
 ## Admin portal
 
 ```powershell

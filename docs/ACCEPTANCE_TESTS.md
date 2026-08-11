@@ -109,6 +109,20 @@
 - [ ] Default Egypt 2026 public holidays remain available, and administrators can add or remove tenant holidays.
 - [ ] Anonymous and cross-tenant callers cannot inspect, submit, approve, or alter leave operations.
 
+## Payroll operations
+
+- [ ] Payroll settings configure currency, standard days and hours, rounding, overtime, time-deduction, and absence multipliers.
+- [ ] Employee compensation is effective-dated and supports monthly, daily, hourly, mixed, and commission arrangements.
+- [ ] Replacing compensation closes the prior version without changing historical payroll snapshots.
+- [ ] Payroll calculation includes attendance days, worked time, lateness, early departure, overtime, missing time, absence, and approved unpaid leave.
+- [ ] Recalculation replaces automatic components but preserves reasoned manual additions and deductions.
+- [ ] Payroll periods cannot overlap and retain the settings and compensation snapshots used for calculation.
+- [ ] Payroll follows draft, calculated, reviewed, approved, locked, and published gates with role-based responsibility.
+- [ ] Locked or published payroll cannot be recalculated or adjusted.
+- [ ] Publication creates one employee payslip per result and makes it available only to payroll readers or that employee.
+- [ ] Payslips itemize earnings and deductions, show the attendance summary, print cleanly to PDF, and support receipt acknowledgement.
+- [ ] Cross-tenant payroll relationships and anonymous payroll RPC calls are rejected.
+
 ## Employee visibility and mobile
 
 - [ ] Mobile web navigation opens from a burger button and closes by link, overlay, close button, or Escape.

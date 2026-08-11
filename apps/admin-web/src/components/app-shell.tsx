@@ -35,7 +35,7 @@ export function AppShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const items: Array<[string, string, AppIconName]> = [
     ["dashboard", d.dashboard, "dashboard"], ["branches", d.branches, "branches"], ["teams", d.teams, "teams"], ["employees", d.employees, "employees"],
-    ["shifts", d.shifts, "shifts"], ["schedules", d.schedules, "schedules"], ["attendance", d.attendance, "attendance"], ["leaves", d.leaves, "leaves"], ["requests", d.requests, "requests"], ["roles", d.roles, "roles"], ["audit", d.audit, "audit"],
+    ["shifts", d.shifts, "shifts"], ["schedules", d.schedules, "schedules"], ["attendance", d.attendance, "attendance"], ["leaves", d.leaves, "leaves"], ["requests", d.requests, "requests"], ["payroll", d.payroll, "payroll"], ["roles", d.roles, "roles"], ["audit", d.audit, "audit"],
   ];
   const logout = signOut.bind(null, locale);
   const profileHref = `/${locale}/profiles/${userId}`;

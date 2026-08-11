@@ -817,6 +817,119 @@ export async function updateLeaveType(locale: AppLocale, tenantId: string, leave
   refreshLeavePaths(locale);
 }
 
+const salaryBasisSchema = z.enum(["monthly", "daily", "hourly", "mixed", "commission"]);
+const payrollComponentKindSchema = z.enum(["earning", "deduction"]);
+const payrollStatusSchema = z.enum(["reviewed", "approved", "locked", "published", "cancelled"]);
+
+function refreshPayrollPaths(locale: AppLocale, periodId?: string, resultId?: string) {
+  revalidatePath(`/${locale}/payroll`);
+  if (periodId) revalidatePath(`/${locale}/payroll/${periodId}`);
+  if (resultId) revalidatePath(`/${locale}/payslips/${resultId}`);
+  revalidatePath(`/${locale}/dashboard`);
+}
+
+export async function updatePayrollSettings(locale: AppLocale, tenantId: string, formData: FormData) {
+  const values = z.object({
+    currencyCode: z.string().trim().length(3).transform((value) => value.toUpperCase()),
+    standardMonthlyDays: z.coerce.number().positive().max(31),
+    standardDailyHours: z.coerce.number().positive().max(24),
+    overtimeMultiplier: z.coerce.number().min(0).max(10),
+    lateDeductionMultiplier: z.coerce.number().min(0).max(10),
+    absenceDeductionMultiplier: z.coerce.number().min(0).max(10),
+    roundToDigits: z.coerce.number().int().min(0).max(4),
+    taxEnabled: z.boolean(),
+    insuranceEnabled: z.boolean(),
+  }).parse({
+    currencyCode: formData.get("currencyCode"), standardMonthlyDays: formData.get("standardMonthlyDays"), standardDailyHours: formData.get("standardDailyHours"),
+    overtimeMultiplier: formData.get("overtimeMultiplier"), lateDeductionMultiplier: formData.get("lateDeductionMultiplier"), absenceDeductionMultiplier: formData.get("absenceDeductionMultiplier"),
+    roundToDigits: formData.get("roundToDigits"), taxEnabled: formData.get("taxEnabled") === "on", insuranceEnabled: formData.get("insuranceEnabled") === "on",
+  });
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("payroll_settings").update({
+    currency_code: values.currencyCode, standard_monthly_days: values.standardMonthlyDays, standard_daily_hours: values.standardDailyHours,
+    overtime_multiplier: values.overtimeMultiplier, late_deduction_multiplier: values.lateDeductionMultiplier, absence_deduction_multiplier: values.absenceDeductionMultiplier,
+    round_to_digits: values.roundToDigits, tax_enabled: values.taxEnabled, insurance_enabled: values.insuranceEnabled,
+  }).eq("tenant_id", idSchema.parse(tenantId));
+  if (error) throw error;
+  refreshPayrollPaths(locale);
+}
+
+export async function saveEmployeeCompensation(locale: AppLocale, employeeId: string, formData: FormData) {
+  const values = z.object({
+    salaryBasis: salaryBasisSchema,
+    baseSalary: z.coerce.number().min(0).max(1_000_000_000),
+    dailyRate: z.coerce.number().min(0).max(1_000_000_000).optional(),
+    hourlyRate: z.coerce.number().min(0).max(1_000_000_000).optional(),
+    fixedAllowances: z.coerce.number().min(0).max(1_000_000_000),
+    currencyCode: z.string().trim().length(3).transform((value) => value.toUpperCase()),
+    effectiveFrom: dateSchema,
+    notes: z.string().trim().max(2000).optional(),
+  }).parse({
+    salaryBasis: formData.get("salaryBasis"), baseSalary: formData.get("baseSalary") || "0", dailyRate: optionalString(formData.get("dailyRate")), hourlyRate: optionalString(formData.get("hourlyRate")),
+    fixedAllowances: formData.get("fixedAllowances") || "0", currencyCode: formData.get("currencyCode"), effectiveFrom: formData.get("effectiveFrom"), notes: optionalString(formData.get("notes")),
+  });
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("upsert_employee_compensation", {
+    p_employee_id: idSchema.parse(employeeId), p_salary_basis: values.salaryBasis, p_base_salary: values.baseSalary,
+    p_daily_rate: values.dailyRate ?? null, p_hourly_rate: values.hourlyRate ?? null, p_fixed_allowances: values.fixedAllowances,
+    p_currency_code: values.currencyCode, p_effective_from: values.effectiveFrom, p_notes: values.notes ?? "",
+  });
+  if (error) throw error;
+  refreshPayrollPaths(locale);
+  revalidatePath(`/${locale}/employees/${employeeId}`);
+}
+
+export async function createPayrollPeriod(locale: AppLocale, tenantId: string, formData: FormData) {
+  const values = z.object({ code: codeSchema, name: z.string().trim().min(2).max(150), startDate: dateSchema, endDate: dateSchema, payDate: dateSchema.optional() }).parse({
+    code: formData.get("code"), name: formData.get("name"), startDate: formData.get("startDate"), endDate: formData.get("endDate"), payDate: optionalString(formData.get("payDate")),
+  });
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("create_payroll_period", { p_tenant_id: idSchema.parse(tenantId), p_code: values.code, p_name: values.name, p_start: values.startDate, p_end: values.endDate, p_pay_date: values.payDate ?? null });
+  if (error) throw error;
+  refreshPayrollPaths(locale, idSchema.parse(data));
+}
+
+export async function calculatePayrollPeriod(locale: AppLocale, periodId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("calculate_payroll_period", { p_period_id: idSchema.parse(periodId) });
+  if (error) throw error;
+  refreshPayrollPaths(locale, periodId);
+}
+
+export async function transitionPayrollPeriod(locale: AppLocale, periodId: string, target: "reviewed" | "approved" | "locked" | "published" | "cancelled", formData: FormData) {
+  const note = z.string().trim().max(2000).optional().parse(optionalString(formData.get("transitionNote")));
+  const parsedTarget = payrollStatusSchema.parse(target);
+  if (parsedTarget === "cancelled" && !note) throw new Error("A cancellation reason is required.");
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("transition_payroll_period", { p_period_id: idSchema.parse(periodId), p_target: parsedTarget, p_note: note ?? "" });
+  if (error) throw error;
+  refreshPayrollPaths(locale, periodId);
+}
+
+export async function addPayrollAdjustment(locale: AppLocale, periodId: string, resultId: string, formData: FormData) {
+  const values = z.object({ kind: payrollComponentKindSchema, code: z.string().trim().min(2).max(60).regex(/^[a-z0-9_]+$/), nameEn: z.string().trim().min(2).max(150), nameAr: z.string().trim().min(2).max(150), amount: z.coerce.number().positive().max(1_000_000_000), reason: z.string().trim().min(2).max(2000) }).parse({
+    kind: formData.get("kind"), code: formData.get("code"), nameEn: formData.get("nameEn"), nameAr: formData.get("nameAr"), amount: formData.get("amount"), reason: formData.get("reason"),
+  });
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("add_payroll_adjustment", { p_result_id: idSchema.parse(resultId), p_kind: values.kind, p_code: values.code, p_name_en: values.nameEn, p_name_ar: values.nameAr, p_amount: values.amount, p_reason: values.reason });
+  if (error) throw error;
+  refreshPayrollPaths(locale, periodId, resultId);
+}
+
+export async function deletePayrollAdjustment(locale: AppLocale, periodId: string, resultId: string, componentId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("delete_payroll_adjustment", { p_component_id: idSchema.parse(componentId) });
+  if (error) throw error;
+  refreshPayrollPaths(locale, periodId, resultId);
+}
+
+export async function acknowledgePayslip(locale: AppLocale, resultId: string, payslipId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("acknowledge_payslip", { p_payslip_id: idSchema.parse(payslipId) });
+  if (error) throw error;
+  refreshPayrollPaths(locale, undefined, resultId);
+}
+
 export async function createShiftTemplate(locale: AppLocale, tenantId: string, formData: FormData) {
   const values = z.object({
     code: codeSchema,

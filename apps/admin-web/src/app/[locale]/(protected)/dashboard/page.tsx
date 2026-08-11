@@ -87,6 +87,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
     { label: d.schedules, detail: `${schedules.length} ${d.scheduledWeeks}`, href: `/${locale}/schedules` },
     { label: d.attendance, detail: locale === "ar" ? "الحضور والتأخير والإضافي" : "Punches, lateness, and overtime", href: `/${locale}/attendance` },
     { label: d.leaves, detail: locale === "ar" ? "الطلبات والتقويم" : "Requests and calendar", href: `/${locale}/leaves` },
+    { label: d.payroll, detail: locale === "ar" ? "الحساب والاعتماد والقسائم" : "Calculation, approvals, and payslips", href: `/${locale}/payroll` },
     { label: d.roles, detail: d.manageAccess, href: `/${locale}/roles` },
     { label: d.audit, detail: d.reviewChanges, href: `/${locale}/audit` },
   ];
