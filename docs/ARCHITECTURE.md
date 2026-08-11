@@ -29,6 +29,10 @@ No tenant identifier received from the browser or mobile client is trusted by it
 
 Core entities use database triggers to capture insert, update, and delete operations. Authenticated users can read audit entries only when they have `audit.read`; they cannot mutate the log.
 
-## Future modules
+## Operational collaboration
 
-Scheduling, attendance, requests, payroll, sales, loans, tasks, and announcements will extend the same tenant and permission primitives rather than introducing parallel authorization models.
+- Tasks use one parent record per occurrence and employee-level assignments so multi-person progress, submissions, decisions, and retries remain independently auditable.
+- Recurring work retains a stable `series_id`; the next daily, weekly, or monthly occurrence is cloned only after the current occurrence is fully approved.
+- Evidence and announcement files remain in private Storage buckets. Database metadata retains the tenant, submission or announcement, original filename, content type, and size.
+- Announcement targeting is expanded into an immutable recipient ledger at publication time. Reading and acknowledgement are separate timestamps, which supports defensible compliance reporting.
+- Notifications link task assignment/review and announcement publication back to their dedicated pages.

@@ -7,8 +7,8 @@
 | 3. Attendance | GPS, selfie, geofence, clock-in/out, overnight-day calculations, reports | In progress |
 | 4. Requests & Leave | Request catalogue, leave balances, attachments, configurable approvals | Completed |
 | 5. Payroll | Salary rules, attendance deductions, overtime, payroll runs, payslips | Completed |
-| 6. Business Modules | Sales, targets, bonuses, loans, tasks, announcements | In progress |
-| 7. Production Hardening | Security, performance, deployment, UAT, operational documentation | Planned |
+| 6. Business Modules | Sales, targets, bonuses, loans, tasks, announcements | Completed |
+| 7. Production Hardening | Security, performance, deployment, UAT, operational documentation | In progress |
 
 ## Milestone 2 release gate
 

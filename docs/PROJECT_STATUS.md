@@ -1,8 +1,8 @@
 # Shiftly HR Project Status
 
-**Current milestone:** Milestone 6 — Business modules
-**Status:** Payroll, loans, sales, targets, and bonuses complete; tasks and announcements are next
-**Release:** `0.3.0-preview`
+**Current milestone:** Milestone 7 — Product hardening and reporting
+**Status:** Feature-complete business operations; cross-module analytics, exports, accessibility, and UAT are next
+**Release:** `0.4.0-preview`
 **Last updated:** 11 August 2026
 
 ## Completed
@@ -42,6 +42,12 @@
 - Daily branch and employee sales submission with manager review, rejection reasons, and tenant-secure reporting.
 - Branch, team, and employee targets with fixed, salary-percentage, or employee-sales-percentage tiered bonus policies.
 - Calculated incentive results retain their inputs and policy snapshot, require approval, enter payroll automatically, and link back to the publishing payroll period.
+- Operational tasks support selected employees, teams, branches, or the entire company, with priority, start/due times, evidence requirements, and mobile-friendly delivery boards.
+- Employee task execution includes start, completion notes, up to five protected evidence files, submission history, reviewer approval or requested changes, comments, and notifications.
+- Daily, weekly, and monthly recurrence automatically creates the next occurrence only after every assignee's work is approved, preserving the series history.
+- Task visibility and approval responsibility follow personal, direct-report, team-manager, branch-manager, HR, and owner scope through Row-Level Security.
+- Bilingual announcements support drafts, publish/archive gates, company/branch/team/employee/role targeting, priorities, pinning, expiry, protected attachments, and notification delivery.
+- Announcement readership records delivery, reading, and mandatory acknowledgement separately, with audience analytics for authorized managers.
 
 ## Experience hardening
 
@@ -57,9 +63,9 @@
 ## Validation gates
 
 - Static repository checks: passed.
-- Next.js lint, TypeScript, 33 unit tests, and production build: passed.
+- Next.js lint, TypeScript, 36 unit tests, and production build: passed.
 - Supabase migration reset and database lint: passed.
-- Supabase pgTAP: 314 tests passed.
+- Supabase pgTAP: 373 tests passed.
 - Flutter sources were unchanged in this increment; the Flutter SDK is not installed in the current workstation environment, so analyzer and device tests remain an environment-dependent release check.
 - Production JavaScript dependency audit: passed after verified transitive security overrides.
 - Manual acceptance scenarios in `docs/ACCEPTANCE_TESTS.md`.

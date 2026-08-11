@@ -151,6 +151,31 @@
 - [ ] Approved bonuses enter the matching payroll period once and become paid only at payroll publication.
 - [ ] Sales, target, and bonus pages remain usable at a 390px mobile viewport.
 
+## Tasks and operational delivery
+
+- [ ] Manager can assign one task to selected employees, one or more teams, one or more branches, or every active employee.
+- [ ] Branch and team managers cannot assign or approve work outside their organizational scope.
+- [ ] Task priority, start time, due time, bilingual instructions, and evidence requirement remain visible on desktop and mobile.
+- [ ] Assignee can start work, add comments, and submit completion notes with up to five protected JPG, PNG, WebP, or PDF files.
+- [ ] A task configured to require evidence cannot be submitted without an attachment.
+- [ ] Reviewer can approve submitted evidence or request changes with a required reason; the employee can then resubmit without losing prior attempts.
+- [ ] A multi-assignee task becomes complete only after every active assignment is approved.
+- [ ] Daily, weekly, and monthly tasks create the next occurrence after full approval and preserve a stable series and occurrence number.
+- [ ] Overdue work is highlighted from its due timestamp without rewriting completed history.
+- [ ] Task assignments, submissions, evidence, comments, and audit events remain tenant-isolated.
+
+## Announcements and acknowledgement
+
+- [ ] Publisher can draft bilingual announcements for the company, selected branches, teams, employees, or roles.
+- [ ] Drafts can be reviewed with their resolved audience and attachments before publication.
+- [ ] Publication expands a fixed recipient ledger and notifies linked active accounts.
+- [ ] Normal, important, and critical announcements are visually distinct and may be pinned or given an expiry.
+- [ ] Recipients can mark an announcement read; mandatory announcements require explicit acknowledgement.
+- [ ] Authorized viewers see delivered, read-rate, and acknowledgement metrics without exposing them to ordinary recipients.
+- [ ] Archived announcements retain their recipient and readership history.
+- [ ] Announcement files are private and available only to publishers or addressed recipients through signed links.
+- [ ] Task and announcement pages remain usable from the mobile navigation at a 390px viewport.
+
 ## Employee visibility and mobile
 
 - [ ] Mobile web navigation opens from a burger button and closes by link, overlay, close button, or Escape.

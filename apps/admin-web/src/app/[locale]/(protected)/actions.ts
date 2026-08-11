@@ -1063,6 +1063,166 @@ export async function reviewBonusTarget(locale: AppLocale, targetId: string, app
   refreshPerformancePaths(locale);
 }
 
+const taskPrioritySchema = z.enum(["low", "normal", "high", "urgent"]);
+const taskRecurrenceSchema = z.enum(["none", "daily", "weekly", "monthly"]);
+const taskScopeSchema = z.enum(["employees", "team", "branch", "company"]);
+const announcementPrioritySchema = z.enum(["normal", "important", "critical"]);
+const announcementScopeSchema = z.enum(["company", "branches", "teams", "employees", "roles"]);
+const acceptedUploadTypes = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
+
+function uploadedFiles(formData: FormData, field: string) {
+  const files = formData.getAll(field).filter((value): value is File => value instanceof File && value.size > 0);
+  if (files.length > 5) throw new Error("Upload no more than five files at a time.");
+  for (const file of files) {
+    if (file.size > 20 * 1024 * 1024) throw new Error(`${file.name} is larger than 20 MB.`);
+    if (!acceptedUploadTypes.has(file.type)) throw new Error(`${file.name} must be a JPG, PNG, WebP, or PDF file.`);
+  }
+  return files;
+}
+
+function safeFileName(name: string) {
+  return name.normalize("NFKD").replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(-120) || "file";
+}
+
+function refreshTaskPaths(locale: AppLocale, taskId?: string) {
+  revalidatePath(`/${locale}/tasks`);
+  if (taskId) revalidatePath(`/${locale}/tasks/${taskId}`);
+  revalidatePath(`/${locale}/dashboard`);
+}
+
+export async function createOperationalTask(locale: AppLocale, tenantId: string, formData: FormData) {
+  const scope = taskScopeSchema.parse(formData.get("scope"));
+  const values = z.object({
+    titleEn: z.string().trim().min(2).max(180), titleAr: z.string().trim().max(180).optional(),
+    descriptionEn: z.string().trim().min(2).max(5000), descriptionAr: z.string().trim().max(5000).optional(),
+    priority: taskPrioritySchema, startAt: z.string().min(10), dueAt: z.string().min(10), requireEvidence: z.boolean(),
+    recurrence: taskRecurrenceSchema, recurrenceInterval: z.coerce.number().int().min(1).max(365), recurrenceEndDate: dateSchema.optional(),
+  }).refine((value) => new Date(value.dueAt) > new Date(value.startAt), { message: "The due time must follow the start time." })
+    .refine((value) => value.recurrence !== "none" || !value.recurrenceEndDate, { message: "One-time tasks cannot have a recurrence end date." }).parse({
+      titleEn: formData.get("titleEn"), titleAr: optionalString(formData.get("titleAr")), descriptionEn: formData.get("descriptionEn"), descriptionAr: optionalString(formData.get("descriptionAr")),
+      priority: formData.get("priority"), startAt: formData.get("startAt"), dueAt: formData.get("dueAt"), requireEvidence: formData.get("requireEvidence") === "on",
+      recurrence: formData.get("recurrence"), recurrenceInterval: formData.get("recurrenceInterval") || "1", recurrenceEndDate: optionalString(formData.get("recurrenceEndDate")),
+    });
+  const scopeIds = formData.getAll("scopeIds").map(String).filter(Boolean).map((value) => idSchema.parse(value));
+  if (scope !== "company" && !scopeIds.length) throw new Error("Select at least one employee, team, or branch.");
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("create_operational_task", {
+    p_tenant_id: idSchema.parse(tenantId), p_title_en: values.titleEn, p_title_ar: values.titleAr ?? "", p_description_en: values.descriptionEn, p_description_ar: values.descriptionAr ?? "",
+    p_priority: values.priority, p_start_at: new Date(values.startAt).toISOString(), p_due_at: new Date(values.dueAt).toISOString(), p_require_evidence: values.requireEvidence,
+    p_recurrence: values.recurrence, p_recurrence_interval: values.recurrenceInterval, p_recurrence_end_date: values.recurrenceEndDate ?? null, p_scope: scope, p_scope_ids: scopeIds,
+  });
+  if (error) throw error;
+  refreshTaskPaths(locale, data ? idSchema.parse(data) : undefined);
+}
+
+export async function startTaskAssignment(locale: AppLocale, taskId: string, assignmentId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("start_task_assignment", { p_assignment_id: idSchema.parse(assignmentId) });
+  if (error) throw error;
+  refreshTaskPaths(locale, taskId);
+}
+
+export async function submitTaskEvidence(locale: AppLocale, tenantId: string, taskId: string, assignmentId: string, formData: FormData) {
+  const notes = z.string().trim().max(2000).optional().parse(optionalString(formData.get("notes")));
+  const files = uploadedFiles(formData, "evidence");
+  const supabase = await createSupabaseServerClient();
+  const paths: string[] = [];
+  const attachments: Array<{ storage_path: string; file_name: string; mime_type: string; size_bytes: number }> = [];
+  try {
+    for (const file of files) {
+      const path = `${idSchema.parse(tenantId)}/${idSchema.parse(assignmentId)}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
+      const { error: uploadError } = await supabase.storage.from("task-evidence").upload(path, file, { contentType: file.type, upsert: false });
+      if (uploadError) throw uploadError;
+      paths.push(path);
+      attachments.push({ storage_path: path, file_name: file.name, mime_type: file.type, size_bytes: file.size });
+    }
+    const { error } = await supabase.rpc("submit_task_assignment", { p_assignment_id: idSchema.parse(assignmentId), p_notes: notes ?? "", p_attachments: attachments });
+    if (error) throw error;
+  } catch (error) {
+    if (paths.length) await supabase.storage.from("task-evidence").remove(paths);
+    throw error;
+  }
+  refreshTaskPaths(locale, taskId);
+}
+
+export async function reviewTaskEvidence(locale: AppLocale, taskId: string, assignmentId: string, approve: boolean, formData: FormData) {
+  const note = z.string().trim().max(2000).optional().parse(optionalString(formData.get("reviewNote")));
+  if (!approve && (!note || note.length < 2)) throw new Error("A reason is required when requesting changes.");
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("review_task_assignment", { p_assignment_id: idSchema.parse(assignmentId), p_approve: approve, p_note: note ?? "" });
+  if (error) throw error;
+  refreshTaskPaths(locale, taskId);
+}
+
+export async function addTaskComment(locale: AppLocale, taskId: string, formData: FormData) {
+  const body = z.string().trim().min(1).max(2000).parse(formData.get("body"));
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("add_task_comment", { p_task_id: idSchema.parse(taskId), p_body: body });
+  if (error) throw error;
+  refreshTaskPaths(locale, taskId);
+}
+
+export async function cancelOperationalTask(locale: AppLocale, taskId: string, formData: FormData) {
+  const reason = z.string().trim().min(2).max(2000).parse(formData.get("reason"));
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("cancel_operational_task", { p_task_id: idSchema.parse(taskId), p_reason: reason });
+  if (error) throw error;
+  refreshTaskPaths(locale, taskId);
+}
+
+function refreshAnnouncementPaths(locale: AppLocale) {
+  revalidatePath(`/${locale}/announcements`);
+  revalidatePath(`/${locale}/dashboard`);
+}
+
+export async function createAnnouncement(locale: AppLocale, tenantId: string, formData: FormData) {
+  const scope = announcementScopeSchema.parse(formData.get("scope"));
+  const expiresValue = optionalString(formData.get("expiresAt"));
+  const values = z.object({
+    titleEn: z.string().trim().min(2).max(180), titleAr: z.string().trim().max(180).optional(), bodyEn: z.string().trim().min(2).max(10000), bodyAr: z.string().trim().max(10000).optional(),
+    priority: announcementPrioritySchema, pinned: z.boolean(), acknowledgement: z.boolean(),
+  }).parse({ titleEn: formData.get("titleEn"), titleAr: optionalString(formData.get("titleAr")), bodyEn: formData.get("bodyEn"), bodyAr: optionalString(formData.get("bodyAr")), priority: formData.get("priority"), pinned: formData.get("pinned") === "on", acknowledgement: formData.get("acknowledgement") === "on" });
+  const scopeIds = formData.getAll("scopeIds").map(String).filter(Boolean).map((value) => idSchema.parse(value));
+  if (scope !== "company" && !scopeIds.length) throw new Error("Select at least one audience.");
+  const files = uploadedFiles(formData, "attachments");
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("create_announcement", {
+    p_tenant_id: idSchema.parse(tenantId), p_title_en: values.titleEn, p_title_ar: values.titleAr ?? "", p_body_en: values.bodyEn, p_body_ar: values.bodyAr ?? "", p_priority: values.priority,
+    p_is_pinned: values.pinned, p_requires_acknowledgement: values.acknowledgement, p_expires_at: expiresValue ? new Date(expiresValue).toISOString() : null, p_scope: scope, p_scope_ids: scopeIds,
+  });
+  if (error) throw error;
+  const announcementId = idSchema.parse(data);
+  for (const file of files) {
+    const path = `${idSchema.parse(tenantId)}/${announcementId}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
+    const { error: uploadError } = await supabase.storage.from("announcement-files").upload(path, file, { contentType: file.type, upsert: false });
+    if (uploadError) throw uploadError;
+    const { error: metadataError } = await supabase.rpc("add_announcement_attachment", { p_announcement_id: announcementId, p_storage_path: path, p_file_name: file.name, p_mime_type: file.type, p_size_bytes: file.size });
+    if (metadataError) { await supabase.storage.from("announcement-files").remove([path]); throw metadataError; }
+  }
+  refreshAnnouncementPaths(locale);
+}
+
+export async function publishAnnouncement(locale: AppLocale, announcementId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("publish_announcement", { p_announcement_id: idSchema.parse(announcementId) });
+  if (error) throw error;
+  refreshAnnouncementPaths(locale);
+}
+
+export async function markAnnouncementRead(locale: AppLocale, announcementId: string, acknowledge: boolean) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("mark_announcement_read", { p_announcement_id: idSchema.parse(announcementId), p_acknowledge: acknowledge });
+  if (error) throw error;
+  refreshAnnouncementPaths(locale);
+}
+
+export async function archiveAnnouncement(locale: AppLocale, announcementId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("archive_announcement", { p_announcement_id: idSchema.parse(announcementId) });
+  if (error) throw error;
+  refreshAnnouncementPaths(locale);
+}
+
 export async function createShiftTemplate(locale: AppLocale, tenantId: string, formData: FormData) {
   const values = z.object({
     code: codeSchema,

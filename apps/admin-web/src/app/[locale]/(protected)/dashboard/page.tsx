@@ -90,6 +90,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
     { label: d.payroll, detail: locale === "ar" ? "الحساب والاعتماد والقسائم" : "Calculation, approvals, and payslips", href: `/${locale}/payroll` },
     { label: d.loans, detail: locale === "ar" ? "الطلبات والأقساط والتسويات" : "Requests, installments, and settlements", href: `/${locale}/loans` },
     { label: d.performance, detail: locale === "ar" ? "المبيعات والأهداف والمكافآت" : "Sales, targets, and incentives", href: `/${locale}/performance` },
+    { label: d.tasks, detail: locale === "ar" ? "الإسناد والإثبات والاعتماد" : "Assignments, evidence, and approvals", href: `/${locale}/tasks` },
+    { label: d.announcements, detail: locale === "ar" ? "التواصل وتأكيد القراءة" : "Targeted communication and read receipts", href: `/${locale}/announcements` },
     { label: d.roles, detail: d.manageAccess, href: `/${locale}/roles` },
     { label: d.audit, detail: d.reviewChanges, href: `/${locale}/audit` },
   ];

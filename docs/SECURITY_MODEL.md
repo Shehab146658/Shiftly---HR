@@ -28,6 +28,15 @@ linked through `employees.user_id`; schedule mutations are then limited to the
 linked employee's current branch. Schedule reads continue to honor the
 schedule's `self`, `team`, `branch`, or `all` visibility.
 
+## Task and communication scope
+
+- Employees read only their assignments; managers can read and review direct reports plus employees in their configured team or branch role scope.
+- Task creators without company-wide task management cannot assign employees outside that same scope.
+- Task and announcement mutations are exposed only through guarded security-definer functions; direct authenticated writes are revoked.
+- Announcement drafts are visible to publishers. Published items become visible only to users materialized in `announcement_recipients`.
+- Read-receipt analytics require a separate permission from ordinary announcement reading.
+- Private file policies validate the tenant and assignment or announcement identifiers embedded in the Storage path before accepting uploads or issuing reads.
+
 ## Audit integrity
 
 Application roles receive read access through policy only. Insert, update, and delete privileges are revoked from authenticated and anonymous users. Audit triggers run with a security-definer function.

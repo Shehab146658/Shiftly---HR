@@ -81,6 +81,9 @@ export default async function AuditPage({
     bonus_policies: locale === "ar" ? "سياسة مكافأة" : "Bonus policy",
     sales_targets: locale === "ar" ? "هدف مبيعات" : "Sales target",
     bonus_results: locale === "ar" ? "نتيجة مكافأة" : "Bonus result",
+    tasks: locale === "ar" ? "مهمة" : "Task",
+    task_assignments: locale === "ar" ? "إسناد مهمة" : "Task assignment",
+    announcements: locale === "ar" ? "إعلان" : "Announcement",
     payroll_settings: locale === "ar" ? "سياسة الرواتب" : "Payroll policy",
     employee_compensation: locale === "ar" ? "هيكل أجر الموظف" : "Employee compensation",
     payroll_periods: locale === "ar" ? "دورة الرواتب" : "Payroll period",
@@ -163,6 +166,17 @@ export default async function AuditPage({
       const employeeId = String(record.employee_id ?? "");
       name = recordName(record) ?? (employeeName(employeeId) ? `${entityLabels[type]} · ${employeeName(employeeId)}` : entityLabels[type]);
       href = `/${locale}/performance`;
+    } else if (type === "tasks") {
+      const taskId = String(record.id ?? row.entity_id ?? "");
+      name = typeof record.title_en === "string" ? record.title_en : entityLabels[type];
+      href = taskId ? `/${locale}/tasks/${taskId}` : `/${locale}/tasks`;
+    } else if (type === "task_assignments") {
+      const linkedTaskId = String(record.task_id ?? "");
+      name = `${entityLabels[type]} · ${employeeName(record.employee_id) ?? d.employeeAccount}`;
+      href = linkedTaskId ? `/${locale}/tasks/${linkedTaskId}` : `/${locale}/tasks`;
+    } else if (type === "announcements") {
+      name = typeof record.title_en === "string" ? record.title_en : entityLabels[type];
+      href = `/${locale}/announcements`;
     }
     return { label: entityLabels[type] ?? humanize(type), name, href, before, after };
   };

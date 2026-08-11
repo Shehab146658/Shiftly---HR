@@ -35,7 +35,7 @@ export function AppShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const items: Array<[string, string, AppIconName]> = [
     ["dashboard", d.dashboard, "dashboard"], ["branches", d.branches, "branches"], ["teams", d.teams, "teams"], ["employees", d.employees, "employees"],
-    ["shifts", d.shifts, "shifts"], ["schedules", d.schedules, "schedules"], ["attendance", d.attendance, "attendance"], ["leaves", d.leaves, "leaves"], ["requests", d.requests, "requests"], ["payroll", d.payroll, "payroll"], ["loans", d.loans, "loans"], ["performance", d.performance, "performance"], ["roles", d.roles, "roles"], ["audit", d.audit, "audit"],
+    ["shifts", d.shifts, "shifts"], ["schedules", d.schedules, "schedules"], ["attendance", d.attendance, "attendance"], ["leaves", d.leaves, "leaves"], ["requests", d.requests, "requests"], ["payroll", d.payroll, "payroll"], ["loans", d.loans, "loans"], ["performance", d.performance, "performance"], ["tasks", d.tasks, "tasks"], ["announcements", d.announcements, "announcements"], ["roles", d.roles, "roles"], ["audit", d.audit, "audit"],
   ];
   const logout = signOut.bind(null, locale);
   const profileHref = `/${locale}/profiles/${userId}`;
