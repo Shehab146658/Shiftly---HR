@@ -1,5 +1,5 @@
 begin;
-select plan(51);
+select plan(52);
 
 select has_table('public','payroll_settings','tenant payroll settings exist');
 select has_table('public','employee_compensation','effective-dated employee compensation exists');
@@ -57,6 +57,7 @@ select ok(has_function_privilege('authenticated','public.transition_payroll_peri
 select ok(not has_function_privilege('anon','public.transition_payroll_period(uuid,payroll_period_status,text)','EXECUTE'),'anonymous callers cannot transition payroll');
 select ok(not has_function_privilege('authenticated','public.recalculate_payroll_result_totals(uuid)','EXECUTE'),'employees cannot bypass controlled payroll totals');
 select ok(not has_function_privilege('authenticated','public.seed_payroll_defaults(uuid)','EXECUTE'),'tenant payroll seeding remains internal');
+select ok(has_function_privilege('authenticated','public.can_view_payroll_employee(uuid,uuid)','EXECUTE'),'authenticated RLS callers can resolve scoped payroll visibility');
 
 select is((select count(*)::integer from pg_policies where schemaname='public' and tablename='payroll_periods'),2,'payroll periods have read and manage policies');
 select is((select count(*)::integer from pg_policies where schemaname='public' and tablename='employee_compensation'),2,'compensation has self-read and manage policies');
