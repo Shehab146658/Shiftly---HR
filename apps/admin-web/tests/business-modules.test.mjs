@@ -37,8 +37,8 @@ test("business modules are localized responsive and visible in primary navigatio
   const shell = readFileSync("src/components/app-shell.tsx", "utf8");
   const icons = readFileSync("src/components/brand-mark.tsx", "utf8");
   const styles = readFileSync("src/app/globals.css", "utf8");
-  assert.match(shell, /\["loans", d\.loans, "loans"\]/);
-  assert.match(shell, /\["performance", d\.performance, "performance"\]/);
+  assert.match(shell, /\["loans", d\.loans, "loans", "loans\.read"\]/);
+  assert.match(shell, /\["performance", d\.performance, "performance", "sales\.read"\]/);
   assert.match(icons, /performance:/);
   assert.match(styles, /\.target-grid/);
   assert.match(styles, /\.installment-card/);

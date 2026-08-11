@@ -35,8 +35,8 @@ test("collaboration modules are responsive localized and in primary navigation",
   const icons = readFileSync("src/components/brand-mark.tsx", "utf8");
   const styles = readFileSync("src/app/globals.css", "utf8");
   const i18n = readFileSync("src/lib/i18n.ts", "utf8");
-  assert.match(shell, /\["tasks", d\.tasks, "tasks"\]/);
-  assert.match(shell, /\["announcements", d\.announcements, "announcements"\]/);
+  assert.match(shell, /\["tasks", d\.tasks, "tasks", "tasks\.read"\]/);
+  assert.match(shell, /\["announcements", d\.announcements, "announcements", "announcements\.read"\]/);
   assert.match(icons, /announcements:/);
   assert.match(styles, /\.task-board/);
   assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.announcement-analytics/);

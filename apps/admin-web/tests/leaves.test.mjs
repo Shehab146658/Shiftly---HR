@@ -31,7 +31,7 @@ test("leave operations expose versioned approvals, official holidays, navigation
   assert.match(migration, /seed_egypt_2026_public_holidays/);
   assert.match(migration, /date '2026-01-07'/);
   assert.match(migration, /date '2026-10-06'/);
-  assert.match(shell, /\["leaves", d\.leaves, "leaves"\]/);
+  assert.match(shell, /\["leaves", d\.leaves, "leaves", "leave\.read"\]/);
   assert.match(workflowMigration, /seed_leave_approval_workflows/);
   assert.match(workflowMigration, /can_approve_leave_request/);
   assert.match(page, /can_approve_leave_request/);

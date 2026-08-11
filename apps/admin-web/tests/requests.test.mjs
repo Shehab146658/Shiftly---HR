@@ -17,7 +17,7 @@ test("request center ships a reusable workflow engine and notification inbox", (
   assert.match(workflows, /cloneRequestWorkflow/);
   assert.match(workflows, /activateRequestWorkflow/);
   assert.match(shell, /NotificationCenter/);
-  assert.match(shell, /\["requests", d\.requests, "requests"\]/);
+  assert.match(shell, /\["requests", d\.requests, "requests", "requests\.read"\]/);
 });
 
 test("request workflows support the operational request catalogue", () => {

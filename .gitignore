@@ -36,5 +36,5 @@ apps/employee-mobile/macos/Pods/
 Thumbs.db
 
 # Generated reports
-reports/
+/reports/
 *.log

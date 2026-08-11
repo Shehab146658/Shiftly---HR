@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type AppIconName = "dashboard" | "branches" | "teams" | "employees" | "shifts" | "schedules" | "attendance" | "leaves" | "requests" | "payroll" | "loans" | "performance" | "tasks" | "announcements" | "roles" | "audit" | "profile";
+export type AppIconName = "dashboard" | "branches" | "teams" | "employees" | "shifts" | "schedules" | "attendance" | "leaves" | "requests" | "payroll" | "loans" | "performance" | "tasks" | "announcements" | "reports" | "roles" | "audit" | "profile";
 
 const iconPaths: Record<AppIconName, ReactNode> = {
   dashboard: <><rect height="7" rx="1.5" width="7" x="3" y="3" /><rect height="7" rx="1.5" width="7" x="14" y="3" /><rect height="7" rx="1.5" width="7" x="3" y="14" /><rect height="7" rx="1.5" width="7" x="14" y="14" /></>,
@@ -17,6 +17,7 @@ const iconPaths: Record<AppIconName, ReactNode> = {
   performance: <><path d="M4 20V10M10 20V4M16 20v-7M22 20V7" /><path d="m3 8 7-6 6 8 6-5" /></>,
   tasks: <><rect height="18" rx="2" width="18" x="3" y="3" /><path d="m7 8 1.5 1.5L11 7M13 8h4M7 14l1.5 1.5L11 13M13 14h4" /></>,
   announcements: <><path d="m3 11 16-7v16L3 13Z" /><path d="M11 16v4a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-6M19 9a3 3 0 0 1 0 6" /></>,
+  reports: <><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /><path d="m4 7 6-4 6 7 6-5" /></>,
   roles: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" /></>,
   audit: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2" /></>,
   profile: <><circle cx="12" cy="8" r="4" /><path d="M5 21a7 7 0 0 1 14 0" /></>,

@@ -18,6 +18,7 @@ export function AppShell({
   companyName,
   tenantId,
   notifications = [],
+  permissions = [],
   children,
 }: {
   locale: AppLocale;
@@ -28,15 +29,18 @@ export function AppShell({
   companyName?: string | null;
   tenantId?: string;
   notifications?: NotificationItem[];
+  permissions?: string[];
   children: React.ReactNode;
 }) {
   const d = getDictionary(locale);
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const items: Array<[string, string, AppIconName]> = [
-    ["dashboard", d.dashboard, "dashboard"], ["branches", d.branches, "branches"], ["teams", d.teams, "teams"], ["employees", d.employees, "employees"],
-    ["shifts", d.shifts, "shifts"], ["schedules", d.schedules, "schedules"], ["attendance", d.attendance, "attendance"], ["leaves", d.leaves, "leaves"], ["requests", d.requests, "requests"], ["payroll", d.payroll, "payroll"], ["loans", d.loans, "loans"], ["performance", d.performance, "performance"], ["tasks", d.tasks, "tasks"], ["announcements", d.announcements, "announcements"], ["roles", d.roles, "roles"], ["audit", d.audit, "audit"],
+  const permissionSet = new Set(permissions);
+  const allItems: Array<[string, string, AppIconName, string | null]> = [
+    ["dashboard", d.dashboard, "dashboard", null], ["branches", d.branches, "branches", "branches.read"], ["teams", d.teams, "teams", "teams.read"], ["employees", d.employees, "employees", "employees.read"],
+    ["shifts", d.shifts, "shifts", "shifts.read"], ["schedules", d.schedules, "schedules", "schedules.read"], ["attendance", d.attendance, "attendance", "attendance.read"], ["leaves", d.leaves, "leaves", "leave.read"], ["requests", d.requests, "requests", "requests.read"], ["payroll", d.payroll, "payroll", null], ["loans", d.loans, "loans", "loans.read"], ["performance", d.performance, "performance", "sales.read"], ["tasks", d.tasks, "tasks", "tasks.read"], ["announcements", d.announcements, "announcements", "announcements.read"], ["reports", d.reports, "reports", "reports.read"], ["roles", d.roles, "roles", "roles.read"], ["audit", d.audit, "audit", "audit.read"],
   ];
+  const items = allItems.filter(([, , , permission]) => isOwner || permission === null || permissionSet.has(permission));
   const logout = signOut.bind(null, locale);
   const profileHref = `/${locale}/profiles/${userId}`;
   const displayName = userName?.trim() || userEmail;

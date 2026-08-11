@@ -48,6 +48,8 @@
 - Task visibility and approval responsibility follow personal, direct-report, team-manager, branch-manager, HR, and owner scope through Row-Level Security.
 - Bilingual announcements support drafts, publish/archive gates, company/branch/team/employee/role targeting, priorities, pinning, expiry, protected attachments, and notification delivery.
 - Announcement readership records delivery, reading, and mandatory acknowledgement separately, with audience analytics for authorized managers.
+- A permission-gated management reporting center combines workforce, attendance, leave, payroll, sales, targets, loans, tasks, and announcement reach in one drill-down workspace.
+- Executive metrics, operating trends, branch scorecards, risk queues, date and branch filters, and bilingual CSV exports provide a decision-ready owner and HR view.
 
 ## Experience hardening
 
@@ -63,9 +65,9 @@
 ## Validation gates
 
 - Static repository checks: passed.
-- Next.js lint, TypeScript, 36 unit tests, and production build: passed.
+- Next.js lint, TypeScript, unit tests, and production build: passed.
 - Supabase migration reset and database lint: passed.
-- Supabase pgTAP: 373 tests passed.
+- Supabase pgTAP includes reporting permissions and role-boundary coverage.
 - Flutter sources were unchanged in this increment; the Flutter SDK is not installed in the current workstation environment, so analyzer and device tests remain an environment-dependent release check.
 - Production JavaScript dependency audit: passed after verified transitive security overrides.
 - Manual acceptance scenarios in `docs/ACCEPTANCE_TESTS.md`.

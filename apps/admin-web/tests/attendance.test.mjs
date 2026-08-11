@@ -26,7 +26,7 @@ test("attendance report supports filters, manual corrections, exceptions, and CS
   assert.match(page, /reviewAttendancePunch/);
   assert.match(dialog, /type="datetime-local"/);
   assert.match(dialog, /toISOString/);
-  assert.match(shell, /\["attendance", d\.attendance, "attendance"\]/);
+  assert.match(shell, /\["attendance", d\.attendance, "attendance", "attendance\.read"\]/);
 });
 
 test("branch administration exposes practical attendance rules", async () => {
@@ -39,4 +39,3 @@ test("branch administration exposes practical attendance rules", async () => {
   assert.match(actions, /attendance_selfie_required/);
   assert.match(actions, /overtime_threshold_minutes/);
 });
-

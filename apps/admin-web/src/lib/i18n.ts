@@ -81,6 +81,7 @@ const dictionaries = {
     performance: "Sales & performance",
     tasks: "Tasks & delivery",
     announcements: "Announcements",
+    reports: "Reports & insights",
     roles: "Roles & permissions",
     audit: "Audit log",
     status: "Project status",
@@ -363,6 +364,7 @@ const dictionaries = {
     sunday: "Sunday",
   },
   ar: {
+    reports: "\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631 \u0648\u0627\u0644\u062a\u062d\u0644\u064a\u0644\u0627\u062a",
     viewProfile: "عرض الملف الشخصي",
     addEmployee: "إضافة موظف",
     addEmployeeHelp: "أنشئ سجل الموظف وتعيينه ودور الوصول الأولي من مكان واحد.",
