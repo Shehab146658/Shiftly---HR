@@ -1,5 +1,5 @@
 begin;
-select plan(52);
+select plan(54);
 
 select has_table('public','payroll_settings','tenant payroll settings exist');
 select has_table('public','employee_compensation','effective-dated employee compensation exists');
@@ -45,11 +45,13 @@ insert into public.branches(id,tenant_id,code,name_en) values
 ('25000000-0000-0000-0000-000000000002','15000000-0000-0000-0000-000000000002','OTH','Other Branch');
 insert into public.employees(id,tenant_id,employee_code,name_en,branch_id,status) values
 ('35000000-0000-0000-0000-000000000001','15000000-0000-0000-0000-000000000001','PAY-001','Payroll Employee','25000000-0000-0000-0000-000000000001','active'),
-('35000000-0000-0000-0000-000000000002','15000000-0000-0000-0000-000000000002','OTH-001','Other Employee','25000000-0000-0000-0000-000000000002','active');
+('35000000-0000-0000-0000-000000000002','15000000-0000-0000-0000-000000000002','OTH-001','Other Employee','25000000-0000-0000-0000-000000000002','active'),
+('35000000-0000-0000-0000-000000000003','15000000-0000-0000-0000-000000000001','PAY-002','Hourly Employee','25000000-0000-0000-0000-000000000001','active');
 
 select lives_ok($$insert into public.employee_compensation(tenant_id,employee_id,salary_basis,base_salary,effective_from) values ('15000000-0000-0000-0000-000000000001','35000000-0000-0000-0000-000000000001','monthly',12000,'2026-08-01')$$,'same-tenant compensation is accepted');
 select throws_ok($$insert into public.employee_compensation(tenant_id,employee_id,salary_basis,base_salary,effective_from) values ('15000000-0000-0000-0000-000000000001','35000000-0000-0000-0000-000000000002','monthly',12000,'2026-08-01')$$,'P0001','Cross-tenant payroll relationship rejected','cross-tenant compensation is rejected');
 select throws_ok($$insert into public.employee_compensation(tenant_id,employee_id,salary_basis,base_salary,effective_from) values ('15000000-0000-0000-0000-000000000001','35000000-0000-0000-0000-000000000001','monthly',-1,'2026-09-01')$$,'23514',null,'negative compensation is rejected');
+insert into public.employee_compensation(tenant_id,employee_id,salary_basis,base_salary,hourly_rate,effective_from) values ('15000000-0000-0000-0000-000000000001','35000000-0000-0000-0000-000000000003','hourly',0,50,'2026-08-01');
 
 select ok(has_function_privilege('authenticated','public.calculate_payroll_period(uuid)','EXECUTE'),'authenticated payroll operators can call the guarded calculator');
 select ok(not has_function_privilege('anon','public.calculate_payroll_period(uuid)','EXECUTE'),'anonymous callers cannot calculate payroll');
@@ -58,6 +60,7 @@ select ok(not has_function_privilege('anon','public.transition_payroll_period(uu
 select ok(not has_function_privilege('authenticated','public.recalculate_payroll_result_totals(uuid)','EXECUTE'),'employees cannot bypass controlled payroll totals');
 select ok(not has_function_privilege('authenticated','public.seed_payroll_defaults(uuid)','EXECUTE'),'tenant payroll seeding remains internal');
 select ok(has_function_privilege('authenticated','public.can_view_payroll_employee(uuid,uuid)','EXECUTE'),'authenticated RLS callers can resolve scoped payroll visibility');
+select ok(not has_function_privilege('authenticated','public.calculate_payroll_period_legacy(uuid)','EXECUTE'),'the uncorrected payroll calculator is internal only');
 
 select is((select count(*)::integer from pg_policies where schemaname='public' and tablename='payroll_periods'),2,'payroll periods have read and manage policies');
 select is((select count(*)::integer from pg_policies where schemaname='public' and tablename='employee_compensation'),2,'compensation has self-read and manage policies');
@@ -72,20 +75,22 @@ values ('55000000-0000-0000-0000-000000000001','15000000-0000-0000-0000-00000000
 insert into public.membership_roles(membership_id,role_id)
 select '55000000-0000-0000-0000-000000000001',id from public.roles where tenant_id='15000000-0000-0000-0000-000000000001' and name='owner';
 insert into public.attendance_days(tenant_id,employee_id,branch_id,work_date,scheduled_minutes,actual_minutes,status)
-values ('15000000-0000-0000-0000-000000000001','35000000-0000-0000-0000-000000000001','25000000-0000-0000-0000-000000000001','2026-08-03',480,480,'present');
+values ('15000000-0000-0000-0000-000000000001','35000000-0000-0000-0000-000000000001','25000000-0000-0000-0000-000000000001','2026-08-03',480,480,'present'),
+('15000000-0000-0000-0000-000000000001','35000000-0000-0000-0000-000000000003','25000000-0000-0000-0000-000000000001','2026-08-03',480,0,'incomplete');
 insert into public.payroll_periods(id,tenant_id,code,name,period_start,period_end,currency_code)
 values ('65000000-0000-0000-0000-000000000001','15000000-0000-0000-0000-000000000001','2026-08','August 2026','2026-08-01','2026-08-31','EGP');
 
 select set_config('request.jwt.claim.sub','45000000-0000-0000-0000-000000000001',true);
 set local role authenticated;
 select lives_ok($$select public.calculate_payroll_period('65000000-0000-0000-0000-000000000001')$$,'authorized owner can calculate payroll');
-select is((select count(*)::integer from public.payroll_employee_results where period_id='65000000-0000-0000-0000-000000000001'),1,'calculation creates one configured employee result');
-select is((select net_amount from public.payroll_employee_results where period_id='65000000-0000-0000-0000-000000000001'),12000.00::numeric,'monthly base pay calculates from the effective compensation snapshot');
-select lives_ok($$select public.add_payroll_adjustment((select id from public.payroll_employee_results where period_id='65000000-0000-0000-0000-000000000001'),'earning','release_bonus','Release bonus','مكافأة إصدار',1000,'Approved test bonus')$$,'reasoned manual earning can be added during review');
-select is((select net_amount from public.payroll_employee_results where period_id='65000000-0000-0000-0000-000000000001'),13000.00::numeric,'manual earning immediately updates net pay');
+select is((select count(*)::integer from public.payroll_employee_results where period_id='65000000-0000-0000-0000-000000000001'),2,'calculation creates every configured employee result');
+select is((select net_amount from public.payroll_employee_results where period_id='65000000-0000-0000-0000-000000000001' and employee_id='35000000-0000-0000-0000-000000000001'),12000.00::numeric,'monthly base pay calculates from the effective compensation snapshot');
+select is((select net_amount from public.payroll_employee_results where period_id='65000000-0000-0000-0000-000000000001' and employee_id='35000000-0000-0000-0000-000000000003'),0.00::numeric,'hourly pay does not double-deduct unworked minutes');
+select lives_ok($$select public.add_payroll_adjustment((select id from public.payroll_employee_results where period_id='65000000-0000-0000-0000-000000000001' and employee_id='35000000-0000-0000-0000-000000000001'),'earning','release_bonus','Release bonus','مكافأة إصدار',1000,'Approved test bonus')$$,'reasoned manual earning can be added during review');
+select is((select net_amount from public.payroll_employee_results where period_id='65000000-0000-0000-0000-000000000001' and employee_id='35000000-0000-0000-0000-000000000001'),13000.00::numeric,'manual earning immediately updates net pay');
 select lives_ok($$select public.transition_payroll_period('65000000-0000-0000-0000-000000000001','reviewed','Ready'); select public.transition_payroll_period('65000000-0000-0000-0000-000000000001','approved','Checked'); select public.transition_payroll_period('65000000-0000-0000-0000-000000000001','locked','Locked'); select public.transition_payroll_period('65000000-0000-0000-0000-000000000001','published','Published')$$,'authorized workflow advances through review, approval, lock, and publication');
 select is((select status::text from public.payroll_periods where id='65000000-0000-0000-0000-000000000001'),'published','payroll reaches published status only through controlled transitions');
-select is((select count(*)::integer from public.payslips where period_id='65000000-0000-0000-0000-000000000001'),1,'publication creates the employee payslip');
+select is((select count(*)::integer from public.payslips where period_id='65000000-0000-0000-0000-000000000001'),2,'publication creates every employee payslip');
 
 select * from finish();
 rollback;

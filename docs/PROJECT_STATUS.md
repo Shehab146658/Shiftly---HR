@@ -54,7 +54,7 @@
 - Static repository checks: passed.
 - Next.js lint, TypeScript, 30 unit tests, and production build: passed.
 - Supabase migration reset and database lint: passed.
-- Supabase pgTAP: 230 tests passed.
+- Supabase pgTAP: 232 tests passed.
 - Flutter sources were unchanged in this increment; the Flutter SDK is not installed in the current workstation environment, so analyzer and device tests remain an environment-dependent release check.
 - Production JavaScript dependency audit: passed after verified transitive security overrides.
 - Manual acceptance scenarios in `docs/ACCEPTANCE_TESTS.md`.
