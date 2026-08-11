@@ -88,7 +88,7 @@ export default async function ReportsPage({ params, searchParams }: {
     supabase.from("hr_requests").select("employee_id,status,submitted_at").eq("tenant_id", tenantId).gte("submitted_at", rangeStart).lte("submitted_at", rangeEnd),
     supabase.from("payroll_employee_results").select("employee_id,net_amount,gross_amount,deductions_amount,currency_code,payroll_periods!inner(period_start,period_end,status)").eq("tenant_id", tenantId).lte("payroll_periods.period_start", dateTo).gte("payroll_periods.period_end", dateFrom),
     supabase.from("employee_loans").select("employee_id,status,remaining_balance,currency_code").eq("tenant_id", tenantId).in("status", ["active", "paused"]),
-    supabase.from("loan_installments").select("status,due_date,employee_loans!inner(employee_id)").eq("tenant_id", tenantId).lt("due_date", today).in("status", ["scheduled", "partial", "overdue"]),
+    supabase.from("loan_installments").select("status,due_date,employee_loans!inner(employee_id)").eq("tenant_id", tenantId).lt("due_date", today).in("status", ["scheduled", "partial", "deferred"]),
     supabase.from("sales_entries").select("employee_id,branch_id,business_date,amount,currency_code,status").eq("tenant_id", tenantId).gte("business_date", dateFrom).lte("business_date", dateTo),
     supabase.from("sales_targets").select("branch_id,team_id,employee_id,target_amount,currency_code,period_start,period_end").eq("tenant_id", tenantId).eq("is_active", true).lte("period_start", dateTo).gte("period_end", dateFrom),
     supabase.from("tasks").select("id,status,due_at").eq("tenant_id", tenantId).gte("due_at", rangeStart).lte("due_at", rangeEnd),

@@ -15,6 +15,7 @@ test("management reports combine operational and financial modules", async () =>
   assert.match(report, /branchScorecards/);
   assert.match(report, /report-risk/);
   assert.match(report, /AttendanceExportButton/);
+  assert.doesNotMatch(report, /\"overdue\"\]\)/, "reports use only persisted installment enum values");
 });
 
 test("reports are discoverable and responsive", async () => {
