@@ -36,12 +36,12 @@ select is(
   'new companies receive a practical default request catalogue'
 );
 select is(
-  (select count(*)::integer from public.approval_workflows where tenant_id = '13000000-0000-0000-0000-000000000001' and is_active),
+  (select count(*)::integer from public.approval_workflows where tenant_id = '13000000-0000-0000-0000-000000000001' and is_active and request_type_id is not null),
   8,
   'every default request type receives an active workflow'
 );
 select is(
-  (select count(*)::integer from public.approval_workflow_steps where tenant_id = '13000000-0000-0000-0000-000000000001'),
+  (select count(*)::integer from public.approval_workflow_steps s where s.tenant_id = '13000000-0000-0000-0000-000000000001' and exists (select 1 from public.approval_workflows w where w.id = s.workflow_id and w.request_type_id is not null)),
   16,
   'default workflows route through manager and owner steps'
 );

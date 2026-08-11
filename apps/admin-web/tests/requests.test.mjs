@@ -26,3 +26,13 @@ test("request workflows support the operational request catalogue", () => {
     assert.match(migration, new RegExp(`'${code}'`));
   }
 });
+
+test("the workflow editor manages both HR requests and statutory leave safely", () => {
+  const migration = readFileSync("../../supabase/migrations/202608110013_leave_workflow_operations.sql", "utf8");
+  const workflows = readFileSync("src/app/[locale]/(protected)/requests/workflows/page.tsx", "utf8");
+  assert.match(migration, /approval_workflows_one_subject/);
+  assert.match(migration, /leave_type_id/);
+  assert.match(migration, /Active workflows are immutable|is_active/);
+  assert.match(workflows, /from\("leave_types"\)/);
+  assert.match(workflows, /leave\.manage/);
+});

@@ -96,6 +96,19 @@
 - [ ] Request and notification records remain invisible across tenant boundaries.
 - [ ] Notification bell shows unread approval assignments and request decisions on desktop and mobile.
 
+## Leave operations
+
+- [ ] Every active leave type has a versioned approval workflow and new requests retain the workflow version used at submission.
+- [ ] Authorized leave administrators can clone, edit, and activate leave workflows without changing in-flight requests.
+- [ ] Leave approval responsibility follows the configured manager, owner, HR, or custom-role step instead of a hardcoded sequence.
+- [ ] Sick and other configured leave types enforce supporting documents and expose them only through short-lived signed links.
+- [ ] Employees or leave administrators can cancel open leave with a reason; started approved leave requires an authorized reversal.
+- [ ] Approval history displays the completed workflow step, decision, note, and timestamp.
+- [ ] Leave administrators can configure notice periods, request limits, document requirements, and active policies.
+- [ ] Balance adjustments create immutable ledger transactions with employee, year, units, kind, and reason.
+- [ ] Default Egypt 2026 public holidays remain available, and administrators can add or remove tenant holidays.
+- [ ] Anonymous and cross-tenant callers cannot inspect, submit, approve, or alter leave operations.
+
 ## Employee visibility and mobile
 
 - [ ] Mobile web navigation opens from a burger button and closes by link, overlay, close button, or Escape.

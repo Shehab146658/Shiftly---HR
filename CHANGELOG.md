@@ -10,6 +10,9 @@
 - A workflow administration screen that safely clones, edits, and activates new workflow versions without changing in-flight requests.
 - An in-app notification center for approval assignments and employee decisions.
 - Database Row-Level Security, guarded RPCs, storage policies, audit triggers, and pgTAP coverage for request operations.
+- Versioned approval workflows for every statutory and company leave type, using the same manager, owner, HR, custom-role, any/all/count approval engine.
+- A leave administration workspace for policy controls, secure supporting documents, public holidays, employee balance adjustments, and an immutable transaction ledger.
+- Leave request cancellation, signed document access, descriptive approval history, step-aware review responsibility, and employee notifications.
 - Persistent employee access-role assignment with pending-account support, membership synchronization, RLS, audit logging, and tests.
 - Tenant-member profile pages with clickable owner and employee identities.
 - Reusable save, update, archive, publish, and assignment feedback with pending, success, and failure states.

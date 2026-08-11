@@ -3,7 +3,7 @@ import { ActionForm } from "@/components/action-form";
 import { LeaveRequestDialog } from "@/components/leave-request-dialog";
 import { getTenantPageContext } from "@/lib/page-context";
 import { adjacentMonth, calendarMonthDays, dateFallsWithin, monthRange, validCalendarMonth } from "@/lib/leaves";
-import { reviewLeaveRequest, submitLeaveRequest } from "../actions";
+import { cancelLeaveRequest, reviewLeaveRequest, submitLeaveRequest } from "../actions";
 
 type EmployeeRow = {
   id: string;
@@ -58,6 +58,7 @@ export default async function LeavesPage({
     approve: "موافقة", reject: "رفض", approvalNote: "ملاحظة الموافقة", rejectionReason: "سبب الرفض مطلوب", approveSuccess: "تمت الموافقة وانتقل الطلب إلى المرحلة التالية.", rejectSuccess: "تم رفض الطلب وتسجيل السبب.",
     statutoryPolicies: "السياسات القانونية الافتراضية", policiesHelp: "الحدود القانونية مثبتة افتراضيًا ويمكن للإدارة إضافة مزايا أفضل دون تقليل حق العامل.",
     paid: "مدفوعة", unpaid: "بدون أجر", noRequests: "لا توجد طلبات في هذا الشهر.", source: "المصدر الرسمي", egyptHolidaysSource: "رئاسة جمهورية مصر العربية - العطلات الرسمية 2026",
+    settings: "إعدادات الإجازات", document: "عرض المستند", history: "سجل الموافقات", cancelRequest: "إلغاء الطلب", cancellationReason: "سبب الإلغاء", cancelledSuccess: "تم إلغاء طلب الإجازة.", currentStep: "الخطوة الحالية",
     close: d.close, cancel: d.cancel, actionFailed: d.actionFailed, saving: d.saving, reason: d.reason,
   } : {
     title: "Leave & holidays", subtitle: "Balances, requests, and official holidays aligned with Egypt Labour Law No. 14 of 2025.",
@@ -74,15 +75,17 @@ export default async function LeavesPage({
     approve: "Approve", reject: "Reject", approvalNote: "Approval note", rejectionReason: "Rejection reason required", approveSuccess: "Approved and moved to the next workflow stage.", rejectSuccess: "Request rejected and reason recorded.",
     statutoryPolicies: "Default statutory policies", policiesHelp: "Legal minimums are protected by default; administrators can add more generous company benefits.",
     paid: "Paid", unpaid: "Unpaid", noRequests: "No requests in this month.", source: "Official source", egyptHolidaysSource: "Presidency of Egypt - National Holidays 2026",
+    settings: "Leave settings", document: "View document", history: "Approval history", cancelRequest: "Cancel request", cancellationReason: "Cancellation reason", cancelledSuccess: "Leave request cancelled.", currentStep: "Current step",
     close: d.close, cancel: d.cancel, actionFailed: d.actionFailed, saving: d.saving, reason: d.reason,
   };
 
-  const [{ data: employeeData, error: employeeError }, { data: leaveTypeData, error: leaveTypeError }, { data: holidays, error: holidayError }, { data: requests, error: requestError }, { data: currentEmployee }] = await Promise.all([
+  const [{ data: employeeData, error: employeeError }, { data: leaveTypeData, error: leaveTypeError }, { data: holidays, error: holidayError }, { data: requests, error: requestError }, { data: currentEmployee }, { data: canManageLeave }] = await Promise.all([
     supabase.from("employees").select("id, employee_code, name_en, name_ar, manager_employee_id").eq("tenant_id", tenantId).neq("status", "terminated").order("name_en"),
     supabase.from("leave_types").select("id, code, name_en, name_ar, legal_article, legal_summary_en, legal_summary_ar, paid, requires_document").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
     supabase.from("public_holidays").select("id, holiday_date, name_en, name_ar, source_reference").eq("tenant_id", tenantId).gte("holiday_date", range.start).lte("holiday_date", range.end).order("holiday_date"),
-    supabase.from("leave_requests").select("id, start_date, end_date, day_part, requested_units, reason, status, approval_stage, submitted_at, review_note, employees(id, employee_code, name_en, name_ar, manager_employee_id), leave_types(code, name_en, name_ar, paid), leave_approval_actions(stage, decision, note, acted_at)").eq("tenant_id", tenantId).lte("start_date", range.end).gte("end_date", range.start).order("submitted_at", { ascending: false }),
+    supabase.from("leave_requests").select("id, employee_id, start_date, end_date, day_part, requested_units, reason, status, approval_stage, submitted_at, review_note, supporting_document_path, workflow_id, current_workflow_step_id, compliance_flags, employees(id, employee_code, name_en, name_ar, manager_employee_id), leave_types(code, name_en, name_ar, paid), current_step:approval_workflow_steps!leave_requests_current_workflow_step_id_fkey(id, step_order, name_en, name_ar, approver_kind), leave_approval_actions(stage, decision, note, acted_at, workflow_step:approval_workflow_steps(name_en, name_ar))").eq("tenant_id", tenantId).lte("start_date", range.end).gte("end_date", range.start).order("submitted_at", { ascending: false }),
     supabase.from("employees").select("id").eq("tenant_id", tenantId).eq("user_id", user.id).maybeSingle(),
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "leave.manage" }),
   ]);
   if (employeeError) throw employeeError;
   if (leaveTypeError) throw leaveTypeError;
@@ -104,14 +107,25 @@ export default async function LeavesPage({
   const monthLabel = new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(year, month - 1, 1)));
   const holidayByDate = new Map((holidays ?? []).map((holiday) => [holiday.holiday_date, holiday]));
   const rows = requests ?? [];
+  const pendingRows = rows.filter((request) => request.status === "pending");
+  const approvableResults = await Promise.all(pendingRows.map(async (request) => {
+    const { data } = await supabase.rpc("can_approve_leave_request", { p_request_id: request.id });
+    return [request.id, Boolean(data)] as const;
+  }));
+  const approvableRequestIds = new Set(approvableResults.filter(([, allowed]) => allowed).map(([requestId]) => requestId));
+  const documentResults = await Promise.all(rows.filter((request) => request.supporting_document_path).map(async (request) => {
+    const { data } = await supabase.storage.from("leave-documents").createSignedUrl(request.supporting_document_path!, 900);
+    return [request.id, data?.signedUrl ?? null] as const;
+  }));
+  const documentUrls = new Map(documentResults);
   const pendingCount = rows.filter((request) => request.status === "pending").length;
-  const ownerCount = rows.filter((request) => request.status === "pending" && request.approval_stage === "owner_review").length;
+  const ownerCount = rows.filter((request) => request.status === "pending" && relationOne(request.current_step as { approver_kind: string } | { approver_kind: string }[] | null)?.approver_kind === "owner").length;
   const approvedUnits = rows.filter((request) => request.status === "approved").reduce((total, request) => total + Number(request.requested_units), 0);
   const weekdayLabels = locale === "ar" ? ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"] : ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
   const requestAction = submitLeaveRequest.bind(null, locale, tenantId);
 
   return <>
-    <div className="page-head"><div><h1 className="page-title">{copy.title}</h1><p className="muted">{copy.subtitle}</p></div>{employees.length && leaveTypes.length ? <LeaveRequestDialog action={requestAction} defaultEmployeeId={selectedEmployeeId} employees={employees.map((employee) => ({ id: employee.id, code: employee.employee_code, name: locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en }))} leaveTypes={leaveTypes.map((type) => ({ id: type.id, name: locale === "ar" ? type.name_ar : type.name_en, requiresDocument: type.requires_document }))} labels={copy} /> : null}</div>
+    <div className="page-head"><div><h1 className="page-title">{copy.title}</h1><p className="muted">{copy.subtitle}</p></div><div className="page-actions">{canManageLeave ? <Link className="button secondary" href={`/${locale}/leaves/settings`}>{copy.settings}</Link> : null}{employees.length && leaveTypes.length ? <LeaveRequestDialog action={requestAction} defaultEmployeeId={selectedEmployeeId} employees={employees.map((employee) => ({ id: employee.id, code: employee.employee_code, name: locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en }))} leaveTypes={leaveTypes.map((type) => ({ id: type.id, name: locale === "ar" ? type.name_ar : type.name_en, requiresDocument: type.requires_document }))} labels={copy} /> : null}</div></div>
 
     <section className="stats-grid leave-stats">
       <Link className="stat-card" href={`/${locale}/leaves?year=${year}&month=${month}`}><span>{copy.officialHolidays}</span><strong>{holidays?.length ?? 0}</strong><small>{monthLabel}</small></Link>
@@ -143,12 +157,27 @@ export default async function LeavesPage({
       <div className="table-wrap"><table className="leave-request-table"><thead><tr><th>{copy.employee}</th><th>{copy.leaveType}</th><th>{copy.period}</th><th>{copy.units}</th><th>{copy.status}</th><th>{copy.approval}</th><th>{copy.actions}</th></tr></thead><tbody>{rows.map((request) => {
         const employee = relationOne(request.employees as EmployeeRow | EmployeeRow[] | null);
         const leaveType = relationOne(request.leave_types as { code: string; name_en: string; name_ar: string; paid: boolean } | { code: string; name_en: string; name_ar: string; paid: boolean }[] | null);
-        const canManagerReview = request.status === "pending" && request.approval_stage === "manager_review" && (membership.is_owner || employee?.manager_employee_id === currentEmployee?.id);
-        const canOwnerReview = request.status === "pending" && request.approval_stage === "owner_review" && membership.is_owner;
-        const canReview = canManagerReview || canOwnerReview;
+        const currentStep = relationOne(request.current_step as { id: string; step_order: number; name_en: string; name_ar: string; approver_kind: string } | { id: string; step_order: number; name_en: string; name_ar: string; approver_kind: string }[] | null);
+        const canReview = approvableRequestIds.has(request.id);
+        const canCancel = request.status === "pending" && (request.employee_id === currentEmployee?.id || Boolean(canManageLeave));
         const statusLabel = request.status === "approved" ? copy.approved : request.status === "rejected" ? copy.rejected : request.status === "cancelled" ? copy.cancelled : copy.pending;
-        const stageLabel = request.approval_stage === "manager_review" ? copy.managerReview : request.approval_stage === "owner_review" ? copy.ownerReview : copy.complete;
-        return <tr key={request.id}><td><strong>{employee ? (locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en) : "—"}</strong><small className="table-subline code">{employee?.employee_code}</small></td><td>{leaveType ? (locale === "ar" ? leaveType.name_ar : leaveType.name_en) : "—"}</td><td>{request.start_date}<span className="table-subline">{request.end_date !== request.start_date ? `→ ${request.end_date}` : ""}</span></td><td>{Number(request.requested_units).toFixed(2)}</td><td><span className={`badge status-${request.status}`}>{statusLabel}</span></td><td><span className={`workflow-stage workflow-${request.approval_stage}`}>{stageLabel}</span></td><td>{canReview ? <div className="approval-actions"><ActionForm action={reviewLeaveRequest.bind(null, locale, request.id, "approved")} errorMessage={copy.actionFailed} pendingMessage={copy.saving} successMessage={copy.approveSuccess}><input aria-label={copy.approvalNote} className="input approval-note" name="reviewNote" placeholder={copy.approvalNote} /><button className="button small-button" type="submit">{copy.approve}</button></ActionForm><ActionForm action={reviewLeaveRequest.bind(null, locale, request.id, "rejected")} confirmMessage={`${copy.reject}?`} errorMessage={copy.actionFailed} pendingMessage={copy.saving} successMessage={copy.rejectSuccess}><input aria-label={copy.rejectionReason} className="input approval-note" name="reviewNote" placeholder={copy.rejectionReason} required /><button className="button danger small-button" type="submit">{copy.reject}</button></ActionForm></div> : <span className="muted">{stageLabel}</span>}</td></tr>;
+        const stageLabel = currentStep ? (locale === "ar" ? currentStep.name_ar : currentStep.name_en) : request.status === "pending" ? copy.currentStep : copy.complete;
+        const approvalActions = request.leave_approval_actions ?? [];
+        const documentUrl = documentUrls.get(request.id);
+        return <tr key={request.id}>
+          <td><strong>{employee ? (locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en) : "—"}</strong><small className="table-subline code">{employee?.employee_code}</small></td>
+          <td>{leaveType ? (locale === "ar" ? leaveType.name_ar : leaveType.name_en) : "—"}</td>
+          <td>{request.start_date}<span className="table-subline">{request.end_date !== request.start_date ? `→ ${request.end_date}` : ""}</span></td>
+          <td>{Number(request.requested_units).toFixed(2)}</td>
+          <td><span className={`badge status-${request.status}`}>{statusLabel}</span></td>
+          <td><span className={`workflow-stage workflow-${request.approval_stage}`}>{stageLabel}</span><small className="table-subline">{currentStep ? `${copy.currentStep} ${currentStep.step_order}` : ""}</small></td>
+          <td><div className="leave-request-actions">
+            {canReview ? <div className="approval-actions"><ActionForm action={reviewLeaveRequest.bind(null, locale, request.id, "approved")} errorMessage={copy.actionFailed} pendingMessage={copy.saving} successMessage={copy.approveSuccess}><input aria-label={copy.approvalNote} className="input approval-note" name="reviewNote" placeholder={copy.approvalNote} /><button className="button small-button" type="submit">{copy.approve}</button></ActionForm><ActionForm action={reviewLeaveRequest.bind(null, locale, request.id, "rejected")} confirmMessage={`${copy.reject}?`} errorMessage={copy.actionFailed} pendingMessage={copy.saving} successMessage={copy.rejectSuccess}><input aria-label={copy.rejectionReason} className="input approval-note" name="reviewNote" placeholder={copy.rejectionReason} required /><button className="button danger small-button" type="submit">{copy.reject}</button></ActionForm></div> : null}
+            <div className="leave-request-links">{documentUrl ? <a className="text-link" href={documentUrl} rel="noreferrer" target="_blank">{copy.document}</a> : null}{approvalActions.length ? <details><summary>{copy.history} ({approvalActions.length})</summary><ol>{approvalActions.map((action, index) => { const step = relationOne(action.workflow_step as { name_en: string; name_ar: string } | { name_en: string; name_ar: string }[] | null); return <li key={`${action.acted_at}-${index}`}><strong>{step ? (locale === "ar" ? step.name_ar : step.name_en) : action.stage}</strong><span className={`badge status-${action.decision}`}>{action.decision}</span>{action.note ? <p>{action.note}</p> : null}<time>{new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", { dateStyle: "medium", timeStyle: "short" }).format(new Date(action.acted_at))}</time></li>; })}</ol></details> : null}</div>
+            {canCancel ? <details className="leave-cancel-panel"><summary>{copy.cancelRequest}</summary><ActionForm action={cancelLeaveRequest.bind(null, locale, request.id)} confirmMessage={`${copy.cancelRequest}?`} errorMessage={copy.actionFailed} pendingMessage={copy.saving} successMessage={copy.cancelledSuccess}><input className="input" name="cancellationReason" placeholder={copy.cancellationReason} required /><button className="button danger small-button" type="submit">{copy.cancelRequest}</button></ActionForm></details> : null}
+            {!canReview && !canCancel && !documentUrl && !approvalActions.length ? <span className="muted">{stageLabel}</span> : null}
+          </div></td>
+        </tr>;
       })}</tbody></table>{!rows.length ? <div className="empty">{copy.noRequests}</div> : null}</div>
     </section>
 

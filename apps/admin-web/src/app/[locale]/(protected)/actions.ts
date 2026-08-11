@@ -402,6 +402,8 @@ const approvalModeSchema = z.enum(["any", "all", "count"]);
 function refreshRequestPaths(locale: AppLocale) {
   revalidatePath(`/${locale}/requests`);
   revalidatePath(`/${locale}/requests/workflows`);
+  revalidatePath(`/${locale}/leaves`);
+  revalidatePath(`/${locale}/leaves/settings`);
   revalidatePath(`/${locale}/dashboard`);
 }
 
@@ -620,6 +622,8 @@ const leaveTransactionKindSchema = z.enum(["adjustment", "carryover", "settlemen
 
 function refreshLeavePaths(locale: AppLocale) {
   revalidatePath(`/${locale}/leaves`);
+  revalidatePath(`/${locale}/leaves/settings`);
+  revalidatePath(`/${locale}/requests/workflows`);
   revalidatePath(`/${locale}/dashboard`);
   revalidatePath(`/${locale}/employees`);
 }

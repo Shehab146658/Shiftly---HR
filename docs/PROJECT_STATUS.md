@@ -1,7 +1,7 @@
 # Shiftly HR Project Status
 
-**Current milestone:** Milestone 4 — Requests and approvals
-**Status:** In progress after the reusable approval engine release
+**Current milestone:** Milestone 5 — Payroll
+**Status:** Requests and leave operations complete; payroll is next
 **Release:** `0.3.0-preview`
 **Last updated:** 11 August 2026
 
@@ -30,6 +30,9 @@
 - Bilingual request inbox, employee self-service submission, attachments, cancellations, detailed workflow history, and guarded review actions.
 - In-app notifications for approval assignments, approvals, and rejections.
 - Immutable active workflows so new policy versions never rewrite an in-flight request's approval path.
+- Statutory and company leave types now use the same versioned workflow engine, with guarded manager, owner, HR, and custom-role approval steps.
+- Leave administration includes policy configuration, holiday maintenance, secure documents, balance adjustments, and an auditable balance ledger.
+- Leave requests expose their current workflow step, approval history, cancellation, and signed document access.
 
 ## Experience hardening
 
@@ -45,9 +48,9 @@
 ## Validation gates
 
 - Static repository checks: passed.
-- Next.js lint, TypeScript, 27 unit tests, and production build: passed.
+- Next.js lint, TypeScript, 28 unit tests, and production build: passed.
 - Supabase migration reset and database lint: passed.
-- Supabase pgTAP: 160 tests passed.
+- Supabase pgTAP: 178 tests passed.
 - Flutter sources were unchanged in this increment; the Flutter SDK is not installed in the current workstation environment, so analyzer and device tests remain an environment-dependent release check.
 - Production JavaScript dependency audit: passed after verified transitive security overrides.
 - Manual acceptance scenarios in `docs/ACCEPTANCE_TESTS.md`.

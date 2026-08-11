@@ -53,20 +53,34 @@ export default async function RequestWorkflowsPage({ params }: { params: Promise
     updateStep: "Save step", stepUpdated: "Approval step updated.", deleteStep: "Delete", stepDeleted: "Approval step deleted.", deleteConfirm: "Delete this step from the draft?", addStep: "Add step", stepAdded: "Approval step added.",
     immutable: "This version is active and protected from editing.", drafts: "Versions in preparation", noDrafts: "No draft version yet.", actionFailed: d.actionFailed, saving: d.saving,
   };
-  const [{ data: typeData, error }, { data: roles }, { data: canManageWorkflows }] = await Promise.all([
+  const [{ data: typeData, error }, { data: leaveTypeData, error: leaveTypeError }, { data: roles }, { data: canManageRequests }, { data: canManageLeave }] = await Promise.all([
     supabase.from("request_types").select("id, code, category, name_en, name_ar, description_en, description_ar, approval_workflows(id, name_en, name_ar, version, is_active, activated_at, approval_workflow_steps(id, step_order, name_en, name_ar, approver_kind, role_id, approval_mode, approvals_required, sla_hours))").eq("tenant_id", tenantId).order("category").order("name_en"),
+    supabase.from("leave_types").select("id, code, name_en, name_ar, legal_summary_en, legal_summary_ar, approval_workflows(id, name_en, name_ar, version, is_active, activated_at, approval_workflow_steps(id, step_order, name_en, name_ar, approver_kind, role_id, approval_mode, approvals_required, sla_hours))").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
     supabase.from("roles").select("id, name, description").eq("tenant_id", tenantId).order("name"),
     supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "requests.manage" }),
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "leave.manage" }),
   ]);
   if (error) throw error;
+  if (leaveTypeError) throw leaveTypeError;
+  const workflowSubjects = [
+    ...(typeData ?? []),
+    ...(leaveTypeData ?? []).map((type) => ({
+      ...type,
+      category: "leave",
+      description_en: type.legal_summary_en,
+      description_ar: type.legal_summary_ar,
+    })),
+  ];
 
   return <>
     <div className="page-head"><div><Link className="back-link" href={`/${locale}/requests`}>← {copy.back}</Link><h1 className="page-title">{copy.title}</h1><p className="muted">{copy.subtitle}</p></div></div>
     <section className="workflow-version-notice"><span aria-hidden="true">↻</span><div><strong>{copy.versioning}</strong><p>{copy.versioningHelp}</p></div></section>
-    <div className="workflow-type-list">{(typeData ?? []).map((type) => {
+    <div className="workflow-type-list">{workflowSubjects.map((type) => {
       const workflows = ([...(type.approval_workflows ?? [])] as Workflow[]).sort((a, b) => b.version - a.version);
       const active = workflows.find((workflow) => workflow.is_active);
       const drafts = workflows.filter((workflow) => !workflow.is_active);
+      const canManageSubject = type.category === "leave" ? Boolean(canManageLeave) : Boolean(canManageRequests);
+      const canManageWorkflows = canManageSubject;
       return <section className="card workflow-type-card" key={type.id}>
         <div className="workflow-type-head"><div><span className={`request-category request-category-${type.category}`}>{type.category}</span><h2>{locale === "ar" ? type.name_ar : type.name_en}</h2><p>{locale === "ar" ? type.description_ar : type.description_en}</p></div>{active ? <span className="badge status-active">{copy.active} · v{active.version}</span> : <span className="badge status-inactive">{copy.noSteps}</span>}</div>
         {active ? <div className="active-workflow-panel"><div className="workflow-path">{[...active.approval_workflow_steps].sort((a, b) => a.step_order - b.step_order).map((step, index) => <div className="workflow-path-part" key={step.id}><span>{step.step_order}</span><div><strong>{locale === "ar" ? step.name_ar : step.name_en}</strong><small>{copy[step.approver_kind]} · {copy[step.approval_mode]}</small></div>{index < active.approval_workflow_steps.length - 1 ? <i>→</i> : null}</div>)}</div><p className="immutable-note">{copy.immutable}</p></div> : null}

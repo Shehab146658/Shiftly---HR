@@ -5,8 +5,8 @@
 | 1. Foundation | Multi-tenancy, authentication, RBAC, branches, teams, baseline employees, audit | Completed |
 | 2. Employees & Scheduling | Employee lifecycle, assignment history, shift templates, weekly schedules, mobile schedule | Completed |
 | 3. Attendance | GPS, selfie, geofence, clock-in/out, overnight-day calculations, reports | In progress |
-| 4. Requests & Leave | Request catalogue, leave balances, attachments, configurable approvals | In progress — reusable request engine delivered |
-| 5. Payroll | Salary rules, attendance deductions, overtime, payroll runs, payslips | Planned |
+| 4. Requests & Leave | Request catalogue, leave balances, attachments, configurable approvals | Completed |
+| 5. Payroll | Salary rules, attendance deductions, overtime, payroll runs, payslips | In progress |
 | 6. Business Modules | Sales, targets, bonuses, loans, tasks, announcements | Planned |
 | 7. Production Hardening | Security, performance, deployment, UAT, operational documentation | Planned |
 

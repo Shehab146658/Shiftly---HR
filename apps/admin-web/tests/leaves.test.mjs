@@ -20,16 +20,25 @@ test("calendar filters and date ranges are validated", () => {
   assert.equal(dateFallsWithin("2026-07-26", "2026-07-20", "2026-07-25"), false);
 });
 
-test("leave MVP exposes staged approvals, official holidays, navigation, and a global loader", () => {
+test("leave operations expose versioned approvals, official holidays, navigation, and a global loader", () => {
   const migration = readFileSync("../../supabase/migrations/202607310008_egypt_leave_management.sql", "utf8");
+  const workflowMigration = readFileSync("../../supabase/migrations/202608110013_leave_workflow_operations.sql", "utf8");
   const shell = readFileSync("src/components/app-shell.tsx", "utf8");
   const page = readFileSync("src/app/[locale]/(protected)/leaves/page.tsx", "utf8");
+  const settings = readFileSync("src/app/[locale]/(protected)/leaves/settings/page.tsx", "utf8");
   const loader = readFileSync("src/app/[locale]/loading.tsx", "utf8");
   assert.match(migration, /leave_approval_stage as enum \('manager_review', 'owner_review', 'completed'\)/);
   assert.match(migration, /seed_egypt_2026_public_holidays/);
   assert.match(migration, /date '2026-01-07'/);
   assert.match(migration, /date '2026-10-06'/);
   assert.match(shell, /\["leaves", d\.leaves, "leaves"\]/);
-  assert.match(page, /approval_stage === "owner_review"/);
+  assert.match(workflowMigration, /seed_leave_approval_workflows/);
+  assert.match(workflowMigration, /can_approve_leave_request/);
+  assert.match(page, /can_approve_leave_request/);
+  assert.match(page, /createSignedUrl/);
+  assert.match(page, /cancelLeaveRequest/);
+  assert.match(settings, /adjustLeaveBalance/);
+  assert.match(settings, /createPublicHoliday/);
+  assert.match(settings, /updateLeaveType/);
   assert.match(loader, /global-loader-ring/);
 });

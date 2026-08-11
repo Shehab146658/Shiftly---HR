@@ -662,6 +662,35 @@ tbody tr:last-child td { border-bottom: 0; }
 .weekday-checks { display: flex; flex-wrap: wrap; gap: 7px; padding-top: 4px; }
 .weekday-checks label { display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-muted); font-size: .73rem; font-weight: 750; }
 .statutory-flags { margin-top: 9px; }
+.page-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
+.leave-request-actions { display: grid; gap: 9px; min-width: 220px; }
+.leave-request-links { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: .74rem; }
+.leave-request-links details { position: relative; }
+.leave-request-links summary, .leave-cancel-panel > summary { color: var(--primary); cursor: pointer; font-size: .73rem; font-weight: 850; list-style: none; }
+.leave-request-links ol { position: absolute; z-index: 5; inset-inline-end: 0; display: grid; gap: 8px; width: min(320px, 82vw); margin: 7px 0 0; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: white; box-shadow: 0 16px 35px rgba(25,42,70,.16); list-style: none; }
+.leave-request-links li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.leave-request-links li:last-child { padding-bottom: 0; border-bottom: 0; }
+.leave-request-links li p, .leave-request-links li time { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: .68rem; }
+.leave-cancel-panel { padding-top: 3px; border-top: 1px dashed var(--border); }
+.leave-cancel-panel form { display: grid; grid-template-columns: minmax(140px, 1fr) auto; gap: 7px; margin-top: 7px; }
+.settings-callout { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px; border: 1px solid #cdd9f6; border-radius: 15px; background: linear-gradient(135deg, #f7f9ff, #eef3ff); }
+.settings-callout p { margin: 4px 0 0; color: var(--muted); font-size: .8rem; }
+.leave-policy-editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.leave-policy-editor { display: grid; gap: 12px; padding: 15px; border: 1px solid var(--border); border-radius: 14px; background: #fafbfe; }
+.leave-policy-title strong, .leave-policy-title small { display: block; }
+.leave-policy-title small { margin-top: 4px; color: var(--muted); font-size: .69rem; }
+.toggle-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.toggle-row label, .checkbox-line { display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: white; font-size: .74rem; font-weight: 750; cursor: pointer; }
+.toggle-row input, .checkbox-line input { width: 17px; height: 17px; accent-color: var(--primary); }
+.settings-two-column { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; }
+.positive-number { color: #087353; }
+.negative-number { color: #b42318; }
+.holiday-admin-list { display: grid; gap: 9px; }
+.holiday-admin-row { display: grid; grid-template-columns: 105px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-muted); }
+.holiday-admin-row time { color: var(--primary-strong); font-weight: 900; }
+.holiday-admin-row strong, .holiday-admin-row small { display: block; }
+.holiday-admin-row small { margin-top: 4px; color: var(--muted); font-size: .69rem; overflow-wrap: anywhere; }
+.request-category-leave { background: #e8f7f1; color: #087353; }
 
 /* Attendance operations */
 .attendance-punch-modal { width: min(760px, 100%); padding: 24px; }
@@ -883,6 +912,7 @@ tbody tr:last-child td { border-bottom: 0; }
   .calendar-toolbar { display: grid; }
   .calendar-pager { justify-content: space-between; }
   .policy-grid { grid-template-columns: 1fr; }
+  .leave-policy-editor-grid, .settings-two-column { grid-template-columns: 1fr; }
   .employee-picker-list { grid-template-columns: 1fr; }
   .day-picker-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .attendance-filter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -898,6 +928,8 @@ tbody tr:last-child td { border-bottom: 0; }
   .content { padding: 20px 14px 36px; }
   .page-head { gap: 14px; }
   .page-head > .button, .page-head > button { width: 100%; }
+  .page-head .page-actions { width: 100%; }
+  .page-head .page-actions > * { flex: 1 1 100%; width: 100%; }
   .modal-backdrop { align-items: end; padding: 0; }
   .modal-panel { width: 100%; max-height: 92dvh; border-radius: 22px 22px 0 0; }
   .employee-create-modal { padding: 18px 15px 24px; }
@@ -959,6 +991,13 @@ tbody tr:last-child td { border-bottom: 0; }
   .calendar-day { min-height: 96px; }
   .leave-request-modal { padding: 18px 15px 24px; }
   .approval-actions { min-width: 190px; }
+  .leave-request-actions { min-width: 190px; }
+  .leave-cancel-panel form { grid-template-columns: 1fr; }
+  .settings-callout { align-items: stretch; flex-direction: column; }
+  .settings-callout .button { width: 100%; }
+  .leave-policy-editor-grid { grid-template-columns: 1fr; }
+  .holiday-admin-row { grid-template-columns: 1fr auto; }
+  .holiday-admin-row time { grid-column: 1 / -1; }
   .topbar-actions { gap: 5px; }
   .notification-trigger { width: 38px; height: 38px; }
   .notification-popover { position: fixed; top: 66px; inset-inline: 10px; width: auto; max-height: calc(100dvh - 78px); }
