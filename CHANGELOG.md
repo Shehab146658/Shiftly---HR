@@ -4,6 +4,9 @@
 
 ### Added
 
+- An audited fingerprint-device registry with tenant/branch scope, timezone, serial/model metadata, adapter mode, operating status, last synchronization, and import health.
+- Idempotent CSV, TXT, and XLSX attendance imports with automatic/override column mapping, configurable device punch states, SHA-256 replay prevention, external-reference de-duplication, device lineage, and per-row reconciliation errors.
+- A bilingual, responsive fingerprint operations workspace and repeatable demo import file.
 - A production-oriented Flutter employee workspace for Android and iOS with bilingual/RTL navigation, native camera/GPS attendance, schedule access, personal requests, published payslips, task actions, targeted announcements, and notifications.
 - Source-controlled Android/iOS packaging with camera, foreground-location, network, and photo-evidence permissions plus a CI Android compile gate.
 - A mobile-first employee attendance clock with automatic operational-day selection, GPS/geofence validation, camera selfie evidence, online/offline state, recent punch history, and clear pending-approval feedback.

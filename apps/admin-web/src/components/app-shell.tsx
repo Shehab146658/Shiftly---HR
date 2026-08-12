@@ -97,20 +97,22 @@ export function AppShell({
             <span aria-hidden="true">×</span>
           </button>
         </div>
-        <nav className="nav">
-          {items.map(([path, label, icon]) => {
-            const href = `/${locale}/${path}`;
-            const active = pathname === href || pathname.startsWith(`${href}/`);
-            return <Link aria-current={active ? "page" : undefined} className={active ? "active" : undefined} key={path} href={href} onClick={() => setMenuOpen(false)}><AppIcon className="nav-icon" name={icon} /><span>{label}</span></Link>;
-          })}
-        </nav>
-        <div className="sidebar-footer">
-          <Link className="sidebar-profile" href={profileHref} onClick={() => setMenuOpen(false)}>
-            <span className="sidebar-avatar">{initials || "U"}</span>
-            <span className="sidebar-profile-copy"><strong title={displayName}>{displayName}</strong><small title={userEmail}>{isOwner ? d.companyOwner : d.companyUser} · {userEmail}</small></span>
-            <AppIcon className="profile-chevron" name="profile" />
-          </Link>
-          <form action={logout}><button className="button ghost" style={{ width: "100%", color: "white" }}>{d.signOut}</button></form>
+        <div className="sidebar-scroll-region">
+          <nav className="nav">
+            {items.map(([path, label, icon]) => {
+              const href = `/${locale}/${path}`;
+              const active = pathname === href || pathname.startsWith(`${href}/`);
+              return <Link aria-current={active ? "page" : undefined} className={active ? "active" : undefined} key={path} href={href} onClick={() => setMenuOpen(false)}><AppIcon className="nav-icon" name={icon} /><span>{label}</span></Link>;
+            })}
+          </nav>
+          <div className="sidebar-footer">
+            <Link className="sidebar-profile" href={profileHref} onClick={() => setMenuOpen(false)}>
+              <span className="sidebar-avatar">{initials || "U"}</span>
+              <span className="sidebar-profile-copy"><strong title={displayName}>{displayName}</strong><small title={userEmail}>{isOwner ? d.companyOwner : d.companyUser} · {userEmail}</small></span>
+              <AppIcon className="profile-chevron" name="profile" />
+            </Link>
+            <form action={logout}><button className="button ghost" style={{ width: "100%", color: "white" }}>{d.signOut}</button></form>
+          </div>
         </div>
       </aside>
       <div className="main">

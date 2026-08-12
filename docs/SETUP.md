@@ -48,6 +48,8 @@ For payroll demonstrations, run
 [`supabase/demo/seed_payroll_preview.sql`](../supabase/demo/seed_payroll_preview.sql)
 after the demo tenant exists. It adds anonymized sample compensation only for employees who do not already have compensation and never overwrites real payroll data.
 
+The demo seed also registers `FP-DEMO-01`, a non-physical fingerprint import terminal for Gate Way. Open **Attendance → Fingerprint devices & imports** and upload [`supabase/demo/fingerprint-attendance-sample.csv`](../supabase/demo/fingerprint-attendance-sample.csv). Automatic mapping recognizes `PIN`, `Punch Time`, `State`, `Log ID`, and `Branch`; one deliberately unknown employee remains in the reconciliation queue to demonstrate safe partial imports.
+
 For employee-finance and sales demonstrations, run
 [`supabase/demo/seed_business_preview.sql`](../supabase/demo/seed_business_preview.sql)
 after the demo tenant and payroll compensation exist. It adds one clearly marked interest-free loan statement, approved and pending sales, a tiered incentive policy, a branch target, and calculated bonus results without changing user-created records.

@@ -31,8 +31,10 @@ The administration foundation now includes:
 - Split-shift and clocked-break punch pairing, lateness, early leave, overtime, missing time, and final balance.
 - Pending location-evidence approval with mandatory rejection reasons.
 - Date, employee, branch, and status report filters plus CSV export.
+- A tenant-scoped fingerprint terminal registry with branch/timezone settings, active/paused/error states, and audited configuration.
+- CSV, TXT, and XLSX device imports with automatic column detection, configurable check-in/out mappings, SHA-256 replay protection, punch de-duplication, and per-row reconciliation.
 
-The employee web and native Flutter clients both provide GPS/selfie attendance capture against the same guarded ingestion function. The native app also exposes schedules, requests, published payslips, tasks, announcements, and personal notifications in Arabic and English. Manufacturer-specific fingerprint synchronization remains dependent on the selected device model; CSV/import and adapter work is the next device-integration slice.
+The employee web and native Flutter clients both provide GPS/selfie attendance capture against the same guarded ingestion function. The native app also exposes schedules, requests, published payslips, tasks, announcements, and personal notifications in Arabic and English. HR can test fingerprint ingestion with `supabase/demo/fingerprint-attendance-sample.csv`; automatic live synchronization remains dependent on the selected manufacturer, model, and API/database/SDK transport.
 
 ## Milestone 1 — Foundation
 

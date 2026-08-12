@@ -4,13 +4,13 @@
 |---|---|---|
 | 1. Foundation | Multi-tenancy, authentication, RBAC, branches, teams, baseline employees, audit | Completed |
 | 2. Employees & Scheduling | Employee lifecycle, assignment history, shift templates, weekly schedules, mobile schedule | Completed |
-| 3. Attendance | GPS, selfie, geofence, web/native clock-in/out, overnight-day calculations, reports | Completed except fingerprint adapter |
+| 3. Attendance | GPS, selfie, geofence, web/native clock-in/out, overnight-day calculations, reports, fingerprint file adapter | Completed; manufacturer live connector awaits device details |
 | 4. Requests & Leave | Request catalogue, leave balances, attachments, configurable approvals | Completed |
 | 5. Payroll | Salary rules, attendance deductions, overtime, payroll runs, payslips | Completed |
 | 6. Business Modules | Sales, targets, bonuses, loans, tasks, announcements | Completed |
 | 7. Production Hardening | Security, performance, deployment, UAT, operational documentation | In progress |
 
-The native employee release now includes source-controlled Android/iOS packaging, bilingual schedule and employee workspaces, camera/GPS attendance, requests, payslips, task status actions, announcement acknowledgement, and personal notifications. Manufacturer-specific fingerprint synchronization remains a separate integration gate because the device model and transport are not yet known.
+The native employee release now includes source-controlled Android/iOS packaging, bilingual schedule and employee workspaces, camera/GPS attendance, requests, payslips, task status actions, announcement acknowledgement, and personal notifications. Fingerprint CSV/XLSX imports, device configuration, reconciliation, and audit are complete. Manufacturer-specific automatic synchronization remains a separate integration gate because the device model and transport are not yet known.
 
 ## Milestone 2 release gate
 

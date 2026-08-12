@@ -28,9 +28,14 @@ test("creation workflows use an accessible on-demand dialog", async () => {
   assert.match(workflows, /title={copy\.clone}[\s\S]*title={copy\.addStep}/);
 });
 
-test("the mobile sidebar scrolls its navigation while keeping account actions reachable", async () => {
-  const styles = await readSource("../src/app/globals.css");
-  assert.match(styles, /\.nav \{[^}]*flex: 1 1 auto;[^}]*overflow-y: auto;/);
+test("the sidebar scrolls navigation and account actions without requiring browser zoom", async () => {
+  const [styles, shell] = await Promise.all([
+    readSource("../src/app/globals.css"),
+    readSource("../src/components/app-shell.tsx"),
+  ]);
+  assert.match(shell, /className="sidebar-scroll-region"[\s\S]*className="nav"[\s\S]*className="sidebar-footer"/);
+  assert.match(styles, /\.sidebar-scroll-region \{[^}]*flex: 1 1 auto;[^}]*min-height: 0;[^}]*overflow-y: auto;/);
+  assert.match(styles, /\.nav \{[^}]*flex: 0 0 auto;/);
   assert.match(styles, /\.sidebar-footer \{[^}]*flex: 0 0 auto;/);
   assert.match(styles, /\.shell \.sidebar \{[^}]*height: 100dvh;[^}]*overflow: hidden;/);
 });

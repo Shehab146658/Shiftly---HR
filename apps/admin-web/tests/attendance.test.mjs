@@ -57,3 +57,21 @@ test("employee self-service clock captures private selfie and geofence evidence"
   assert.match(migration, /attendance_selfies_insert/);
   assert.match(migration, /attendance_selfies_delete_orphan/);
 });
+
+test("fingerprint operations provide device setup, guarded imports, and row reconciliation", async () => {
+  const [page, actions, migration] = await Promise.all([
+    readSource("../src/app/[locale]/(protected)/attendance/devices/page.tsx"),
+    readSource("../src/app/[locale]/(protected)/actions.ts"),
+    readSource("../../../supabase/migrations/202608110021_fingerprint_device_sync.sql"),
+  ]);
+  assert.match(page, /createAttendanceDevice/);
+  assert.match(page, /importFingerprintAttendance/);
+  assert.match(page, /attendance_import_rows/);
+  assert.match(page, /accept="\.csv,\.txt,\.xlsx/);
+  assert.match(actions, /createHash\("sha256"\)/);
+  assert.match(actions, /read-excel-file\/node/);
+  assert.match(migration, /create table public\.attendance_devices/);
+  assert.match(migration, /create table public\.attendance_import_batches/);
+  assert.match(migration, /create or replace function public\.import_fingerprint_punches/);
+  assert.match(migration, /attendance_device_id/);
+});

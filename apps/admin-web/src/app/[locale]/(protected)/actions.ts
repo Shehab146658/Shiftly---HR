@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AppLocale } from "@/lib/i18n";
 import { configuredWeekStart } from "@/lib/scheduling";
+import { parseAttendanceCsv, parseAttendanceTable, type AttendanceColumnOverrides, type AttendanceImportCell } from "@/lib/attendance-import";
 
 const idSchema = z.string().uuid();
 const codeSchema = z.string().trim().min(2).max(30).regex(/^[A-Za-z0-9_-]+$/);
@@ -1510,4 +1512,106 @@ export async function reviewAttendancePunch(locale: AppLocale, punchId: string, 
   });
   if (error) throw error;
   revalidatePath(`/${locale}/attendance`);
+}
+
+export async function createAttendanceDevice(locale: AppLocale, tenantId: string, formData: FormData) {
+  const values = z.object({
+    branchId: optionalId,
+    code: codeSchema,
+    name: z.string().trim().min(2).max(120),
+    provider: z.string().trim().min(2).max(80),
+    model: z.string().trim().max(100).optional(),
+    serialNumber: z.string().trim().max(120).optional(),
+    connectionMode: z.enum(["file", "api", "database", "sdk"]),
+    timezone: z.string().trim().min(3).max(80),
+  }).parse({
+    branchId: optionalString(formData.get("branchId")),
+    code: formData.get("code"),
+    name: formData.get("name"),
+    provider: formData.get("provider") || "generic",
+    model: optionalString(formData.get("model")),
+    serialNumber: optionalString(formData.get("serialNumber")),
+    connectionMode: formData.get("connectionMode"),
+    timezone: formData.get("timezone"),
+  });
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("create_attendance_device", {
+    p_tenant_id: idSchema.parse(tenantId),
+    p_branch_id: values.branchId ?? null,
+    p_code: values.code,
+    p_name: values.name,
+    p_provider: values.provider,
+    p_model: values.model ?? null,
+    p_serial_number: values.serialNumber ?? null,
+    p_connection_mode: values.connectionMode,
+    p_timezone: values.timezone,
+  });
+  if (error) throw error;
+  revalidatePath(`/${locale}/attendance/devices`);
+  revalidatePath(`/${locale}/audit`);
+}
+
+export async function setAttendanceDeviceStatus(locale: AppLocale, deviceId: string, status: "active" | "inactive") {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("set_attendance_device_status", {
+    p_device_id: idSchema.parse(deviceId),
+    p_status: status,
+  });
+  if (error) throw error;
+  revalidatePath(`/${locale}/attendance/devices`);
+  revalidatePath(`/${locale}/audit`);
+}
+
+function commaList(value: FormDataEntryValue | null) {
+  return String(value ?? "").split(",").map((item) => item.trim()).filter(Boolean).slice(0, 30);
+}
+
+function decodeAttendanceText(buffer: Buffer) {
+  if (buffer[0] === 0xff && buffer[1] === 0xfe) return new TextDecoder("utf-16le").decode(buffer.subarray(2));
+  if (buffer[0] === 0xfe && buffer[1] === 0xff) {
+    const swapped = Buffer.allocUnsafe(buffer.length - 2);
+    for (let index = 2; index + 1 < buffer.length; index += 2) {
+      swapped[index - 2] = buffer[index + 1];
+      swapped[index - 1] = buffer[index];
+    }
+    return new TextDecoder("utf-16le").decode(swapped);
+  }
+  return new TextDecoder("utf-8").decode(buffer);
+}
+
+export async function importFingerprintAttendance(locale: AppLocale, tenantId: string, formData: FormData) {
+  idSchema.parse(tenantId);
+  const deviceId = idSchema.parse(formData.get("deviceId"));
+  const fileValue = formData.get("attendanceFile");
+  if (!(fileValue instanceof File) || !fileValue.name || fileValue.size < 1) throw new Error("Choose a CSV or XLSX attendance file.");
+  if (fileValue.size > 8 * 1024 * 1024) throw new Error("Attendance files are limited to 8 MB.");
+  const extension = fileValue.name.split(".").pop()?.toLowerCase();
+  if (!extension || !["csv", "txt", "xlsx"].includes(extension)) throw new Error("Use a CSV, TXT, or XLSX attendance file.");
+
+  const overrides: AttendanceColumnOverrides = {
+    employee: optionalString(formData.get("employeeColumn")),
+    occurredAt: optionalString(formData.get("occurredAtColumn")),
+    punchType: optionalString(formData.get("punchTypeColumn")),
+    externalReference: optionalString(formData.get("referenceColumn")),
+    branchCode: optionalString(formData.get("branchColumn")),
+    checkInValues: commaList(formData.get("checkInValues")),
+    checkOutValues: commaList(formData.get("checkOutValues")),
+  };
+  const fileBuffer = Buffer.from(await fileValue.arrayBuffer());
+  const parsed = extension === "xlsx"
+    ? parseAttendanceTable((await (await import("read-excel-file/node")).readSheet(fileBuffer)) as AttendanceImportCell[][], overrides)
+    : parseAttendanceCsv(decodeAttendanceText(fileBuffer), overrides);
+  const checksum = createHash("sha256").update(fileBuffer).digest("hex");
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("import_fingerprint_punches", {
+    p_device_id: deviceId,
+    p_file_name: fileValue.name,
+    p_file_sha256: checksum,
+    p_rows: parsed.rows,
+    p_mapping: parsed.mapping,
+  });
+  if (error) throw error;
+  revalidatePath(`/${locale}/attendance/devices`);
+  revalidatePath(`/${locale}/attendance`);
+  revalidatePath(`/${locale}/reports`);
 }

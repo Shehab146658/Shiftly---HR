@@ -53,6 +53,21 @@ const { data: branchRows, error: branchError } = await client.from("branches").s
 if (branchError) throw branchError;
 const byCode = Object.fromEntries(branchRows.map((b) => [b.code, b.id]));
 
+const deviceResult = await client.from("attendance_devices").upsert({
+  tenant_id: tenant.id,
+  branch_id: byCode.GATEWAY,
+  code: "FP-DEMO-01",
+  name: "Gate Way entrance terminal",
+  provider: "generic",
+  model: "CSV/XLSX preview adapter",
+  serial_number: "DEMO-NOT-A-PHYSICAL-DEVICE",
+  connection_mode: "file",
+  timezone: "Africa/Cairo",
+  status: "active",
+  created_by: userId,
+}, { onConflict: "tenant_id,code" });
+if (deviceResult.error) throw deviceResult.error;
+
 const employees = [
   ["GW-001", "Heba", "هبة", "GATEWAY"],
   ["ONE-001", "Fatma", "فاطمة", "THEONE"],

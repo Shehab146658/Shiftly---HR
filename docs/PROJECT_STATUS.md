@@ -3,7 +3,7 @@
 **Current milestone:** Milestone 7 — Product hardening and employee self-service
 **Status:** Feature-complete business operations; employee web attendance, creation-flow UX, cross-module analytics, and UAT are in validation
 **Release:** `0.4.0-preview`
-**Last updated:** 11 August 2026
+**Last updated:** 12 August 2026
 
 ## Completed
 
@@ -56,6 +56,7 @@
 - Employee self-service attendance now provides a mobile-first clock with automatic branch operational-day handling, GPS/geofence validation, private selfie evidence, offline safeguards, pending-approval feedback, and recent punch history.
 - The installable Flutter client now mirrors the core employee workspace with bilingual/RTL navigation, published schedules, native front-camera and precise-location attendance, recent punch evidence, personal notifications, request history, published payslips with receipt acknowledgement, task start actions, and announcement read/acknowledgement controls.
 - Android and iOS projects are source-controlled with production camera/location permission descriptions, and CI now compiles an Android debug artifact in addition to Flutter analysis and widget tests.
+- Fingerprint attendance includes an audited device registry, branch and timezone controls, active/paused/error states, CSV/TXT/XLSX parsing, automatic and manual column mapping, configurable device states, SHA-256 replay protection, duplicate reconciliation, and per-row error history.
 
 ## Experience hardening
 
@@ -77,11 +78,11 @@
 - Static repository checks: passed.
 - Next.js lint, TypeScript, unit tests, and production build: passed.
 - Supabase migration reset and database lint: passed.
-- Supabase pgTAP includes reporting permissions, role boundaries, and private mobile-attendance evidence coverage.
+- Supabase pgTAP includes reporting permissions, role boundaries, private mobile-attendance evidence, fingerprint idempotency, device lineage, timezone conversion, and reconciliation coverage.
 - Flutter 3.44 analysis and widget tests pass locally. CI additionally compiles the Android debug application; physical-device camera/location acceptance and signed store artifacts remain launch gates.
 - Production JavaScript dependency audit: passed after verified transitive security overrides.
 - Manual acceptance scenarios in `docs/ACCEPTANCE_TESTS.md`.
 
 ## Known dependency
 
-Fingerprint device synchronization depends on the manufacturer, model, transport, and sample export/API. Native store signing, push-provider credentials, and physical-device camera/location acceptance remain environment-dependent launch gates.
+Automatic fingerprint polling/synchronization depends on the manufacturer, model, transport, and API/database/SDK documentation; secured CSV/XLSX import is complete. Native store signing, push-provider credentials, and physical-device camera/location acceptance remain environment-dependent launch gates.

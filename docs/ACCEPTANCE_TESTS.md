@@ -215,6 +215,19 @@
 - [ ] An unlinked account, missing branch, disabled mobile-clock policy, or missing permission produces a useful non-destructive explanation.
 - [ ] The clock remains touch-friendly at a 390px viewport and in both English and Arabic.
 
+## Fingerprint devices and imports
+
+- [ ] HR can register an active device with a unique code, optional branch, model, serial number, connection mode, and valid timezone.
+- [ ] Paused devices cannot accept file imports and can be safely reactivated.
+- [ ] CSV, semicolon-delimited TXT, and XLSX files accept common terminal headers or explicit column overrides.
+- [ ] Device-specific punch states can be mapped to check-in and check-out without changing source files.
+- [ ] Local timestamps are interpreted with the device timezone and assigned through the branch operational-day boundary.
+- [ ] A valid file imports matched employees while unknown employees or unsupported punch types remain as descriptive reconciliation rows.
+- [ ] Uploading the same file again returns its original batch; repeated external references never create another punch.
+- [ ] Every fingerprint punch retains its device, external reference, source file, and audit lineage.
+- [ ] Ordinary employees cannot see device configuration, import batches, or reconciliation history.
+- [ ] Device/import pages remain usable from a phone viewport and the attendance report links back to the source evidence.
+
 - [ ] `self` visibility exposes only the linked employee's entries.
 - [ ] `team` visibility exposes colleagues in the same team.
 - [ ] `branch` visibility exposes employees scheduled in the same branch.
