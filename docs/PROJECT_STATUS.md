@@ -3,7 +3,7 @@
 **Current milestone:** Milestone 7 — Product hardening and employee self-service
 **Status:** Feature-complete business operations; employee web attendance, creation-flow UX, cross-module analytics, and UAT are in validation
 **Release:** `0.4.0-preview`
-**Last updated:** 12 August 2026
+**Last updated:** 17 August 2026
 
 ## Completed
 
@@ -60,6 +60,9 @@
 
 ## Experience hardening
 
+- Mobile global search now opens as a focused overlay instead of competing with notification, language, and navigation controls in the top bar.
+- Every workspace exposes concise bilingual guidance explaining the screen's purpose and the most useful actions available there.
+- The demo bootstrap creates and verifies owner, HR, payroll, accountant, branch-manager, team-manager, and employee logins with the correct employee and organization scope.
 - Team membership is optional across employee creation, updates, and assignment history.
 - Team choices respond to the selected branch and clear incompatible assignments automatically.
 - Schedule managers can search the visible roster, include temporary staff from another branch, and assign several people or days at once.

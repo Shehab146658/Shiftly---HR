@@ -59,3 +59,33 @@ test("protected pages recover gracefully from unexpected failures", async () => 
   assert.match(errorBoundary, /Back to dashboard/);
   assert.match(errorBoundary, /Support reference/);
 });
+
+test("every primary workspace route has bilingual, action-oriented guidance", async () => {
+  const [guide, shell, styles] = await Promise.all([
+    readSource("../src/components/screen-guide.tsx"),
+    readSource("../src/components/app-shell.tsx"),
+    readSource("../src/app/globals.css"),
+  ]);
+  for (const route of ["dashboard", "branches", "teams", "employees", "shifts", "schedules", "clock", "attendance", "leaves", "requests", "payroll", "loans", "performance", "tasks", "announcements", "reports", "roles", "audit", "search", "profiles"]) {
+    assert.match(guide, new RegExp(`${route}:|"${route}":`));
+  }
+  assert.match(guide, /What you can do here/);
+  assert.match(guide, /ما الذي يمكنك فعله هنا/);
+  assert.match(shell, /<ScreenGuide locale={locale}/);
+  assert.match(styles, /\.screen-guide/);
+});
+
+test("the demo seed provisions linked accounts for every standard role", async () => {
+  const [seed, docs] = await Promise.all([
+    readSource("../../../scripts/seed-demo.mjs"),
+    readSource("../../../docs/DEMO_ACCOUNTS.md"),
+  ]);
+  for (const role of ["owner", "hr_admin", "payroll_officer", "accountant", "branch_manager", "team_manager", "employee"]) {
+    assert.match(seed, new RegExp(`role: "${role}"`));
+  }
+  assert.match(seed, /membership_roles/);
+  assert.match(seed, /employee_role_assignments/);
+  assert.match(seed, /TEAM001/);
+  assert.match(docs, /owner@shiftly\.local/);
+  assert.match(docs, /employee@shiftly\.local/);
+});

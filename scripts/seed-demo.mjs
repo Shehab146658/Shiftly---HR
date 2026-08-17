@@ -8,19 +8,38 @@ if (!secret) {
 }
 
 const client = createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
-const email = process.env.SHIFTLY_DEMO_OWNER_EMAIL ?? "owner@shiftly.local";
-const password = process.env.SHIFTLY_DEMO_OWNER_PASSWORD ?? "Shiftly!2026-Owner";
+const demoAccounts = [
+  { role: "owner", email: process.env.SHIFTLY_DEMO_OWNER_EMAIL ?? "owner@shiftly.local", password: process.env.SHIFTLY_DEMO_OWNER_PASSWORD ?? "Shiftly!2026-Owner", fullName: "Shiftly Owner" },
+  { role: "hr_admin", email: process.env.SHIFTLY_DEMO_HR_EMAIL ?? "hr@shiftly.local", password: process.env.SHIFTLY_DEMO_HR_PASSWORD ?? "Shiftly!2026-HR", fullName: "Nour HR" },
+  { role: "payroll_officer", email: process.env.SHIFTLY_DEMO_PAYROLL_EMAIL ?? "payroll@shiftly.local", password: process.env.SHIFTLY_DEMO_PAYROLL_PASSWORD ?? "Shiftly!2026-Payroll", fullName: "Mariam Payroll" },
+  { role: "accountant", email: process.env.SHIFTLY_DEMO_ACCOUNTANT_EMAIL ?? "accountant@shiftly.local", password: process.env.SHIFTLY_DEMO_ACCOUNTANT_PASSWORD ?? "Shiftly!2026-Accountant", fullName: "Omar Accountant" },
+  { role: "branch_manager", email: process.env.SHIFTLY_DEMO_BRANCH_MANAGER_EMAIL ?? "branch.manager@shiftly.local", password: process.env.SHIFTLY_DEMO_BRANCH_MANAGER_PASSWORD ?? "Shiftly!2026-Branch", fullName: "Karim Branch Manager" },
+  { role: "team_manager", email: process.env.SHIFTLY_DEMO_TEAM_MANAGER_EMAIL ?? "team.manager@shiftly.local", password: process.env.SHIFTLY_DEMO_TEAM_MANAGER_PASSWORD ?? "Shiftly!2026-Team", fullName: "Dina Team Manager" },
+  { role: "employee", email: process.env.SHIFTLY_DEMO_EMPLOYEE_EMAIL ?? "employee@shiftly.local", password: process.env.SHIFTLY_DEMO_EMPLOYEE_PASSWORD ?? "Shiftly!2026-Employee", fullName: "Youssef Employee" },
+];
 
-let userId;
-const created = await client.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: "Shiftly Owner", locale: "en" } });
-if (created.error && !created.error.message.toLowerCase().includes("already")) throw created.error;
-if (created.data.user) userId = created.data.user.id;
-if (!userId) {
-  const users = await client.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  if (users.error) throw users.error;
-  userId = users.data.users.find((u) => u.email === email)?.id;
+const listedUsers = await client.auth.admin.listUsers({ page: 1, perPage: 1000 });
+if (listedUsers.error) throw listedUsers.error;
+const authUsersByEmail = new Map(listedUsers.data.users.map((user) => [user.email?.toLowerCase(), user]));
+const accountUserIds = {};
+
+for (const account of demoAccounts) {
+  let authUser = authUsersByEmail.get(account.email.toLowerCase());
+  if (!authUser) {
+    const created = await client.auth.admin.createUser({ email: account.email, password: account.password, email_confirm: true, user_metadata: { full_name: account.fullName, locale: "en", shiftly_demo_role: account.role } });
+    if (created.error) throw created.error;
+    authUser = created.data.user;
+  } else {
+    const updated = await client.auth.admin.updateUserById(authUser.id, { password: account.password, email_confirm: true, user_metadata: { ...authUser.user_metadata, full_name: account.fullName, locale: "en", shiftly_demo_role: account.role } });
+    if (updated.error) throw updated.error;
+    authUser = updated.data.user;
+  }
+  if (!authUser) throw new Error(`Could not resolve demo ${account.role} user.`);
+  authUsersByEmail.set(account.email.toLowerCase(), authUser);
+  accountUserIds[account.role] = authUser.id;
 }
-if (!userId) throw new Error("Could not resolve demo owner user.");
+
+const userId = accountUserIds.owner;
 
 let { data: tenant } = await client.from("tenants").select("id").eq("slug", "shiftly-demo").maybeSingle();
 if (!tenant) {
@@ -29,15 +48,25 @@ if (!tenant) {
   tenant = inserted.data;
 }
 
-let { data: membership } = await client.from("memberships").select("id").eq("tenant_id", tenant.id).eq("user_id", userId).maybeSingle();
-if (!membership) {
-  const inserted = await client.from("memberships").insert({ tenant_id: tenant.id, user_id: userId, status: "active", is_owner: true, invited_by: userId, joined_at: new Date().toISOString() }).select("id").single();
-  if (inserted.error) throw inserted.error;
-  membership = inserted.data;
-}
-const { data: ownerRole, error: roleError } = await client.from("roles").select("id").eq("tenant_id", tenant.id).eq("name", "owner").single();
+const { data: roleRows, error: roleError } = await client.from("roles").select("id, name").eq("tenant_id", tenant.id);
 if (roleError) throw roleError;
-await client.from("membership_roles").upsert({ membership_id: membership.id, role_id: ownerRole.id, assigned_by: userId });
+const roleByName = Object.fromEntries(roleRows.map((role) => [role.name, role.id]));
+
+for (const account of demoAccounts) {
+  const membershipResult = await client.from("memberships").upsert({
+    tenant_id: tenant.id,
+    user_id: accountUserIds[account.role],
+    status: "active",
+    is_owner: account.role === "owner",
+    invited_by: userId,
+    joined_at: new Date().toISOString(),
+  }, { onConflict: "tenant_id,user_id" }).select("id").single();
+  if (membershipResult.error) throw membershipResult.error;
+  const clearedRoles = await client.from("membership_roles").delete().eq("membership_id", membershipResult.data.id);
+  if (clearedRoles.error) throw clearedRoles.error;
+  const assignedRole = await client.from("membership_roles").insert({ membership_id: membershipResult.data.id, role_id: roleByName[account.role], assigned_by: userId });
+  if (assignedRole.error) throw assignedRole.error;
+}
 
 const branches = [
   { code: "GATEWAY", name_en: "Gate Way", name_ar: "جيت واي" },
@@ -52,6 +81,10 @@ for (const branch of branches) {
 const { data: branchRows, error: branchError } = await client.from("branches").select("id, code").eq("tenant_id", tenant.id);
 if (branchError) throw branchError;
 const byCode = Object.fromEntries(branchRows.map((b) => [b.code, b.id]));
+
+const teamResult = await client.from("teams").upsert({ tenant_id: tenant.id, branch_id: byCode.GATEWAY, code: "TEAM001", name_en: "Team 001", name_ar: "فريق 001", is_active: true }, { onConflict: "tenant_id,code" }).select("id").single();
+if (teamResult.error) throw teamResult.error;
+const team001Id = teamResult.data.id;
 
 const deviceResult = await client.from("attendance_devices").upsert({
   tenant_id: tenant.id,
@@ -85,6 +118,35 @@ const employees = [
 for (const [employee_code, name_en, name_ar, branchCode] of employees) {
   const result = await client.from("employees").upsert({ tenant_id: tenant.id, employee_code, name_en, name_ar, branch_id: branchCode ? byCode[branchCode] : null, position: "Sales", status: "active" }, { onConflict: "tenant_id,employee_code" });
   if (result.error) throw result.error;
+}
+
+const roleEmployees = [
+  { role: "hr_admin", employee_code: "DEMO-HR", name_en: "Nour HR", name_ar: "نور - الموارد البشرية", position: "HR Administrator", branch_id: byCode.GATEWAY, team_id: null },
+  { role: "payroll_officer", employee_code: "DEMO-PAY", name_en: "Mariam Payroll", name_ar: "مريم - الرواتب", position: "Payroll Officer", branch_id: byCode.GATEWAY, team_id: null },
+  { role: "accountant", employee_code: "DEMO-ACC", name_en: "Omar Accountant", name_ar: "عمر - المحاسبة", position: "Accountant", branch_id: byCode.GATEWAY, team_id: null },
+  { role: "branch_manager", employee_code: "DEMO-BM", name_en: "Karim Branch Manager", name_ar: "كريم - مدير الفرع", position: "Branch Manager", branch_id: byCode.GATEWAY, team_id: null },
+  { role: "team_manager", employee_code: "DEMO-TM", name_en: "Dina Team Manager", name_ar: "دينا - مديرة الفريق", position: "Team Manager", branch_id: byCode.GATEWAY, team_id: team001Id },
+  { role: "employee", employee_code: "DEMO-EMP", name_en: "Youssef Employee", name_ar: "يوسف - موظف", position: "Sales Associate", branch_id: byCode.GATEWAY, team_id: team001Id },
+];
+
+for (const employee of roleEmployees) {
+  const result = await client.from("employees").upsert({
+    tenant_id: tenant.id,
+    user_id: accountUserIds[employee.role],
+    employee_code: employee.employee_code,
+    name_en: employee.name_en,
+    name_ar: employee.name_ar,
+    email: demoAccounts.find((account) => account.role === employee.role).email,
+    position: employee.position,
+    branch_id: employee.branch_id,
+    team_id: employee.team_id,
+    status: "active",
+  }, { onConflict: "tenant_id,employee_code" }).select("id").single();
+  if (result.error) throw result.error;
+  const clearedEmployeeRoles = await client.from("employee_role_assignments").delete().eq("employee_id", result.data.id);
+  if (clearedEmployeeRoles.error) throw clearedEmployeeRoles.error;
+  const assignedEmployeeRole = await client.from("employee_role_assignments").insert({ tenant_id: tenant.id, employee_id: result.data.id, role_id: roleByName[employee.role], assigned_by: userId });
+  if (assignedEmployeeRole.error) throw assignedEmployeeRole.error;
 }
 
 
@@ -216,4 +278,4 @@ for (const [branchCode, branchSchedule] of Object.entries(scheduleMatrix)) {
 }
 
 console.log(`Seeded Shiftly HR demo tenant ${tenant.id}`);
-console.log(`Owner login: ${email} / ${password}`);
+console.table(demoAccounts.map(({ role, email, password }) => ({ role, email, password })));

@@ -4,6 +4,8 @@
 
 ### Added
 
+- One repeatable login account for every standard role, with linked employee records, scoped branch/team assignments, synchronized authorization roles, and a documented credential matrix for feedback environments.
+- A bilingual, action-oriented guidance panel on every primary and detail workspace so users understand the available decisions and workflows before acting.
 - An audited fingerprint-device registry with tenant/branch scope, timezone, serial/model metadata, adapter mode, operating status, last synchronization, and import health.
 - Idempotent CSV, TXT, and XLSX attendance imports with automatic/override column mapping, configurable device punch states, SHA-256 replay prevention, external-reference de-duplication, device lineage, and per-row reconciliation errors.
 - A bilingual, responsive fingerprint operations workspace and repeatable demo import file.
@@ -47,6 +49,7 @@
 
 ### Changed
 
+- Replaced the compressed phone-width search bar with an accessible search trigger and focused mobile search overlay that supports Escape, backdrop closing, and automatic focus.
 - Replaced the schedule-only Flutter foundation and inactive dashboard tiles with guarded live employee workflows, localized recovery states, pull-to-refresh, and action feedback.
 - Standardized the remaining nested add flows—bonus policies, sales targets, loan payments, payroll adjustments, workflow versions, and approval steps—on the reusable creation dialog.
 - Kept profile and sign-out controls reachable while the expanded sidebar navigation scrolls independently on desktop and mobile.

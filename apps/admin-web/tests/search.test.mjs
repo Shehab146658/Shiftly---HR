@@ -23,9 +23,14 @@ test("topbar search is keyboard accessible and navigation is permission-aware", 
   ]);
   assert.match(component, /event\.key !== "\/"/);
   assert.match(component, /aria-label={label}/);
+  assert.match(component, /global-search-mobile-trigger/);
+  assert.match(component, /global-search-wrap-open/);
+  assert.match(component, /closeOnEscape/);
   assert.match(shell, /<GlobalSearch locale={locale}/);
   assert.match(layout, /role_permissions/);
   assert.match(shell, /permissionSet\.has/);
   assert.match(styles, /\.global-search/);
+  assert.match(styles, /\.global-search-wrap-open \.global-search/);
+  assert.match(styles, /\.global-search-mobile-trigger/);
   assert.match(styles, /\.search-result-groups/);
 });

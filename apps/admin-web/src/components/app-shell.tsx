@@ -7,6 +7,7 @@ import { LanguageSwitch } from "@/components/language-switch";
 import { AppIcon, BrandMark, type AppIconName } from "@/components/brand-mark";
 import { NotificationCenter, type NotificationItem } from "@/components/notification-center";
 import { GlobalSearch } from "@/components/global-search";
+import { ScreenGuide } from "@/components/screen-guide";
 import { getDictionary, type AppLocale } from "@/lib/i18n";
 import { signOut } from "@/app/[locale]/(protected)/actions";
 
@@ -126,7 +127,7 @@ export function AppShell({
           <GlobalSearch locale={locale} />
           <div className="topbar-actions"><NotificationCenter locale={locale} notifications={notifications} tenantId={tenantId} /><LanguageSwitch locale={locale} /></div>
         </header>
-        <main className="content">{children}</main>
+        <main className="content"><ScreenGuide locale={locale} />{children}</main>
       </div>
     </div>
   );

@@ -38,6 +38,12 @@ $env:SUPABASE_SECRET_KEY="<local-secret-key>"
 npm run seed:demo
 ```
 
+The repeatable seed creates login-capable owner, HR administrator, payroll
+officer, accountant, branch manager, team manager, and employee accounts. It
+also links the scoped manager and employee accounts to Gate Way and Team 001 so
+permission behavior can be evaluated immediately. Credentials are listed in
+[`DEMO_ACCOUNTS.md`](DEMO_ACCOUNTS.md).
+
 For realistic attendance examples, run
 [`supabase/demo/seed_attendance_preview.sql`](../supabase/demo/seed_attendance_preview.sql)
 in Supabase Studio after creating the demo tenant. The repeatable dataset includes
@@ -82,3 +88,7 @@ npx supabase db push
 ```
 
 Add the managed project URL and publishable key to the selected web hosting platform. Do not add the service-role or secret key to `NEXT_PUBLIC_*` variables.
+
+For a disposable managed feedback environment, run `npm run seed:demo` once
+with that project's URL and a server-side secret key. Never expose the secret
+key to the web app or run the demo seed against production HR data.

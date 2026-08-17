@@ -98,12 +98,12 @@ Set `SUPABASE_URL` and `SUPABASE_SECRET_KEY` in your shell. Use the local secret
 npm run seed:demo
 ```
 
-Default local owner account:
+The seed creates one account for every standard role so each access experience
+can be tested. See [`docs/DEMO_ACCOUNTS.md`](docs/DEMO_ACCOUNTS.md) for the
+credentials and role coverage.
 
-- Email: `owner@shiftly.local`
-- Password: `Shiftly!2026-Owner`
-
-Change or delete this account outside local development.
+Change or delete all demo accounts outside development and client-feedback
+environments.
 
 ### 5. Prepare and run the Flutter app
 
