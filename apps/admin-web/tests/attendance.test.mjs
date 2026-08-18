@@ -40,22 +40,28 @@ test("branch administration exposes practical attendance rules", async () => {
   assert.match(actions, /overtime_threshold_minutes/);
 });
 
-test("employee self-service clock captures private selfie and geofence evidence", async () => {
-  const [page, clock, shell, migration] = await Promise.all([
+test("employee self-service clock requests precise location and captures a front-camera selfie", async () => {
+  const [page, clock, shell, migration, authorizationMigration] = await Promise.all([
     readSource("../src/app/[locale]/(protected)/clock/page.tsx"),
     readSource("../src/components/employee-clock.tsx"),
     readSource("../src/components/app-shell.tsx"),
     readSource("../../../supabase/migrations/202608110020_employee_self_service_attendance.sql"),
+    readSource("../../../supabase/migrations/202608180025_employee_self_service_authorization.sql"),
   ]);
   assert.match(page, /operational_day_start/);
   assert.match(page, /attendance\.clock/);
   assert.match(clock, /navigator\.geolocation\.getCurrentPosition/);
   assert.match(clock, /attendance-selfies/);
   assert.match(clock, /record_attendance_punch/);
-  assert.match(clock, /capture="user"/);
+  assert.match(clock, /navigator\.mediaDevices\.getUserMedia/);
+  assert.match(clock, /facingMode: "user"/);
+  assert.match(clock, /canvas\.toBlob/);
+  assert.match(clock, /disabled=\{busy \|\| !online \|\| !mobileClockEnabled \|\| !location/);
+  assert.doesNotMatch(clock, /type="file"/);
   assert.match(shell, /\["clock", d\.clock, "attendance", \["attendance\.clock"\]\]/);
   assert.match(migration, /attendance_selfies_insert/);
   assert.match(migration, /attendance_selfies_delete_orphan/);
+  assert.match(authorizationMigration, /Precise location is required for mobile attendance/);
 });
 
 test("fingerprint operations provide device setup, guarded imports, and row reconciliation", async () => {
@@ -67,6 +73,7 @@ test("fingerprint operations provide device setup, guarded imports, and row reco
   assert.match(page, /createAttendanceDevice/);
   assert.match(page, /importFingerprintAttendance/);
   assert.match(page, /attendance_import_rows/);
+  assert.match(page, /if \(!canManage\) redirect/);
   assert.match(page, /accept="\.csv,\.txt,\.xlsx/);
   assert.match(actions, /createHash\("sha256"\)/);
   assert.match(actions, /read-excel-file\/node/);

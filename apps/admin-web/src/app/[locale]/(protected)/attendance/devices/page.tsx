@@ -3,6 +3,7 @@ import { ActionForm } from "@/components/action-form";
 import { CreateDialog } from "@/components/create-dialog";
 import { getTenantPageContext } from "@/lib/page-context";
 import { createAttendanceDevice, importFingerprintAttendance, setAttendanceDeviceStatus } from "../../actions";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -22,13 +23,15 @@ export default async function AttendanceDevicesPage({ params }: { params: Promis
   const { locale, dictionary: d, membership, supabase } = await getTenantPageContext(rawLocale);
   if (!membership) return <div className="card">{d.noCompany}</div>;
   const tenantId = membership.tenant_id;
+  const { data: canManage, error: permissionError } = await supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "attendance.manage" });
+  if (permissionError) throw permissionError;
+  if (!canManage) redirect(`/${locale}/attendance`);
 
-  const [{ data: devices, error: deviceError }, { data: batches, error: batchError }, { data: branches }, { data: tenant }, { data: canManage }] = await Promise.all([
+  const [{ data: devices, error: deviceError }, { data: batches, error: batchError }, { data: branches }, { data: tenant }] = await Promise.all([
     supabase.from("attendance_devices").select("*, branches(name_en,name_ar)").eq("tenant_id", tenantId).order("name"),
     supabase.from("attendance_import_batches").select("*").eq("tenant_id", tenantId).order("started_at", { ascending: false }).limit(30),
     supabase.from("branches").select("id,code,name_en,name_ar").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
     supabase.from("tenants").select("timezone").eq("id", tenantId).maybeSingle(),
-    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "attendance.manage" }),
   ]);
   if (deviceError) throw deviceError;
   if (batchError) throw batchError;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -41,6 +41,10 @@ type ClockCopy = {
   locationReady: string;
   locationOnSubmit: string;
   locationUnavailable: string;
+  requestLocation: string;
+  locationRequesting: string;
+  locationDenied: string;
+  locationAccuracy: string;
   radius: string;
   online: string;
   offline: string;
@@ -54,6 +58,17 @@ type ClockCopy = {
   rejected: string;
   meters: string;
   remove: string;
+  cameraUnavailable: string;
+  cameraReady: string;
+  captureSelfie: string;
+  cancel: string;
+};
+
+type LocationEvidence = {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  capturedAt: number;
 };
 
 export function EmployeeClock({
@@ -90,9 +105,15 @@ export function EmployeeClock({
   const [punches, setPunches] = useState(initialPunches);
   const [selfie, setSelfie] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [location, setLocation] = useState<LocationEvidence | null>(null);
+  const [locationBusy, setLocationBusy] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraBusy, setCameraBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [online, setOnline] = useState(true);
   const [feedback, setFeedback] = useState<{ kind: "success" | "warning" | "error"; text: string } | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -111,6 +132,16 @@ export function EmployeeClock({
     if (preview) URL.revokeObjectURL(preview);
   }, [preview]);
 
+  useEffect(() => {
+    if (!cameraOpen || !videoRef.current || !streamRef.current) return;
+    videoRef.current.srcObject = streamRef.current;
+    void videoRef.current.play();
+  }, [cameraOpen]);
+
+  useEffect(() => () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
   const lastAcceptedPunch = useMemo(
     () => punches.find((punch) => punch.validation_status !== "rejected"),
     [punches],
@@ -118,13 +149,29 @@ export function EmployeeClock({
   const punchType: "check_in" | "check_out" = lastAcceptedPunch?.punch_type === "check_in" ? "check_out" : "check_in";
   const actionLabel = punchType === "check_in" ? copy.checkIn : copy.checkOut;
 
-  function locate(): Promise<GeolocationCoordinates | null> {
-    if (!("geolocation" in navigator)) return Promise.resolve(null);
-    return new Promise((resolve) => navigator.geolocation.getCurrentPosition(
-      (position) => resolve(position.coords),
+  async function requestCurrentLocation(): Promise<LocationEvidence | null> {
+    if (!("geolocation" in navigator)) {
+      setFeedback({ kind: "error", text: copy.locationUnavailable });
+      return null;
+    }
+    setLocationBusy(true);
+    setFeedback(null);
+    const result = await new Promise<LocationEvidence | null>((resolve) => navigator.geolocation.getCurrentPosition(
+      (position) => resolve({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+        capturedAt: Date.now(),
+      }),
       () => resolve(null),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
     ));
+    setLocationBusy(false);
+    setLocation(result);
+    setFeedback(result
+      ? { kind: "success", text: copy.locationReady }
+      : { kind: "error", text: copy.locationDenied });
+    return result;
   }
 
   function selectSelfie(file: File | null) {
@@ -135,10 +182,66 @@ export function EmployeeClock({
     });
   }
 
+  function stopCamera() {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setCameraOpen(false);
+  }
+
+  async function startCamera() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setFeedback({ kind: "error", text: copy.cameraUnavailable });
+      return;
+    }
+    setCameraBusy(true);
+    setFeedback(null);
+    try {
+      stopCamera();
+      streamRef.current = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+      });
+      setCameraOpen(true);
+    } catch {
+      setFeedback({ kind: "error", text: copy.cameraUnavailable });
+    } finally {
+      setCameraBusy(false);
+    }
+  }
+
+  async function captureSelfie() {
+    const video = videoRef.current;
+    if (!video?.videoWidth || !video.videoHeight) {
+      setFeedback({ kind: "error", text: copy.cameraUnavailable });
+      return;
+    }
+    const scale = Math.min(1, 960 / video.videoWidth);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(video.videoWidth * scale);
+    canvas.height = Math.round(video.videoHeight * scale);
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    context.translate(canvas.width, 0);
+    context.scale(-1, 1);
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.86));
+    if (!blob) {
+      setFeedback({ kind: "error", text: copy.cameraUnavailable });
+      return;
+    }
+    selectSelfie(new File([blob], `attendance-selfie-${Date.now()}.jpg`, { type: "image/jpeg" }));
+    stopCamera();
+    setFeedback({ kind: "success", text: copy.cameraReady });
+  }
+
   async function submitPunch() {
     if (busy || !online || !mobileClockEnabled) return;
     if (selfieRequired && !selfie) {
       setFeedback({ kind: "error", text: copy.selfieRequired });
+      return;
+    }
+    if (!location) {
+      setFeedback({ kind: "error", text: copy.locationDenied });
       return;
     }
 
@@ -147,7 +250,10 @@ export function EmployeeClock({
     const client = createSupabaseBrowserClient();
     let selfiePath: string | null = null;
     try {
-      const coordinates = await locate();
+      const coordinates = Date.now() - location.capturedAt > 120_000
+        ? await requestCurrentLocation()
+        : location;
+      if (!coordinates) throw new Error(copy.locationDenied);
       if (selfie) {
         const extension = ({ "image/png": "png", "image/webp": "webp", "image/heic": "heic", "image/heif": "heif" } as Record<string, string>)[selfie.type] ?? "jpg";
         selfiePath = `${tenantId}/${employeeId}/${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}.${extension}`;
@@ -167,12 +273,12 @@ export function EmployeeClock({
         p_source: "mobile",
         p_work_date: null,
         p_branch_id: branchId,
-        p_latitude: coordinates?.latitude ?? null,
-        p_longitude: coordinates?.longitude ?? null,
+        p_latitude: coordinates.latitude,
+        p_longitude: coordinates.longitude,
         p_selfie_path: selfiePath,
         p_device_identifier: `web:${navigator.userAgent.slice(0, 180)}`,
         p_external_reference: null,
-        p_notes: coordinates ? null : copy.locationUnavailable,
+        p_notes: `Location accuracy: ${Math.round(coordinates.accuracy)}m`,
       });
       if (punchError) throw punchError;
 
@@ -206,11 +312,11 @@ export function EmployeeClock({
     <section className="card clock-console">
       <div className="clock-console-head"><div><span className={`connection-state ${online ? "online" : "offline"}`}><i />{online ? copy.online : copy.offline}</span><h2>{formattedTime}</h2><p>{formattedDate}</p></div><span className="clock-branch-badge">{branchName}</span></div>
       {!mobileClockEnabled ? <div className="clock-policy-warning">{copy.mobileDisabled}</div> : null}
-      <div className="clock-action-orbit"><button aria-busy={busy} className={`clock-action clock-action-${punchType}`} disabled={busy || !online || !mobileClockEnabled} onClick={submitPunch} type="button"><span>{busy ? <i className="clock-button-spinner" /> : punchType === "check_in" ? "→" : "←"}</span><strong>{busy ? copy.submitting : actionLabel}</strong><small>{copy.locationOnSubmit}</small></button></div>
+      <div className="clock-action-orbit"><button aria-busy={busy} className={`clock-action clock-action-${punchType}`} disabled={busy || !online || !mobileClockEnabled || !location || (selfieRequired && !selfie)} onClick={submitPunch} type="button"><span>{busy ? <i className="clock-button-spinner" /> : punchType === "check_in" ? "→" : "←"}</span><strong>{busy ? copy.submitting : actionLabel}</strong><small>{location ? copy.locationReady : copy.requestLocation}</small></button></div>
       {feedback ? <div aria-live="polite" className={`clock-feedback clock-feedback-${feedback.kind}`}>{feedback.text}</div> : null}
       <div className="clock-evidence-grid">
-        <div className="clock-evidence-card"><span>{copy.location}</span><strong>{geofenceConfigured ? copy.locationOnSubmit : copy.locationUnavailable}</strong><small>{geofenceConfigured ? `${copy.radius}: ${geofenceRadiusMetres} ${copy.meters}` : copy.pending}</small></div>
-        <div className="clock-evidence-card selfie-card"><span>{copy.selfie}</span>{preview ? <Image alt={copy.selfie} height={72} src={preview} unoptimized width={72} /> : <strong>{selfieRequired ? copy.selfieRequired : copy.selfieOptional}</strong>}<div><label className="button secondary small-button" htmlFor="attendance-selfie">{preview ? copy.replaceSelfie : copy.takeSelfie}</label>{preview ? <button className="text-button danger-text" onClick={() => selectSelfie(null)} type="button">{copy.remove}</button> : null}</div><input accept="image/*" capture="user" id="attendance-selfie" onChange={(event) => selectSelfie(event.target.files?.[0] ?? null)} type="file" /></div>
+        <div className="clock-evidence-card"><span>{copy.location}</span><strong>{location ? copy.locationReady : copy.locationOnSubmit}</strong><small>{location ? `${copy.locationAccuracy}: ±${Math.round(location.accuracy)} ${copy.meters}` : geofenceConfigured ? `${copy.radius}: ${geofenceRadiusMetres} ${copy.meters}` : copy.pending}</small><button className="button secondary small-button" disabled={locationBusy} onClick={requestCurrentLocation} type="button">{locationBusy ? copy.locationRequesting : copy.requestLocation}</button></div>
+        <div className="clock-evidence-card selfie-card"><span>{copy.selfie}</span>{cameraOpen ? <div className="camera-stage"><video aria-label={copy.selfie} autoPlay muted playsInline ref={videoRef} /><div><button className="button small-button" onClick={captureSelfie} type="button">{copy.captureSelfie}</button><button className="button ghost small-button" onClick={stopCamera} type="button">{copy.cancel}</button></div></div> : <>{preview ? <Image alt={copy.selfie} height={72} src={preview} unoptimized width={72} /> : <strong>{selfieRequired ? copy.selfieRequired : copy.selfieOptional}</strong>}<div><button className="button secondary small-button" disabled={cameraBusy} onClick={startCamera} type="button">{preview ? copy.replaceSelfie : copy.takeSelfie}</button>{preview ? <button className="text-button danger-text" onClick={() => selectSelfie(null)} type="button">{copy.remove}</button> : null}</div></>}</div>
       </div>
     </section>
 

@@ -5,6 +5,7 @@ import { AttendancePunchDialog } from "@/components/attendance-punch-dialog";
 import { getTenantPageContext } from "@/lib/page-context";
 import { addIsoDays } from "@/lib/scheduling";
 import { recordManualAttendancePunch, refreshAttendancePeriod, reviewAttendancePunch } from "../actions";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,14 @@ export default async function AttendancePage({ params, searchParams }: {
   const { locale, dictionary: d, supabase, membership } = await getTenantPageContext(rawLocale);
   if (!membership) return <div className="card">{d.noCompany}</div>;
   const tenantId = membership.tenant_id;
+  const [{ data: canRead }, { data: canReadAll }, { data: canManage }, { data: canReport }] = await Promise.all([
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "attendance.read" }),
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "attendance.read_all" }),
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "attendance.manage" }),
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "attendance.reports" }),
+  ]);
+  if (!canRead && !canReadAll) redirect(`/${locale}/dashboard`);
+  const canViewCompanyAttendance = Boolean(canReadAll || canManage);
   const today = new Date().toISOString().slice(0, 10);
   const dateTo = /^\d{4}-\d{2}-\d{2}$/.test(filters.to ?? "") ? filters.to! : today;
   let dateFrom = /^\d{4}-\d{2}-\d{2}$/.test(filters.from ?? "") ? filters.from! : addIsoDays(dateTo, -6);
@@ -48,11 +57,14 @@ export default async function AttendancePage({ params, searchParams }: {
   if (filters.branch) reportQuery = reportQuery.eq("branch_id", filters.branch);
   if (filters.status) reportQuery = reportQuery.eq("status", filters.status);
 
+  const pendingPunchesPromise = canManage
+    ? supabase.from("attendance_punches").select("id, employee_id, branch_id, work_date, punch_type, occurred_at, source, latitude, longitude, distance_metres, selfie_path, notes, employees(employee_code, name_en, name_ar), branches(name_en, name_ar)").eq("tenant_id", tenantId).eq("validation_status", "pending").gte("work_date", dateFrom).lte("work_date", dateTo).order("occurred_at", { ascending: false })
+    : Promise.resolve({ data: [], error: null });
   const [{ data: rows, error }, { data: employees }, { data: branches }, { data: pendingPunches }, { data: tenant }] = await Promise.all([
     reportQuery,
     supabase.from("employees").select("id, employee_code, name_en, name_ar, branch_id").eq("tenant_id", tenantId).neq("status", "terminated").order("name_en"),
     supabase.from("branches").select("id, name_en, name_ar").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
-    supabase.from("attendance_punches").select("id, employee_id, branch_id, work_date, punch_type, occurred_at, source, latitude, longitude, distance_metres, selfie_path, notes, employees(employee_code, name_en, name_ar), branches(name_en, name_ar)").eq("tenant_id", tenantId).eq("validation_status", "pending").gte("work_date", dateFrom).lte("work_date", dateTo).order("occurred_at", { ascending: false }),
+    pendingPunchesPromise,
     supabase.from("tenants").select("timezone").eq("id", tenantId).maybeSingle(),
   ]);
   if (error) throw error;
@@ -86,7 +98,7 @@ export default async function AttendancePage({ params, searchParams }: {
   })];
 
   return <>
-    <div className="page-head"><div><h1 className="page-title">{labels.title}</h1><p className="muted">{labels.subtitle}</p></div><div className="page-actions"><Link className="button ghost" href={`/${locale}/attendance/devices`}>{labels.devices}</Link><AttendancePunchDialog action={action} branches={(branches ?? []).map((branch) => ({ id: branch.id, name: locale === "ar" && branch.name_ar ? branch.name_ar : branch.name_en }))} employees={(employees ?? []).map((employee) => ({ id: employee.id, code: employee.employee_code, name: locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en, branchId: employee.branch_id }))} labels={labels} /></div></div>
+    <div className="page-head"><div><h1 className="page-title">{labels.title}</h1><p className="muted">{canViewCompanyAttendance ? labels.subtitle : (locale === "ar" ? "سجل حضورك الشخصي والتأخير والإضافي حسب جدولك المنشور." : "Your personal attendance, lateness, and overtime against the published schedule.")}</p></div>{canManage ? <div className="page-actions"><Link className="button ghost" href={`/${locale}/attendance/devices`}>{labels.devices}</Link><AttendancePunchDialog action={action} branches={(branches ?? []).map((branch) => ({ id: branch.id, name: locale === "ar" && branch.name_ar ? branch.name_ar : branch.name_en }))} employees={(employees ?? []).map((employee) => ({ id: employee.id, code: employee.employee_code, name: locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en, branchId: employee.branch_id }))} labels={labels} /></div> : null}</div>
 
     <section className="stats-grid attendance-stats">
       <a className="stat-card" href="#attendance-report"><span>{labels.present}</span><strong>{presentCount}</strong><small>{reportRows.length} {labels.workDate.toLowerCase()}</small></a>
@@ -96,8 +108,8 @@ export default async function AttendancePage({ params, searchParams }: {
     </section>
 
     <section className="card stack section-gap" id="attendance-report">
-      <div className="card-heading"><div><h2>{labels.filters}</h2><p className="muted">{dateFrom} → {dateTo} · {timezone}</p></div><div className="toolbar"><ActionForm action={refreshAction} errorMessage={labels.actionFailed} pendingMessage={labels.saving} successMessage={labels.refreshed}><input name="dateFrom" type="hidden" value={dateFrom} /><input name="dateTo" type="hidden" value={dateTo} /><button className="button secondary" type="submit">{labels.refresh}</button></ActionForm><AttendanceExportButton filename={`shiftly-attendance-${dateFrom}-${dateTo}.csv`} label={labels.exportCsv} rows={exportRows} /></div></div>
-      <form className="toolbar attendance-filter" method="get"><div className="field"><label>{labels.from}</label><input className="input compact" defaultValue={dateFrom} name="from" type="date" /></div><div className="field"><label>{labels.to}</label><input className="input compact" defaultValue={dateTo} name="to" type="date" /></div><div className="field"><label>{labels.employee}</label><select className="select compact" defaultValue={filters.employee ?? ""} name="employee"><option value="">{labels.allEmployees}</option>{employees?.map((employee) => <option key={employee.id} value={employee.id}>{locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en}</option>)}</select></div><div className="field"><label>{labels.branch}</label><select className="select compact" defaultValue={filters.branch ?? ""} name="branch"><option value="">{labels.allBranches}</option>{branches?.map((branch) => <option key={branch.id} value={branch.id}>{locale === "ar" && branch.name_ar ? branch.name_ar : branch.name_en}</option>)}</select></div><div className="field"><label>{labels.status}</label><select className="select compact" defaultValue={filters.status ?? ""} name="status"><option value="">{labels.allStatuses}</option>{Object.entries(statusNames).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div><button className="button" type="submit">{labels.apply}</button><Link className="button ghost" href={`/${locale}/attendance`}>{labels.clear}</Link></form>
+      <div className="card-heading"><div><h2>{labels.filters}</h2><p className="muted">{dateFrom} → {dateTo} · {timezone}</p></div>{canReport || canReadAll ? <div className="toolbar"><ActionForm action={refreshAction} errorMessage={labels.actionFailed} pendingMessage={labels.saving} successMessage={labels.refreshed}><input name="dateFrom" type="hidden" value={dateFrom} /><input name="dateTo" type="hidden" value={dateTo} /><button className="button secondary" type="submit">{labels.refresh}</button></ActionForm><AttendanceExportButton filename={`shiftly-attendance-${dateFrom}-${dateTo}.csv`} label={labels.exportCsv} rows={exportRows} /></div> : null}</div>
+      <form className="toolbar attendance-filter" method="get"><div className="field"><label>{labels.from}</label><input className="input compact" defaultValue={dateFrom} name="from" type="date" /></div><div className="field"><label>{labels.to}</label><input className="input compact" defaultValue={dateTo} name="to" type="date" /></div>{canViewCompanyAttendance ? <><div className="field"><label>{labels.employee}</label><select className="select compact" defaultValue={filters.employee ?? ""} name="employee"><option value="">{labels.allEmployees}</option>{employees?.map((employee) => <option key={employee.id} value={employee.id}>{locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en}</option>)}</select></div><div className="field"><label>{labels.branch}</label><select className="select compact" defaultValue={filters.branch ?? ""} name="branch"><option value="">{labels.allBranches}</option>{branches?.map((branch) => <option key={branch.id} value={branch.id}>{locale === "ar" && branch.name_ar ? branch.name_ar : branch.name_en}</option>)}</select></div></> : null}<div className="field"><label>{labels.status}</label><select className="select compact" defaultValue={filters.status ?? ""} name="status"><option value="">{labels.allStatuses}</option>{Object.entries(statusNames).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div><button className="button" type="submit">{labels.apply}</button><Link className="button ghost" href={`/${locale}/attendance`}>{labels.clear}</Link></form>
       <div className="table-wrap"><table className="attendance-table"><thead><tr><th>{labels.workDate}</th><th>{labels.employee}</th><th>{labels.branch}</th><th>{labels.scheduled}</th><th>{labels.firstIn}</th><th>{labels.lastOut}</th><th>{labels.actual}</th><th>{labels.late}</th><th>{labels.early}</th><th>{labels.overtime}</th><th>{labels.balance}</th><th>{labels.status}</th></tr></thead><tbody>{reportRows.map((row) => {
         const employee = relationOne(row.employees);
         const branch = relationOne(row.branches);
@@ -105,10 +117,10 @@ export default async function AttendancePage({ params, searchParams }: {
       })}</tbody></table>{!reportRows.length ? <div className="empty">{labels.noRows}</div> : null}</div>
     </section>
 
-    <section className="card stack section-gap"><div><h2>{labels.pendingEvidence}</h2><p className="muted">{labels.pendingHelp}</p></div><div className="exception-list">{pendingPunches?.map((punch) => {
+    {canManage ? <section className="card stack section-gap"><div><h2>{labels.pendingEvidence}</h2><p className="muted">{labels.pendingHelp}</p></div><div className="exception-list">{pendingPunches?.map((punch) => {
       const employee = relationOne(punch.employees);
       const branch = relationOne(punch.branches);
       return <article className="exception-card" key={punch.id}><div><span className="badge status-pending">{punch.source}</span><h3>{locale === "ar" && employee?.name_ar ? employee.name_ar : employee?.name_en}</h3><p>{punch.work_date} · {punch.punch_type === "check_in" ? labels.checkIn : labels.checkOut} · {timeText(punch.occurred_at, locale, timezone)}</p></div><dl><div><dt>{labels.branch}</dt><dd>{locale === "ar" && branch?.name_ar ? branch.name_ar : branch?.name_en ?? "—"}</dd></div><div><dt>{labels.distance}</dt><dd>{punch.distance_metres == null ? "—" : `${punch.distance_metres} m`}</dd></div><div><dt>{labels.source}</dt><dd>{punch.source}</dd></div></dl><div className="exception-actions"><ActionForm action={reviewAttendancePunch.bind(null, locale, punch.id, "valid")} errorMessage={labels.actionFailed} pendingMessage={labels.saving} successMessage={labels.approved}><input className="input" name="note" placeholder={labels.reviewNote} /><button className="button small-button" type="submit">{labels.approve}</button></ActionForm><ActionForm action={reviewAttendancePunch.bind(null, locale, punch.id, "rejected")} confirmMessage={`${labels.reject}?`} errorMessage={labels.actionFailed} pendingMessage={labels.saving} successMessage={labels.rejected}><input className="input" minLength={3} name="note" placeholder={labels.reviewNote} required /><button className="button danger small-button" type="submit">{labels.reject}</button></ActionForm></div></article>;
-    })}{!pendingPunches?.length ? <div className="empty">{d.empty}</div> : null}</div></section>
+    })}{!pendingPunches?.length ? <div className="empty">{d.empty}</div> : null}</div></section> : null}
   </>;
 }

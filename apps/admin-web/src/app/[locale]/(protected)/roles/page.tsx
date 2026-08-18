@@ -3,6 +3,7 @@ import { createRole } from "../actions";
 import { ActionForm } from "@/components/action-form";
 import { CreateDialog } from "@/components/create-dialog";
 import { getTenantPageContext } from "@/lib/page-context";
+import { redirect } from "next/navigation";
 
 function displayRoleName(name: string) {
   return name.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -13,11 +14,13 @@ export default async function RolesPage({ params }: { params: Promise<{ locale: 
   const { locale, dictionary: d, supabase, membership } = await getTenantPageContext(rawLocale);
   if (!membership) return <div className="card">{d.noCompany}</div>;
 
-  const [{ data: canManage }, { data: roles, error }, { data: permissions, error: permissionsError }] = await Promise.all([
+  const [{ data: canRead }, { data: canManage }, { data: roles, error }, { data: permissions, error: permissionsError }] = await Promise.all([
+    supabase.rpc("has_permission", { p_tenant_id: membership.tenant_id, p_permission: "roles.read" }),
     supabase.rpc("has_permission", { p_tenant_id: membership.tenant_id, p_permission: "roles.manage" }),
     supabase.from("roles").select("id, name, description, is_system, role_permissions(permission_key), employee_role_assignments(employee_id, employees(id, user_id, name_en, name_ar, position)), membership_roles(membership_id, memberships(id, user_id, is_owner, status))").eq("tenant_id", membership.tenant_id).order("is_system", { ascending: false }).order("name"),
     supabase.from("permissions").select("key, description, module").order("module").order("key"),
   ]);
+  if (!canRead) redirect(`/${locale}/dashboard`);
   if (error) throw error;
   if (permissionsError) throw permissionsError;
 

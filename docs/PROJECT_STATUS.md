@@ -51,9 +51,9 @@
 - A permission-gated management reporting center combines workforce, attendance, leave, payroll, sales, targets, loans, tasks, and announcement reach in one drill-down workspace.
 - Executive metrics, operating trends, branch scorecards, risk queues, date and branch filters, and bilingual CSV exports provide a decision-ready owner and HR view.
 - Global search spans tenant-authorized people, organization records, requests, payroll, schedules, tasks, and communications, with a `/` keyboard shortcut.
-- Primary navigation now follows effective role permissions while preserving employee self-service destinations.
+- Primary navigation and direct-route entry now follow effective role permissions; the built-in employee role is limited to personal self-service while custom roles remain owner-configurable.
 - The main dashboard adds a 30-day people-operations pulse and live action queue that drill into attendance, leave, requests, tasks, and sales.
-- Employee self-service attendance now provides a mobile-first clock with automatic branch operational-day handling, GPS/geofence validation, private selfie evidence, offline safeguards, pending-approval feedback, and recent punch history.
+- Employee self-service attendance now requires an explicit high-accuracy location grant and captures evidence through the front camera directly; database validation rejects location-free mobile punches and keeps private selfie evidence tenant-scoped.
 - The installable Flutter client now mirrors the core employee workspace with bilingual/RTL navigation, published schedules, native front-camera and precise-location attendance, recent punch evidence, personal notifications, request history, published payslips with receipt acknowledgement, task start actions, and announcement read/acknowledgement controls.
 - Android and iOS projects are source-controlled with production camera/location permission descriptions, and CI now compiles an Android debug artifact in addition to Flutter analysis and widget tests.
 - Fingerprint attendance includes an audited device registry, branch and timezone controls, active/paused/error states, CSV/TXT/XLSX parsing, automatic and manual column mapping, configurable device states, SHA-256 replay protection, duplicate reconciliation, and per-row error history.

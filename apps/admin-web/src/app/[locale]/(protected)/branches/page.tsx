@@ -2,12 +2,18 @@ import { createBranch, updateBranchSchedulingRules } from "../actions";
 import { ActionForm } from "@/components/action-form";
 import { CreateDialog } from "@/components/create-dialog";
 import { getTenantPageContext } from "@/lib/page-context";
+import { redirect } from "next/navigation";
 
 export default async function BranchesPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: rawLocale } = await params;
   const { locale, dictionary: d, supabase, membership } = await getTenantPageContext(rawLocale);
   if (!membership) return <div className="card">{d.noCompany}</div>;
   const tenantId = membership.tenant_id;
+  const [{ data: canRead }, { data: canManage }] = await Promise.all([
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "branches.read" }),
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "branches.manage" }),
+  ]);
+  if (!canRead) redirect(`/${locale}/dashboard`);
   const { data, error } = await supabase.from("branches")
     .select("id, code, name_en, name_ar, is_active, operational_day_start, maximum_shift_hours, week_start_isodow, weekly_rest_isodows, is_industrial_establishment, default_schedule_visibility, late_grace_minutes, early_departure_grace_minutes, overtime_threshold_minutes, geofence_latitude, geofence_longitude, geofence_radius_metres, mobile_clock_enabled, attendance_selfie_required")
     .eq("tenant_id", tenantId).order("name_en");
@@ -27,14 +33,14 @@ export default async function BranchesPage({ params }: { params: Promise<{ local
 
   const addBranch = locale === "ar" ? "إضافة فرع" : "Add branch";
   return <>
-    <div className="page-head"><div><h1 className="page-title">{d.branches}</h1></div><CreateDialog closeLabel={d.close} description={locale === "ar" ? "أنشئ موقع عمل جديدًا ثم اضبط قواعد الجدولة والحضور الخاصة به." : "Create a work location, then configure its scheduling and attendance rules."} eyebrow={d.branches} title={addBranch} triggerLabel={addBranch} width="medium">
+    <div className="page-head"><div><h1 className="page-title">{d.branches}</h1></div>{canManage ? <CreateDialog closeLabel={d.close} description={locale === "ar" ? "أنشئ موقع عمل جديدًا ثم اضبط قواعد الجدولة والحضور الخاصة به." : "Create a work location, then configure its scheduling and attendance rules."} eyebrow={d.branches} title={addBranch} triggerLabel={addBranch} width="medium">
       <ActionForm action={action} className="form-grid" errorMessage={d.actionFailed} pendingMessage={d.saving} resetOnSuccess successMessage={d.branchCreated}>
         <div className="field"><label>{d.code}</label><input className="input" name="code" required /></div>
         <div className="field"><label>{d.nameEnglish}</label><input className="input" name="nameEn" required /></div>
         <div className="field"><label>{d.nameArabic}</label><input className="input" name="nameAr" dir="rtl" /></div>
         <div className="full"><button className="button">{addBranch}</button></div>
       </ActionForm>
-    </CreateDialog></div>
+    </CreateDialog> : null}</div>
 
     <div className="grid branch-grid section-gap">
       {data?.map((row) => {
@@ -42,7 +48,7 @@ export default async function BranchesPage({ params }: { params: Promise<{ local
         return <section className="card stack" key={row.id}>
           <div className="card-heading"><div><strong>{row.name_en}</strong><div className="muted code">{row.code}</div></div><span className="badge">{row.is_active ? d.active : d.inactive}</span></div>
           <h3>{d.schedulingRules}</h3>
-          <ActionForm action={updateAction} className="stack" errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.branchUpdated}>
+          {canManage ? <ActionForm action={updateAction} className="stack" errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.branchUpdated}>
             <div className="field"><label>{d.operationalDayStart}</label><input className="input" type="time" name="operationalDayStart" defaultValue={String(row.operational_day_start).slice(0, 5)} required /></div>
             <div className="field"><label>{d.maximumShiftHours}</label><input className="input" type="number" min="1" max="24" name="maximumShiftHours" defaultValue={row.maximum_shift_hours} required /></div>
             <div className="field"><label>{d.weekStartsOn}</label><select className="select" name="weekStartIsodow" defaultValue={row.week_start_isodow}><option value="1">{d.monday}</option><option value="2">{d.tuesday}</option><option value="3">{d.wednesday}</option><option value="4">{d.thursday}</option><option value="5">{d.friday}</option><option value="6">{d.saturday}</option><option value="7">{d.sunday}</option></select></div>
@@ -63,7 +69,7 @@ export default async function BranchesPage({ params }: { params: Promise<{ local
               <label className="role-option"><input defaultChecked={row.attendance_selfie_required} name="attendanceSelfieRequired" type="checkbox" /><span><strong>{attendanceCopy.selfie}</strong><small>{attendanceCopy.mobileHelp}</small></span></label>
             </div>
             <button className="button secondary">{d.save}</button>
-          </ActionForm>
+          </ActionForm> : <dl className="detail-list"><div><dt>{d.operationalDayStart}</dt><dd>{String(row.operational_day_start).slice(0, 5)}</dd></div><div><dt>{d.maximumShiftHours}</dt><dd>{row.maximum_shift_hours}</dd></div><div><dt>{d.defaultVisibility}</dt><dd>{row.default_schedule_visibility}</dd></div><div><dt>{attendanceCopy.late}</dt><dd>{row.late_grace_minutes}</dd></div><div><dt>{attendanceCopy.overtime}</dt><dd>{row.overtime_threshold_minutes}</dd></div><div><dt>{attendanceCopy.radius}</dt><dd>{row.geofence_radius_metres}</dd></div></dl>}
         </section>;
       })}
     </div>

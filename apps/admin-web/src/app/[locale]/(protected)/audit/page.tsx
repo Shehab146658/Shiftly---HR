@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getTenantPageContext } from "@/lib/page-context";
+import { redirect } from "next/navigation";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -30,6 +31,9 @@ export default async function AuditPage({
   const { locale, dictionary: d, supabase, user, membership } = await getTenantPageContext(rawLocale);
   if (!membership) return <div className="card">{d.noCompany}</div>;
   const tenantId = membership.tenant_id;
+  const { data: canReadAudit, error: permissionError } = await supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "audit.read" });
+  if (permissionError) throw permissionError;
+  if (!canReadAudit) redirect(`/${locale}/dashboard`);
 
   let auditQuery = supabase.from("audit_logs")
     .select("id, action, entity_type, entity_id, actor_user_id, before_data, after_data, created_at")

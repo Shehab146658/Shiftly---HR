@@ -97,3 +97,29 @@ test("audit history resolves people and renders descriptive field changes", asyn
   assert.match(audit, /employees\/\$\{employee\.id\}/);
   assert.doesNotMatch(audit, /className="code">\{row\.actor_user_id/);
 });
+
+test("company administration actions are permission-gated and employee defaults stay self-service only", async () => {
+  const [branches, teams, shifts, schedules, schedule, attendance, employees, migration] = await Promise.all([
+    readSource("../src/app/[locale]/(protected)/branches/page.tsx"),
+    readSource("../src/app/[locale]/(protected)/teams/page.tsx"),
+    readSource("../src/app/[locale]/(protected)/shifts/page.tsx"),
+    readSource("../src/app/[locale]/(protected)/schedules/page.tsx"),
+    readSource("../src/app/[locale]/(protected)/schedules/[scheduleId]/page.tsx"),
+    readSource("../src/app/[locale]/(protected)/attendance/page.tsx"),
+    readSource("../src/app/[locale]/(protected)/employees/page.tsx"),
+    readSource("../../../supabase/migrations/202608180025_employee_self_service_authorization.sql"),
+  ]);
+
+  assert.match(branches, /p_permission: "branches\.manage"/);
+  assert.match(teams, /p_permission: "teams\.manage"/);
+  assert.match(shifts, /p_permission: "shifts\.manage"/);
+  assert.match(schedules, /p_permission: "schedules\.manage"/);
+  assert.match(schedule, /canPublish && schedule\.status/);
+  assert.match(schedule, /canUnlock &&/);
+  assert.match(attendance, /canManage \? <div className="page-actions"/);
+  assert.match(attendance, /canReport \|\| canReadAll/);
+  assert.match(employees, /canManageEmployees \? <EmployeeCreateDialog/);
+  assert.match(migration, /'branches\.read', 'teams\.read', 'shifts\.read'/);
+  assert.match(migration, /drop policy if exists branches_read/);
+  assert.match(migration, /drop policy if exists roles_read/);
+});

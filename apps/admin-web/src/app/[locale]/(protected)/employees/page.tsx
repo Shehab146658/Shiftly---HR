@@ -3,6 +3,7 @@ import { createEmployee } from "../actions";
 import { EmployeeCreateDialog } from "@/components/employee-create-dialog";
 import { OverflowTooltip } from "@/components/overflow-tooltip";
 import { getTenantPageContext } from "@/lib/page-context";
+import { redirect } from "next/navigation";
 
 function statusText(status: string, d: ReturnType<typeof import("@/lib/i18n").getDictionary>) {
   if (status === "inactive") return d.inactive;
@@ -35,6 +36,8 @@ export default async function EmployeesPage({
   if (filters.status) employeeQuery = employeeQuery.eq("status", filters.status);
 
   const [
+    { data: canReadEmployees },
+    { data: canManageEmployees },
     { data: canManageRoles },
     { data: employees, error },
     { data: branches },
@@ -42,6 +45,8 @@ export default async function EmployeesPage({
     { data: managers },
     { data: roles, error: rolesError },
   ] = await Promise.all([
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "employees.read" }),
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "employees.manage" }),
     supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "roles.manage" }),
     employeeQuery,
     supabase.from("branches").select("id, name_en").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
@@ -49,6 +54,7 @@ export default async function EmployeesPage({
     supabase.from("employees").select("id, name_en").eq("tenant_id", tenantId).neq("status", "terminated").order("name_en"),
     supabase.from("roles").select("id, name").eq("tenant_id", tenantId).neq("name", "owner").order("name"),
   ]);
+  if (!canReadEmployees) redirect(`/${locale}/dashboard`);
   if (error) throw error;
   if (rolesError) throw rolesError;
   const action = createEmployee.bind(null, locale, tenantId);
@@ -60,7 +66,7 @@ export default async function EmployeesPage({
         <h1 className="page-title">{d.employees}</h1>
         <p className="muted">{employees?.length ?? 0} {d.employees.toLowerCase()} · {d.employeeDirectory}</p>
       </div>
-      <EmployeeCreateDialog
+      {canManageEmployees ? <EmployeeCreateDialog
         action={action}
         branches={branches ?? []}
         defaultRoleId={defaultRoleId}
@@ -77,7 +83,7 @@ export default async function EmployeesPage({
         managers={managers ?? []}
         roles={canManageRoles ? roles ?? [] : []}
         teams={teams ?? []}
-      />
+      /> : null}
     </div>
 
     <div className="employees-content">
@@ -106,7 +112,7 @@ export default async function EmployeesPage({
             <td><OverflowTooltip text={team?.name_en ?? d.notSet} /></td>
             <td className="employee-optional-column"><div className="role-badges">{roleNames.length ? roleNames.map((name) => <span className="badge" key={name}>{name}</span>) : <span className="muted">{d.noRoles}</span>}</div></td>
             <td><span className={`badge status-${row.status}`}>{statusText(row.status, d)}</span></td>
-            <td><Link className="text-link" href={`/${locale}/employees/${row.id}`}>{d.edit}</Link></td>
+            <td><Link className="text-link" href={`/${locale}/employees/${row.id}`}>{canManageEmployees ? d.edit : d.open}</Link></td>
           </tr>;
         })}
       </tbody></table>{!employees?.length ? <div className="empty">{d.empty}</div> : null}</div>

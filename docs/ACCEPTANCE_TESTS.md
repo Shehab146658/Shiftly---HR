@@ -205,10 +205,11 @@
 ## Employee self-service attendance
 
 - [ ] A linked employee with `attendance.clock` sees the current branch, operational workday shift, and the correct next clock action.
-- [ ] A check-in requests high-accuracy browser location and validates it against the branch radius in the database.
-- [ ] Branches requiring a selfie prevent submission until the employee captures or chooses an image.
+- [ ] The employee explicitly grants precise browser location access before the clock action is enabled; stale coordinates are refreshed before submission.
+- [ ] "Take selfie" opens the front camera directly, shows a live preview, and captures a compressed image without exposing a file-upload picker.
+- [ ] Branches requiring a selfie prevent submission until the employee captures an image.
 - [ ] Selfies upload only to a private tenant/employee path and linked evidence cannot be deleted by the employee after recording.
-- [ ] A punch outside the geofence or without location is stored as pending, excluded from calculations, and clearly tells the employee that approval is required.
+- [ ] A punch outside the geofence is stored as pending and excluded from calculations; a mobile punch without coordinates is rejected by database validation.
 - [ ] A validated check-in changes the next action to check-out and appears immediately in recent history.
 - [ ] Offline state disables the clock action and recovers automatically when connectivity returns.
 - [ ] Cross-midnight punches use the branch operational-day boundary instead of midnight.
@@ -226,6 +227,8 @@
 - [ ] Uploading the same file again returns its original batch; repeated external references never create another punch.
 - [ ] Every fingerprint punch retains its device, external reference, source file, and audit lineage.
 - [ ] Ordinary employees cannot see device configuration, import batches, or reconciliation history.
+- [ ] The built-in employee role cannot open branch, team, shift-template, role, or audit administration, including by entering the URL directly.
+- [ ] Manual attendance, evidence review, recalculation/export, and fingerprint actions render only for their specific management/report permissions.
 - [ ] Device/import pages remain usable from a phone viewport and the attendance report links back to the source evidence.
 
 - [ ] `self` visibility exposes only the linked employee's entries.

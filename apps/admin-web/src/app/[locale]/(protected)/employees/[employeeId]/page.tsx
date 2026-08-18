@@ -16,6 +16,7 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
     { data: teams },
     { data: managers },
     { data: assignments },
+    { data: canManageEmployees },
     { data: canManageRoles },
     { data: roles, error: rolesError },
     { data: assignedRoleRows, error: assignedRolesError },
@@ -25,6 +26,7 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
     supabase.from("teams").select("id, name_en, branch_id").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
     supabase.from("employees").select("id, name_en").eq("tenant_id", tenantId).neq("id", employeeId).neq("status", "terminated").order("name_en"),
     supabase.from("employee_assignments").select("id, position, effective_from, effective_to, reason, branches(name_en), teams(name_en), manager:employees!employee_assignments_manager_employee_id_fkey(name_en)").eq("tenant_id", tenantId).eq("employee_id", employeeId).order("effective_from", { ascending: false }),
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "employees.manage" }),
     supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "roles.manage" }),
     supabase.from("roles").select("id, name, description").eq("tenant_id", tenantId).neq("name", "owner").order("name"),
     supabase.from("employee_role_assignments").select("role_id").eq("tenant_id", tenantId).eq("employee_id", employeeId),
@@ -54,12 +56,13 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
         <h1 className="page-title">{locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en}</h1>
         <p className="muted code">{employee.employee_code}</p>
       </div>
-      {employee.status !== "terminated" ? <ActionForm action={archiveAction} confirmMessage={d.archiveEmployeeConfirm} errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.employeeArchived}><button className="button danger" type="submit">{d.archiveEmployee}</button></ActionForm> : null}
+      {canManageEmployees && employee.status !== "terminated" ? <ActionForm action={archiveAction} confirmMessage={d.archiveEmployeeConfirm} errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.employeeArchived}><button className="button danger" type="submit">{d.archiveEmployee}</button></ActionForm> : null}
     </div>
 
     <section className="card stack">
       <h2>{d.employeeDetails}</h2>
       <ActionForm action={action} className="form-grid three-columns" errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.employeeUpdated}>
+        <fieldset className="form-fieldset contents" disabled={!canManageEmployees}>
         <div className="field"><label>{d.code}</label><input className="input" name="employeeCode" defaultValue={employee.employee_code} required /></div>
         <div className="field"><label>{d.nameEnglish}</label><input className="input" name="nameEn" defaultValue={employee.name_en} required /></div>
         <div className="field"><label>{d.nameArabic}</label><input className="input" name="nameAr" dir="rtl" defaultValue={employee.name_ar ?? ""} /></div>
@@ -83,7 +86,8 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
         <div className="field"><label>{d.statusLabel}</label><select className="select" name="status" defaultValue={employee.status}><option value="active">{d.active}</option><option value="inactive">{d.inactive}</option><option value="on_leave">{d.onLeave}</option><option value="terminated">{d.terminated}</option></select></div>
         <div className="field full"><label>{leaveCopy.statutoryProfile}</label><small className="muted">{leaveCopy.statutoryHelp}</small><div className="role-option-grid statutory-flags"><label className="role-option"><input defaultChecked={employee.is_person_with_disability} name="isPersonWithDisability" type="checkbox" /><span><strong>{leaveCopy.disability}</strong></span></label><label className="role-option"><input defaultChecked={employee.is_dwarf} name="isDwarf" type="checkbox" /><span><strong>{leaveCopy.dwarf}</strong></span></label><label className="role-option"><input defaultChecked={employee.works_hazardous} name="worksHazardous" type="checkbox" /><span><strong>{leaveCopy.hazardous}</strong></span></label><label className="role-option"><input defaultChecked={employee.works_unhealthy} name="worksUnhealthy" type="checkbox" /><span><strong>{leaveCopy.unhealthy}</strong></span></label><label className="role-option"><input defaultChecked={employee.works_remote_location} name="worksRemoteLocation" type="checkbox" /><span><strong>{leaveCopy.remote}</strong></span></label></div></div>
         <div className="field full"><label>{d.notes}</label><textarea className="input" name="notes" rows={3} defaultValue={employee.notes ?? ""} /></div>
-        <div className="full"><button className="button">{d.update}</button></div>
+        {canManageEmployees ? <div className="full"><button className="button">{d.update}</button></div> : null}
+        </fieldset>
       </ActionForm>
     </section>
 

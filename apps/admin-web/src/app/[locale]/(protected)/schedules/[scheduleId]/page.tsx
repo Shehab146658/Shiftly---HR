@@ -33,6 +33,12 @@ export default async function ScheduleDetailsPage({ params }: { params: Promise<
   if (error) throw error;
   if (!schedule) notFound();
 
+  const [{ data: canManage }, { data: canPublish }, { data: canUnlock }] = await Promise.all([
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "schedules.manage" }),
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "schedules.publish" }),
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "schedules.unlock" }),
+  ]);
+
   const [{ data: entries }, { data: branchEmployees }, { data: allEmployees }, { data: shifts }, { data: events }] = await Promise.all([
     supabase.from("schedule_entries").select("id, employee_id, work_date, segment_no, entry_type, custom_start_time, custom_end_time, end_day_offset, break_minutes, notes, shift_templates(name_en, name_ar, start_time, end_time, end_day_offset, color_hex), employees(employee_code, name_en, name_ar)").eq("schedule_id", scheduleId).order("work_date").order("segment_no"),
     supabase.from("employees").select("id, employee_code, name_en, name_ar, position").eq("tenant_id", tenantId).eq("branch_id", schedule.branch_id).neq("status", "terminated").order("name_en"),
@@ -62,7 +68,7 @@ export default async function ScheduleDetailsPage({ params }: { params: Promise<
   const reopenAction = transitionSchedule.bind(null, locale, scheduleId, "draft");
   const archiveAction = transitionSchedule.bind(null, locale, scheduleId, "archived");
   const copyAction = copyWeeklySchedule.bind(null, locale, scheduleId);
-  const editable = schedule.status === "draft";
+  const editable = schedule.status === "draft" && Boolean(canManage);
   const scheduledPeople = new Set((entries ?? []).map((entry) => entry.employee_id));
   const assignedDays = new Set((entries ?? []).map((entry) => `${entry.employee_id}:${entry.work_date}`));
   const possibleVisibleDays = Math.max(boardEmployees.length * 7, 1);
@@ -92,14 +98,14 @@ export default async function ScheduleDetailsPage({ params }: { params: Promise<
         <p className="muted">{d.visibility}: {schedule.visibility} · <span className={`badge status-${schedule.status}`}>{schedule.status}</span></p>
       </div>
       <div className="toolbar">
-        {schedule.status === "draft" ? <ActionForm action={publishAction} errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.schedulePublished}><button className="button" type="submit">{d.publish}</button></ActionForm> : null}
-        {schedule.status === "published" ? <ActionForm action={lockAction} errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.scheduleLocked}><button className="button" type="submit">{d.lock}</button></ActionForm> : null}
-        {schedule.status === "published" || schedule.status === "locked" ? <ActionForm action={reopenAction} className="toolbar" errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.scheduleReopened}><input className="input compact" name="reason" minLength={5} placeholder={d.reason} required /><button className="button secondary" type="submit">{d.reopen}</button></ActionForm> : null}
-        {schedule.status === "published" || schedule.status === "locked" ? <ActionForm action={archiveAction} confirmMessage={d.archiveScheduleConfirm} errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.scheduleArchived}><button className="button ghost" type="submit">{d.archive}</button></ActionForm> : null}
+        {canPublish && schedule.status === "draft" ? <ActionForm action={publishAction} errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.schedulePublished}><button className="button" type="submit">{d.publish}</button></ActionForm> : null}
+        {canPublish && schedule.status === "published" ? <ActionForm action={lockAction} errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.scheduleLocked}><button className="button" type="submit">{d.lock}</button></ActionForm> : null}
+        {canUnlock && (schedule.status === "published" || schedule.status === "locked") ? <ActionForm action={reopenAction} className="toolbar" errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.scheduleReopened}><input className="input compact" name="reason" minLength={5} placeholder={d.reason} required /><button className="button secondary" type="submit">{d.reopen}</button></ActionForm> : null}
+        {canPublish && (schedule.status === "published" || schedule.status === "locked") ? <ActionForm action={archiveAction} confirmMessage={d.archiveScheduleConfirm} errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.scheduleArchived}><button className="button ghost" type="submit">{d.archive}</button></ActionForm> : null}
       </div>
     </div>
 
-    {!editable ? <div className="notice section-gap">{d.scheduleLockedHelp}</div> : null}
+    {!editable ? <div className="notice section-gap">{canManage ? d.scheduleLockedHelp : (locale === "ar" ? "هذا الجدول للعرض فقط وفق صلاحيات دورك." : "This schedule is read-only for your assigned role.")}</div> : null}
 
     <div className="schedule-coverage-strip section-gap">
       <div><span>{d.branchStaff}</span><strong>{branchEmployees?.length ?? 0}</strong></div>
@@ -143,10 +149,10 @@ export default async function ScheduleDetailsPage({ params }: { params: Promise<
     </section>
 
     <div className="grid two-columns section-gap">
-      <section className="card stack">
+      {canManage ? <section className="card stack">
         <h2>{d.copyWeek}</h2>
         <ActionForm action={copyAction} className="stack" errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.scheduleCopied}><div className="field"><label>{d.targetWeek}</label><input className="input" type="date" name="targetWeekStart" required /></div><button className="button secondary" type="submit">{d.copyWeek}</button></ActionForm>
-      </section>
+      </section> : null}
       <section className="card stack">
         <h2>{d.statusHistory}</h2>
         <div className="timeline">{events?.map((event) => <div className="timeline-item" key={event.id}><strong>{event.from_status ?? "—"} → {event.to_status}</strong><span>{new Date(event.created_at).toLocaleString(locale)}</span>{event.reason ? <small>{event.reason}</small> : null}</div>)}{!events?.length ? <div className="muted">{d.empty}</div> : null}</div>
