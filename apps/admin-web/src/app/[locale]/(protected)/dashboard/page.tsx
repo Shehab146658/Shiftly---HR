@@ -21,6 +21,15 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
   if (!membership) return <CompanyOnboarding locale={locale} labels={d} />;
   const tenantId = membership.tenant_id;
+  const roleLinksResult = await supabase.from("membership_roles").select("role_id").eq("membership_id", membership.id);
+  if (roleLinksResult.error) throw roleLinksResult.error;
+  const roleIds = (roleLinksResult.data ?? []).map((row) => row.role_id);
+  const permissionResult = roleIds.length
+    ? await supabase.from("role_permissions").select("permission_key").in("role_id", roleIds)
+    : { data: [] as Array<{ permission_key: string }>, error: null };
+  if (permissionResult.error) throw permissionResult.error;
+  const permissionSet = new Set((permissionResult.data ?? []).map((row) => row.permission_key));
+  const can = (permission: string) => membership.is_owner || permissionSet.has(permission);
   const today = new Date();
   const dateTo = today.toISOString().slice(0, 10);
   const pulseStart = new Date(today.getTime() - 29 * 86_400_000);
@@ -68,11 +77,15 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   };
 
   const stats = [
-    { label: d.totalEmployees, value: employees.length, detail: `${activeEmployees} ${d.active.toLowerCase()}`, href: `/${locale}/employees`, accent: "blue" },
-    { label: d.totalBranches, value: branches.length, detail: d.openDirectory, href: `/${locale}/branches`, accent: "green" },
-    { label: d.totalTeams, value: teamsResult.count ?? 0, detail: d.openDirectory, href: `/${locale}/teams`, accent: "violet" },
-    { label: d.totalOwners, value: ownersResult.count ?? 0, detail: d.viewProfile, href: `/${locale}/profiles/${user.id}`, accent: "orange" },
-  ];
+    can("employees.read") ? { label: d.totalEmployees, value: employees.length, detail: `${activeEmployees} ${d.active.toLowerCase()}`, href: `/${locale}/employees`, accent: "blue" } : null,
+    can("branches.read") ? { label: d.totalBranches, value: branches.length, detail: d.openDirectory, href: `/${locale}/branches`, accent: "green" } : null,
+    can("teams.read") ? { label: d.totalTeams, value: teamsResult.count ?? 0, detail: d.openDirectory, href: `/${locale}/teams`, accent: "violet" } : null,
+    can("memberships.read") ? { label: d.totalOwners, value: ownersResult.count ?? 0, detail: d.viewProfile, href: `/${locale}/profiles/${user.id}`, accent: "orange" } : null,
+    !can("employees.read") && can("schedules.read") ? { label: d.schedules, value: schedules.length, detail: d.openSchedules, href: `/${locale}/schedules`, accent: "blue" } : null,
+    !can("employees.read") && can("attendance.read") ? { label: pulseCopy.attendance, value: attendanceComplete, detail: pulseCopy.subtitle, href: `/${locale}/attendance`, accent: "green" } : null,
+    !can("employees.read") && can("leave.read") ? { label: pulseCopy.leave, value: leaveApproved, detail: pulseCopy.subtitle, href: `/${locale}/leaves`, accent: "violet" } : null,
+    !can("employees.read") && can("tasks.read") ? { label: pulseCopy.tasks, value: tasksDelivered, detail: pulseCopy.subtitle, href: `/${locale}/tasks`, accent: "orange" } : null,
+  ].filter((stat): stat is NonNullable<typeof stat> => stat !== null);
 
   const branchDistribution = branches.map((branch) => ({
     id: branch.id,
@@ -111,26 +124,39 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   }));
 
   const quickLinks = [
-    { label: d.employees, detail: d.employeeDirectory, href: `/${locale}/employees` },
-    { label: d.shifts, detail: `${shiftsResult.count ?? 0} ${d.active.toLowerCase()}`, href: `/${locale}/shifts` },
-    { label: d.schedules, detail: `${schedules.length} ${d.scheduledWeeks}`, href: `/${locale}/schedules` },
-    { label: d.attendance, detail: locale === "ar" ? "الحضور والتأخير والإضافي" : "Punches, lateness, and overtime", href: `/${locale}/attendance` },
-    { label: d.leaves, detail: locale === "ar" ? "الطلبات والتقويم" : "Requests and calendar", href: `/${locale}/leaves` },
-    { label: d.payroll, detail: locale === "ar" ? "الحساب والاعتماد والقسائم" : "Calculation, approvals, and payslips", href: `/${locale}/payroll` },
-    { label: d.loans, detail: locale === "ar" ? "الطلبات والأقساط والتسويات" : "Requests, installments, and settlements", href: `/${locale}/loans` },
-    { label: d.performance, detail: locale === "ar" ? "المبيعات والأهداف والمكافآت" : "Sales, targets, and incentives", href: `/${locale}/performance` },
-    { label: d.tasks, detail: locale === "ar" ? "الإسناد والإثبات والاعتماد" : "Assignments, evidence, and approvals", href: `/${locale}/tasks` },
-    { label: d.announcements, detail: locale === "ar" ? "التواصل وتأكيد القراءة" : "Targeted communication and read receipts", href: `/${locale}/announcements` },
-    { label: d.reports, detail: locale === "ar" ? "\u0645\u0624\u0634\u0631\u0627\u062a \u0627\u0644\u0642\u0648\u0649 \u0627\u0644\u0639\u0627\u0645\u0644\u0629 \u0648\u0627\u0644\u062a\u0643\u0644\u0641\u0629 \u0648\u0627\u0644\u0623\u062f\u0627\u0621" : "Workforce, cost, and performance insights", href: `/${locale}/reports` },
-    { label: d.roles, detail: d.manageAccess, href: `/${locale}/roles` },
-    { label: d.audit, detail: d.reviewChanges, href: `/${locale}/audit` },
-  ];
+    { permission: "employees.read", label: d.employees, detail: d.employeeDirectory, href: `/${locale}/employees` },
+    { permission: "shifts.read", label: d.shifts, detail: `${shiftsResult.count ?? 0} ${d.active.toLowerCase()}`, href: `/${locale}/shifts` },
+    { permission: "schedules.read", label: d.schedules, detail: `${schedules.length} ${d.scheduledWeeks}`, href: `/${locale}/schedules` },
+    { permission: "attendance.read", label: d.attendance, detail: locale === "ar" ? "الحضور والتأخير والإضافي" : "Punches, lateness, and overtime", href: `/${locale}/attendance` },
+    { permission: "leave.read", label: d.leaves, detail: locale === "ar" ? "الطلبات والتقويم" : "Requests and calendar", href: `/${locale}/leaves` },
+    { permission: permissionSet.has("payroll.read") ? "payroll.read" : "payslips.read_own", label: d.payroll, detail: locale === "ar" ? "الحساب والاعتماد والقسائم" : "Calculation, approvals, and payslips", href: `/${locale}/payroll` },
+    { permission: "loans.read", label: d.loans, detail: locale === "ar" ? "الطلبات والأقساط والتسويات" : "Requests, installments, and settlements", href: `/${locale}/loans` },
+    { permission: "sales.read", label: d.performance, detail: locale === "ar" ? "المبيعات والأهداف والمكافآت" : "Sales, targets, and incentives", href: `/${locale}/performance` },
+    { permission: "tasks.read", label: d.tasks, detail: locale === "ar" ? "الإسناد والإثبات والاعتماد" : "Assignments, evidence, and approvals", href: `/${locale}/tasks` },
+    { permission: "announcements.read", label: d.announcements, detail: locale === "ar" ? "التواصل وتأكيد القراءة" : "Targeted communication and read receipts", href: `/${locale}/announcements` },
+    { permission: "reports.read", label: d.reports, detail: locale === "ar" ? "\u0645\u0624\u0634\u0631\u0627\u062a \u0627\u0644\u0642\u0648\u0649 \u0627\u0644\u0639\u0627\u0645\u0644\u0629 \u0648\u0627\u0644\u062a\u0643\u0644\u0641\u0629 \u0648\u0627\u0644\u0623\u062f\u0627\u0621" : "Workforce, cost, and performance insights", href: `/${locale}/reports` },
+    { permission: "roles.read", label: d.roles, detail: d.manageAccess, href: `/${locale}/roles` },
+    { permission: "audit.read", label: d.audit, detail: d.reviewChanges, href: `/${locale}/audit` },
+  ].filter((link) => can(link.permission));
+
+  const pulseItems = [
+    can("attendance.read") ? { label: pulseCopy.attendance, value: attendanceComplete, color: "#315bea", href: `/${locale}/attendance` } : null,
+    can("tasks.read") ? { label: pulseCopy.tasks, value: tasksDelivered, color: "#27a58b", href: `/${locale}/tasks` } : null,
+    can("leave.read") ? { label: pulseCopy.leave, value: leaveApproved, color: "#8b5cf6", href: `/${locale}/leaves` } : null,
+    can("attendance.read") ? { label: pulseCopy.exceptions, value: attendanceExceptions, color: "#e28b32", href: `/${locale}/attendance` } : null,
+  ].filter((item): item is NonNullable<typeof item> => item !== null);
+  const managementItems = [
+    can("requests.manage") ? { label: pulseCopy.requests, value: pendingRequests, color: "#526ed7", href: `/${locale}/requests` } : null,
+    can("tasks.approve") || can("tasks.manage") ? { label: pulseCopy.overdue, value: overdueTasks, color: "#d2544c", href: `/${locale}/tasks` } : null,
+    can("sales.approve") ? { label: pulseCopy.sales, value: pendingSales, color: "#d68b2d", href: `/${locale}/performance` } : null,
+    can("attendance.manage") ? { label: pulseCopy.incomplete, value: attendanceExceptions, color: "#8b5cf6", href: `/${locale}/attendance` } : null,
+  ].filter((item): item is NonNullable<typeof item> => item !== null);
 
   return (
     <>
       <div className="page-head dashboard-head">
         <div><h1 className="page-title">{d.welcome}</h1><p className="muted">{d.dashboardOverview}</p></div>
-        <Link className="button" href={`/${locale}/schedules`}>{d.openSchedules}</Link>
+        {can("schedules.read") ? <Link className="button" href={`/${locale}/schedules`}>{d.openSchedules}</Link> : null}
       </div>
 
       <section className="dashboard-stat-grid" aria-label={d.companySnapshot}>
@@ -140,8 +166,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
         </Link>)}
       </section>
 
-      <section className="dashboard-chart-grid">
-        <article className="card dashboard-panel branch-panel">
+      {can("employees.read") ? <section className="dashboard-chart-grid">
+        {can("branches.read") ? <article className="card dashboard-panel branch-panel">
           <div className="card-heading"><div><h2>{d.workforceByBranch}</h2><p className="muted">{d.clickChartHint}</p></div><Link className="text-link" href={`/${locale}/branches`}>{d.viewAll}</Link></div>
           <div className="branch-chart">
             {branchDistribution.map((branch) => <Link className="branch-bar-row dashboard-link" href={branch.id ? `/${locale}/employees?branch=${branch.id}` : `/${locale}/employees`} key={branch.id || "unassigned"}>
@@ -151,7 +177,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
             </Link>)}
             {!branchDistribution.length ? <div className="empty">{d.empty}</div> : null}
           </div>
-        </article>
+        </article> : null}
 
         <article className="card dashboard-panel status-panel">
           <div className="card-heading"><div><h2>{d.employeeStatus}</h2><p className="muted">{d.currentWorkforce}</p></div><Link className="text-link" href={`/${locale}/employees`}>{d.viewAll}</Link></div>
@@ -166,39 +192,21 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
             </div>
           </div>
         </article>
-      </section>
+      </section> : null}
 
-      <section className="card dashboard-panel schedule-panel">
+      {can("schedules.read") ? <section className="card dashboard-panel schedule-panel">
         <div className="card-heading"><div><h2>{d.scheduleOverview}</h2><p className="muted">{d.scheduleOverviewHelp}</p></div><Link className="text-link" href={`/${locale}/schedules`}>{d.viewAll}</Link></div>
         <div className="schedule-stat-grid">
           {scheduleStatuses.map((status) => <Link className={`schedule-stat dashboard-link status-${status.key}`} href={`/${locale}/schedules`} key={status.key}>
             <span>{status.label}</span><strong>{status.count}</strong><small>{d.openDirectory} →</small>
           </Link>)}
         </div>
-      </section>
+      </section> : null}
 
-      <section className="dashboard-chart-grid" aria-label={pulseCopy.title}>
-        <InsightBars
-          items={[
-            { label: pulseCopy.attendance, value: attendanceComplete, color: "#315bea", href: `/${locale}/attendance` },
-            { label: pulseCopy.tasks, value: tasksDelivered, color: "#27a58b", href: `/${locale}/tasks` },
-            { label: pulseCopy.leave, value: leaveApproved, color: "#8b5cf6", href: `/${locale}/leaves` },
-            { label: pulseCopy.exceptions, value: attendanceExceptions, color: "#e28b32", href: `/${locale}/attendance` },
-          ]}
-          subtitle={pulseCopy.subtitle}
-          title={pulseCopy.title}
-        />
-        <InsightBars
-          items={[
-            { label: pulseCopy.requests, value: pendingRequests, color: "#526ed7", href: `/${locale}/requests` },
-            { label: pulseCopy.overdue, value: overdueTasks, color: "#d2544c", href: `/${locale}/tasks` },
-            { label: pulseCopy.sales, value: pendingSales, color: "#d68b2d", href: `/${locale}/performance` },
-            { label: pulseCopy.incomplete, value: attendanceExceptions, color: "#8b5cf6", href: `/${locale}/attendance` },
-          ]}
-          subtitle={pulseCopy.actionsHelp}
-          title={pulseCopy.actions}
-        />
-      </section>
+      {pulseItems.length || managementItems.length ? <section className="dashboard-chart-grid" aria-label={pulseCopy.title}>
+        {pulseItems.length ? <InsightBars items={pulseItems} subtitle={pulseCopy.subtitle} title={pulseCopy.title} /> : null}
+        {managementItems.length ? <InsightBars items={managementItems} subtitle={pulseCopy.actionsHelp} title={pulseCopy.actions} /> : null}
+      </section> : null}
 
       <section className="dashboard-quick-section">
         <div className="card-heading"><div><h2>{d.quickActions}</h2><p className="muted">{d.quickActionsHelp}</p></div></div>

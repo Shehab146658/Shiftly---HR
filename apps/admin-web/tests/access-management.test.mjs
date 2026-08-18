@@ -99,7 +99,8 @@ test("audit history resolves people and renders descriptive field changes", asyn
 });
 
 test("company administration actions are permission-gated and employee defaults stay self-service only", async () => {
-  const [branches, teams, shifts, schedules, schedule, attendance, employees, migration] = await Promise.all([
+  const [dashboard, branches, teams, shifts, schedules, schedule, attendance, employees, migration] = await Promise.all([
+    readSource("../src/app/[locale]/(protected)/dashboard/page.tsx"),
     readSource("../src/app/[locale]/(protected)/branches/page.tsx"),
     readSource("../src/app/[locale]/(protected)/teams/page.tsx"),
     readSource("../src/app/[locale]/(protected)/shifts/page.tsx"),
@@ -110,6 +111,9 @@ test("company administration actions are permission-gated and employee defaults 
     readSource("../../../supabase/migrations/202608180025_employee_self_service_authorization.sql"),
   ]);
 
+  assert.match(dashboard, /const can = \(permission: string\)/);
+  assert.match(dashboard, /quickLinks[\s\S]*\.filter\(\(link\) => can\(link\.permission\)\)/);
+  assert.match(dashboard, /can\("requests\.manage"\)/);
   assert.match(branches, /p_permission: "branches\.manage"/);
   assert.match(teams, /p_permission: "teams\.manage"/);
   assert.match(shifts, /p_permission: "shifts\.manage"/);
