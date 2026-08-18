@@ -19,5 +19,15 @@ repairs the matching membership, role, employee, branch, and Team 001 links.
 Every password and email can be overridden with the corresponding
 `SHIFTLY_DEMO_*` environment variable in `scripts/seed-demo.mjs`.
 
+## Role authorization
+
+Each account receives only the permissions attached to its assigned role, so
+the sidebar and management controls automatically hide ineligible areas. The
+`roles.manage` capability controls who may assign employee roles or edit role
+permissions. It belongs only to the company owner by default; an owner can
+explicitly delegate it from **Roles & permissions** when another trusted role
+administrator is required. The protected `owner` role is never offered as an
+employee role.
+
 Do not run the demo seed against a tenant containing real employee data. Do
 not reuse these public credentials for a production deployment.

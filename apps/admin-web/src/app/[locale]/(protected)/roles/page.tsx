@@ -13,7 +13,8 @@ export default async function RolesPage({ params }: { params: Promise<{ locale: 
   const { locale, dictionary: d, supabase, membership } = await getTenantPageContext(rawLocale);
   if (!membership) return <div className="card">{d.noCompany}</div>;
 
-  const [{ data: roles, error }, { data: permissions, error: permissionsError }] = await Promise.all([
+  const [{ data: canManage }, { data: roles, error }, { data: permissions, error: permissionsError }] = await Promise.all([
+    supabase.rpc("has_permission", { p_tenant_id: membership.tenant_id, p_permission: "roles.manage" }),
     supabase.from("roles").select("id, name, description, is_system, role_permissions(permission_key), employee_role_assignments(employee_id, employees(id, user_id, name_en, name_ar, position)), membership_roles(membership_id, memberships(id, user_id, is_owner, status))").eq("tenant_id", membership.tenant_id).order("is_system", { ascending: false }).order("name"),
     supabase.from("permissions").select("key, description, module").order("module").order("key"),
   ]);
@@ -36,13 +37,13 @@ export default async function RolesPage({ params }: { params: Promise<{ locale: 
   return <>
     <div className="page-head role-page-head">
       <div><h1 className="page-title">{d.roleManagementTitle}</h1><p className="muted">{d.roleManagementHelp}</p></div>
-      <CreateDialog closeLabel={d.close} description={d.roleManagementHelp} eyebrow={d.roles} title={d.createCustomRole} triggerLabel={d.createCustomRole} width="medium">
+      {canManage ? <CreateDialog closeLabel={d.close} description={d.roleManagementHelp} eyebrow={d.roles} title={d.createCustomRole} triggerLabel={d.createCustomRole} width="medium">
         <ActionForm action={createAction} className="stack role-create-form" errorMessage={d.actionFailed} pendingMessage={d.saving} resetOnSuccess successMessage={d.roleCreated}>
           <div className="field"><label>{d.roleName}</label><input className="input" name="name" placeholder={d.roleNamePlaceholder} required /></div>
           <div className="field"><label>{d.roleDescription}</label><textarea className="input" name="description" rows={3} /></div>
           <button className="button">{d.createRole}</button>
         </ActionForm>
-      </CreateDialog>
+      </CreateDialog> : null}
     </div>
 
     <section className="role-summary-grid">
@@ -85,7 +86,7 @@ export default async function RolesPage({ params }: { params: Promise<{ locale: 
               {!assignedEmployees.length && !assignedAccounts.length ? <span className="muted">{d.noAssignedPeople}</span> : null}
             </div>
           </div>
-          <Link className="button secondary full-width" href={`/${locale}/roles/${role.id}`}>{isProtected ? d.viewPermissions : d.customizePermissions}</Link>
+          <Link className="button secondary full-width" href={`/${locale}/roles/${role.id}`}>{!canManage || isProtected ? d.viewPermissions : d.customizePermissions}</Link>
         </article>;
       })}
       {!roles?.length ? <div className="empty">{d.empty}</div> : null}

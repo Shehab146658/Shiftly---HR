@@ -35,12 +35,14 @@ export default async function EmployeesPage({
   if (filters.status) employeeQuery = employeeQuery.eq("status", filters.status);
 
   const [
+    { data: canManageRoles },
     { data: employees, error },
     { data: branches },
     { data: teams },
     { data: managers },
     { data: roles, error: rolesError },
   ] = await Promise.all([
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "roles.manage" }),
     employeeQuery,
     supabase.from("branches").select("id, name_en").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
     supabase.from("teams").select("id, name_en, branch_id").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
@@ -73,7 +75,7 @@ export default async function EmployeesPage({
           employeeCreated: d.employeeCreated,
         }}
         managers={managers ?? []}
-        roles={roles ?? []}
+        roles={canManageRoles ? roles ?? [] : []}
         teams={teams ?? []}
       />
     </div>

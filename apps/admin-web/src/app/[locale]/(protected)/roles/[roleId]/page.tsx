@@ -26,7 +26,8 @@ export default async function RoleDetailsPage({ params }: { params: Promise<{ lo
   const { locale, dictionary: d, supabase, membership } = await getTenantPageContext(rawLocale);
   if (!membership) return <div className="card">{d.noCompany}</div>;
 
-  const [{ data: role, error }, { data: permissions, error: permissionsError }] = await Promise.all([
+  const [{ data: canManage }, { data: role, error }, { data: permissions, error: permissionsError }] = await Promise.all([
+    supabase.rpc("has_permission", { p_tenant_id: membership.tenant_id, p_permission: "roles.manage" }),
     supabase.from("roles").select("id, name, description, is_system, role_permissions(permission_key), employee_role_assignments(employee_id, employees(id, user_id, name_en, name_ar, position, employee_code)), membership_roles(membership_id, memberships(id, user_id, is_owner, status))").eq("tenant_id", membership.tenant_id).eq("id", roleId).maybeSingle(),
     supabase.from("permissions").select("key, description, module").order("module").order("key"),
   ]);
@@ -69,7 +70,7 @@ export default async function RoleDetailsPage({ params }: { params: Promise<{ lo
 
     {isProtected ? <div className="notice role-protected-notice"><strong>{d.protectedRole}</strong><span>{d.protectedRoleHelp}</span></div> : null}
 
-    {!role.is_system ? <details className="card role-details-editor"><summary>{d.editRoleDetails}</summary><ActionForm action={detailsAction} className="form-grid two-columns section-gap" errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.roleUpdated}><div className="field"><label>{d.roleName}</label><input className="input" defaultValue={displayRoleName(role.name)} name="name" required /></div><div className="field"><label>{d.roleDescription}</label><input className="input" defaultValue={role.description ?? ""} name="description" /></div><div className="full"><button className="button">{d.save}</button></div></ActionForm></details> : null}
+    {canManage && !role.is_system ? <details className="card role-details-editor"><summary>{d.editRoleDetails}</summary><ActionForm action={detailsAction} className="form-grid two-columns section-gap" errorMessage={d.actionFailed} pendingMessage={d.saving} successMessage={d.roleUpdated}><div className="field"><label>{d.roleName}</label><input className="input" defaultValue={displayRoleName(role.name)} name="name" required /></div><div className="field"><label>{d.roleDescription}</label><input className="input" defaultValue={role.description ?? ""} name="description" /></div><div className="full"><button className="button">{d.save}</button></div></ActionForm></details> : null}
 
     <div className="role-detail-layout">
       <section className="role-permission-editor">
@@ -79,12 +80,12 @@ export default async function RoleDetailsPage({ params }: { params: Promise<{ lo
             <legend>{moduleTitle(module, d)}</legend>
             <div className="permission-choice-grid">
               {modulePermissions.map((permission) => <label className="permission-choice" key={permission.key}>
-                <input defaultChecked={assignedKeys.has(permission.key)} disabled={isProtected} name="permissionKeys" type="checkbox" value={permission.key} />
+                <input defaultChecked={assignedKeys.has(permission.key)} disabled={isProtected || !canManage} name="permissionKeys" type="checkbox" value={permission.key} />
                 <span><strong>{permission.description}</strong><small>{permission.key}</small></span>
               </label>)}
             </div>
           </fieldset>)}
-          {!isProtected ? <div className="permission-save-bar"><div><strong>{d.savePermissions}</strong><span>{d.permissionSaveHelp}</span></div><button className="button">{d.savePermissions}</button></div> : null}
+          {canManage && !isProtected ? <div className="permission-save-bar"><div><strong>{d.savePermissions}</strong><span>{d.permissionSaveHelp}</span></div><button className="button">{d.savePermissions}</button></div> : null}
         </ActionForm>
       </section>
 
@@ -95,7 +96,7 @@ export default async function RoleDetailsPage({ params }: { params: Promise<{ lo
           {assignedAccounts.map((account) => { const name = account.profile?.full_name ?? d.ownerAccount; return <Link className="assigned-person" href={`/${locale}/profiles/${account.user_id}`} key={account.id}><span className="person-avatar">{name.slice(0, 1).toUpperCase()}</span><span><strong>{name}</strong><small>{account.is_owner ? d.companyOwner : d.companyUser}</small></span><span aria-hidden="true">→</span></Link>; })}
           {!assignedEmployees.length && !assignedAccounts.length ? <div className="empty">{d.noAssignedPeople}</div> : null}
         </div>
-        <Link className="button ghost full-width" href={`/${locale}/employees`}>{d.manageEmployeeRoles}</Link>
+        {canManage ? <Link className="button ghost full-width" href={`/${locale}/employees`}>{d.manageEmployeeRoles}</Link> : null}
       </aside>
     </div>
   </>;

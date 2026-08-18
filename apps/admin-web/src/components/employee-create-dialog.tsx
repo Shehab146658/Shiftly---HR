@@ -51,7 +51,7 @@ export function EmployeeCreateDialog({
           <div className="field"><label>{labels.hireDate}</label><input className="input" name="hireDate" type="date" /></div>
           <div className="field"><label>{labels.preferredLanguage}</label><select className="select" name="preferredLocale"><option value="en">English</option><option value="ar">العربية</option></select></div>
           <div className="field"><label>{labels.statusLabel}</label><select className="select" name="status"><option value="active">{labels.active}</option><option value="inactive">{labels.inactive}</option><option value="on_leave">{labels.onLeave}</option><option value="terminated">{labels.terminated}</option></select></div>
-          <div className="field"><label>{labels.accessRole}</label><select className="select" defaultValue={defaultRoleId} name="roleId" required>{roles.map((role) => <option key={role.id} value={role.id}>{role.name.replaceAll("_", " ")}</option>)}</select><small className="muted">{labels.accessRoleHelp}</small></div>
+          {roles.length ? <div className="field"><label>{labels.accessRole}</label><select className="select" defaultValue={defaultRoleId} name="roleId" required>{roles.map((role) => <option key={role.id} value={role.id}>{role.name.replaceAll("_", " ")}</option>)}</select><small className="muted">{labels.accessRoleHelp}</small></div> : null}
           <div className="field full"><label>{labels.notes}</label><textarea className="input" name="notes" rows={2} /></div>
           <div className="modal-actions full"><button className="button ghost" onClick={() => setOpen(false)} type="button">{labels.cancel}</button><button className="button" type="submit">{labels.addEmployee}</button></div>
         </ActionForm>

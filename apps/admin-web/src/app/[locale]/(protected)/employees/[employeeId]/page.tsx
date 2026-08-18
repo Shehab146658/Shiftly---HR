@@ -16,6 +16,7 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
     { data: teams },
     { data: managers },
     { data: assignments },
+    { data: canManageRoles },
     { data: roles, error: rolesError },
     { data: assignedRoleRows, error: assignedRolesError },
   ] = await Promise.all([
@@ -24,6 +25,7 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
     supabase.from("teams").select("id, name_en, branch_id").eq("tenant_id", tenantId).eq("is_active", true).order("name_en"),
     supabase.from("employees").select("id, name_en").eq("tenant_id", tenantId).neq("id", employeeId).neq("status", "terminated").order("name_en"),
     supabase.from("employee_assignments").select("id, position, effective_from, effective_to, reason, branches(name_en), teams(name_en), manager:employees!employee_assignments_manager_employee_id_fkey(name_en)").eq("tenant_id", tenantId).eq("employee_id", employeeId).order("effective_from", { ascending: false }),
+    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "roles.manage" }),
     supabase.from("roles").select("id, name, description").eq("tenant_id", tenantId).neq("name", "owner").order("name"),
     supabase.from("employee_role_assignments").select("role_id").eq("tenant_id", tenantId).eq("employee_id", employeeId),
   ]);
@@ -85,7 +87,7 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
       </ActionForm>
     </section>
 
-    <section className="card stack section-gap">
+    {canManageRoles ? <section className="card stack section-gap">
       <div className="card-heading">
         <div>
           <h2>{d.accessRoles}</h2>
@@ -114,7 +116,7 @@ export default async function EmployeeDetailsPage({ params }: { params: Promise<
         {!roles?.length ? <div className="empty">{d.empty}</div> : null}
         <div><button className="button">{d.saveRoles}</button></div>
       </ActionForm>
-    </section>
+    </section> : null}
 
     <section className="card stack section-gap">
       <h2>{d.assignmentHistory}</h2>

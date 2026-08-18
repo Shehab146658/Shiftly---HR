@@ -44,3 +44,21 @@ test("business modules are localized responsive and visible in primary navigatio
   assert.match(styles, /\.installment-card/);
   assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.business-form/);
 });
+
+test("sales payroll and loans expose responsive decision-support charts", () => {
+  const performance = readFileSync("src/app/[locale]/(protected)/performance/page.tsx", "utf8");
+  const payroll = readFileSync("src/app/[locale]/(protected)/payroll/page.tsx", "utf8");
+  const loans = readFileSync("src/app/[locale]/(protected)/loans/page.tsx", "utf8");
+  const insightBars = readFileSync("src/components/insight-bars.tsx", "utf8");
+  const styles = readFileSync("src/app/globals.css", "utf8");
+
+  assert.match(performance, /salesByBranch/);
+  assert.match(performance, /targetProgress/);
+  assert.match(payroll, /payrollTrend/);
+  assert.match(payroll, /costMix/);
+  assert.match(loans, /portfolioHelp/);
+  assert.match(loans, /exposureHelp/);
+  assert.match(insightBars, /insight-bar-track/);
+  assert.match(styles, /\.section-insight-grid/);
+  assert.match(styles, /@media \(max-width: 1000px\)[\s\S]*\.section-insight-grid \{ grid-template-columns: 1fr; \}/);
+});

@@ -53,6 +53,24 @@ test("employee creation includes a role dropdown and existing employees receive 
   assert.match(defaultRolesMigration, /join public\.roles r[\s\S]*r\.name = 'employee'/);
 });
 
+test("only owner-delegated role managers can assign eligible employee roles", async () => {
+  const [employeePage, details, dialog, rolePage, migration] = await Promise.all([
+    readSource("../src/app/[locale]/(protected)/employees/page.tsx"),
+    readSource("../src/app/[locale]/(protected)/employees/[employeeId]/page.tsx"),
+    readSource("../src/components/employee-create-dialog.tsx"),
+    readSource("../src/app/[locale]/(protected)/roles/[roleId]/page.tsx"),
+    readSource("../../../supabase/migrations/202608180023_owner_role_authorization.sql"),
+  ]);
+
+  assert.match(employeePage, /p_permission: "roles\.manage"/);
+  assert.match(employeePage, /roles=\{canManageRoles \? roles \?\? \[\] : \[\]\}/);
+  assert.match(details, /canManageRoles \? <section/);
+  assert.match(dialog, /roles\.length \? <div className="field"/);
+  assert.match(rolePage, /disabled=\{isProtected \|\| !canManage\}/);
+  assert.match(migration, /has_permission\(v_tenant_id, 'roles\.manage'\)/);
+  assert.match(migration, /r\.name = 'owner'/);
+});
+
 test("roles provide dedicated permission management and project status is not in navigation", async () => {
   const [roles, details, actions, shell, migration] = await Promise.all([
     readSource("../src/app/[locale]/(protected)/roles/page.tsx"),
