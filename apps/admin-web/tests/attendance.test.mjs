@@ -26,7 +26,7 @@ test("attendance report supports filters, manual corrections, exceptions, and CS
   assert.match(page, /reviewAttendancePunch/);
   assert.match(dialog, /type="datetime-local"/);
   assert.match(dialog, /toISOString/);
-  assert.match(shell, /\["attendance", d\.attendance, "attendance", "attendance\.read"\]/);
+  assert.match(shell, /\["attendance", d\.attendance, "attendance", \["attendance\.read"\]\]/);
 });
 
 test("branch administration exposes practical attendance rules", async () => {
@@ -53,7 +53,7 @@ test("employee self-service clock captures private selfie and geofence evidence"
   assert.match(clock, /attendance-selfies/);
   assert.match(clock, /record_attendance_punch/);
   assert.match(clock, /capture="user"/);
-  assert.match(shell, /\["clock", d\.clock, "attendance", "attendance\.clock"\]/);
+  assert.match(shell, /\["clock", d\.clock, "attendance", \["attendance\.clock"\]\]/);
   assert.match(migration, /attendance_selfies_insert/);
   assert.match(migration, /attendance_selfies_delete_orphan/);
 });

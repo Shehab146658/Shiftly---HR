@@ -17,7 +17,7 @@ test("payroll ships auditable calculations, approvals, and published payslips", 
   assert.match(period, /addPayrollAdjustment/);
   assert.match(period, /payroll-lifecycle/);
   assert.match(payslip, /acknowledgePayslip/);
-  assert.match(shell, /\["payroll", d\.payroll, "payroll", null\]/);
+  assert.match(shell, /\["payroll", d\.payroll, "payroll", \["payroll\.read", "payslips\.read_own"\]\]/);
 });
 
 test("payroll calculations include attendance and approved unpaid leave inputs", () => {

@@ -29,7 +29,7 @@ select ok((select relrowsecurity from pg_class where oid='public.payroll_periods
 select ok((select relrowsecurity from pg_class where oid='public.payroll_employee_results'::regclass),'payroll results use RLS');
 select ok((select relrowsecurity from pg_class where oid='public.payroll_components'::regclass),'payroll components use RLS');
 select ok((select relrowsecurity from pg_class where oid='public.payslips'::regclass),'payslips use RLS');
-select is((select count(*)::integer from public.permissions where module='payroll'),6,'six payroll permissions are registered');
+select is((select count(*)::integer from public.permissions where module='payroll'),7,'seven payroll permissions are registered');
 
 insert into public.tenants(id,slug,name_en,status) values
 ('15000000-0000-0000-0000-000000000001','payroll-test','Payroll Test','active'),

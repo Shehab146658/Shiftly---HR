@@ -28,7 +28,9 @@ test("topbar search is keyboard accessible and navigation is permission-aware", 
   assert.match(component, /closeOnEscape/);
   assert.match(shell, /<GlobalSearch locale={locale}/);
   assert.match(layout, /role_permissions/);
-  assert.match(shell, /permissionSet\.has/);
+  assert.match(shell, /requiredPermissions\.some\(\(permission\) => permissionSet\.has\(permission\)\)/);
+  assert.match(shell, /\["dashboard", d\.dashboard, "dashboard", \["tenant\.read"\]\]/);
+  assert.doesNotMatch(shell, /permission === null/);
   assert.match(styles, /\.global-search/);
   assert.match(styles, /\.global-search-wrap-open \.global-search/);
   assert.match(styles, /\.global-search-mobile-trigger/);

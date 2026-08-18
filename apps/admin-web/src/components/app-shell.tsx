@@ -38,11 +38,11 @@ export function AppShell({
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const permissionSet = new Set(permissions);
-  const allItems: Array<[string, string, AppIconName, string | null]> = [
-    ["dashboard", d.dashboard, "dashboard", null], ["branches", d.branches, "branches", "branches.read"], ["teams", d.teams, "teams", "teams.read"], ["employees", d.employees, "employees", "employees.read"],
-    ["shifts", d.shifts, "shifts", "shifts.read"], ["schedules", d.schedules, "schedules", "schedules.read"], ["clock", d.clock, "attendance", "attendance.clock"], ["attendance", d.attendance, "attendance", "attendance.read"], ["leaves", d.leaves, "leaves", "leave.read"], ["requests", d.requests, "requests", "requests.read"], ["payroll", d.payroll, "payroll", null], ["loans", d.loans, "loans", "loans.read"], ["performance", d.performance, "performance", "sales.read"], ["tasks", d.tasks, "tasks", "tasks.read"], ["announcements", d.announcements, "announcements", "announcements.read"], ["reports", d.reports, "reports", "reports.read"], ["roles", d.roles, "roles", "roles.read"], ["audit", d.audit, "audit", "audit.read"],
+  const allItems: Array<[string, string, AppIconName, string[]]> = [
+    ["dashboard", d.dashboard, "dashboard", ["tenant.read"]], ["branches", d.branches, "branches", ["branches.read"]], ["teams", d.teams, "teams", ["teams.read"]], ["employees", d.employees, "employees", ["employees.read"]],
+    ["shifts", d.shifts, "shifts", ["shifts.read"]], ["schedules", d.schedules, "schedules", ["schedules.read"]], ["clock", d.clock, "attendance", ["attendance.clock"]], ["attendance", d.attendance, "attendance", ["attendance.read"]], ["leaves", d.leaves, "leaves", ["leave.read"]], ["requests", d.requests, "requests", ["requests.read"]], ["payroll", d.payroll, "payroll", ["payroll.read", "payslips.read_own"]], ["loans", d.loans, "loans", ["loans.read"]], ["performance", d.performance, "performance", ["sales.read"]], ["tasks", d.tasks, "tasks", ["tasks.read"]], ["announcements", d.announcements, "announcements", ["announcements.read"]], ["reports", d.reports, "reports", ["reports.read"]], ["roles", d.roles, "roles", ["roles.read"]], ["audit", d.audit, "audit", ["audit.read"]],
   ];
-  const items = allItems.filter(([, , , permission]) => isOwner || permission === null || permissionSet.has(permission));
+  const items = allItems.filter(([, , , requiredPermissions]) => isOwner || requiredPermissions.some((permission) => permissionSet.has(permission)));
   const logout = signOut.bind(null, locale);
   const profileHref = `/${locale}/profiles/${userId}`;
   const displayName = userName?.trim() || userEmail;

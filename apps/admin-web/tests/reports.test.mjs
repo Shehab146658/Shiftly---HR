@@ -26,7 +26,7 @@ test("reports are discoverable and responsive", async () => {
     readSource("../src/components/brand-mark.tsx"),
   ]);
 
-  assert.match(shell, /\[\"reports\", d\.reports, \"reports\", \"reports\.read\"\]/);
+  assert.match(shell, /\[\"reports\", d\.reports, \"reports\", \[\"reports\.read\"\]\]/);
   assert.match(shell, /reports\.read/);
   assert.match(shell, /permissionSet\.has/);
   assert.match(dashboard, /href: `\/\$\{locale\}\/reports`/);
