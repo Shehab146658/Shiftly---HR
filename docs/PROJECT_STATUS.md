@@ -1,9 +1,9 @@
 # Shiftly HR Project Status
 
 **Current milestone:** Milestone 7 — Product hardening and employee self-service
-**Status:** Feature-complete business operations; employee web attendance, creation-flow UX, cross-module analytics, and UAT are in validation
+**Status:** Feature-complete business operations; client-feedback workflow refinements and UAT are in validation
 **Release:** `0.4.0-preview`
-**Last updated:** 17 August 2026
+**Last updated:** 20 August 2026
 
 ## Completed
 
@@ -13,7 +13,7 @@
 - Configurable branch operational-day start, maximum shift duration, week-start day, and default schedule visibility.
 - Company-wide or branch-specific shift templates, including overnight shifts, breaks, and enforced branch-duration limits.
 - Weekly schedules with configurable week start, split shifts, OFF days, leave, training, and assignments.
-- Employee-first schedule planner for assigning one or more people to selected days and exact hours.
+- Direct schedule-cell assignment for choosing a person, workday, predefined/custom shift, or split segment in place.
 - Automatic overnight detection, split-shift segment ordering, and overlap prevention.
 - Draft, publish, lock, reopen-with-reason, archive, and copy-week workflows.
 - Immutable audit coverage for employee assignments and scheduling entities.
@@ -60,6 +60,13 @@
 
 ## Experience hardening
 
+- Company records now generate readable codes automatically; employee creation defaults to Active and can optionally include starting compensation.
+- Employees can have several reporting managers, and all active managers participate in manager-routed HR and leave approvals.
+- Teams support selective searchable membership rather than an all-employees-only bulk action.
+- The weekly schedule board is the editor: click an employee/day cell to choose a predefined shift, custom hours, OFF/leave/training, or append a split segment.
+- The desktop sidebar is denser and collapsible with a saved preference; the phone header always reserves a tappable global-search control.
+- Clock-in/out requests fresh precise location at submission and opens the camera when required instead of leaving the action silently disabled.
+- Payroll includes a visual explanation of calculation, review, approval, and payslip publication.
 - Mobile global search now opens as a focused overlay instead of competing with notification, language, and navigation controls in the top bar.
 - Every workspace exposes concise bilingual guidance explaining the screen's purpose and the most useful actions available there.
 - The demo bootstrap creates and verifies owner, HR, payroll, accountant, branch-manager, team-manager, and employee logins with the correct employee and organization scope.

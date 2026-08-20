@@ -3,67 +3,723 @@ import { notFound } from "next/navigation";
 import { ActionForm } from "@/components/action-form";
 import { CreateDialog } from "@/components/create-dialog";
 import { getTenantPageContext } from "@/lib/page-context";
-import { addPayrollAdjustment, calculatePayrollPeriod, deletePayrollAdjustment, transitionPayrollPeriod } from "../../actions";
+import {
+  addPayrollAdjustment,
+  calculatePayrollPeriod,
+  deletePayrollAdjustment,
+  transitionPayrollPeriod,
+} from "../../actions";
 
 export const dynamic = "force-dynamic";
 
-function one<T>(value: T | T[] | null): T | null { return Array.isArray(value) ? value[0] ?? null : value; }
-function money(value: number | string | null | undefined, currency: string, locale: string) { return new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-EG", { style: "currency", currency, maximumFractionDigits: 2 }).format(Number(value ?? 0)); }
-function hours(minutes: number, locale: string) { return new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-EG", { maximumFractionDigits: 2 }).format(minutes / 60); }
+function one<T>(value: T | T[] | null): T | null {
+  return Array.isArray(value) ? (value[0] ?? null) : value;
+}
+function money(
+  value: number | string | null | undefined,
+  currency: string,
+  locale: string,
+) {
+  return new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-EG", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  }).format(Number(value ?? 0));
+}
+function hours(minutes: number, locale: string) {
+  return new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-EG", {
+    maximumFractionDigits: 2,
+  }).format(minutes / 60);
+}
 
-export default async function PayrollPeriodPage({ params }: { params: Promise<{ locale: string; periodId: string }> }) {
+export default async function PayrollPeriodPage({
+  params,
+}: {
+  params: Promise<{ locale: string; periodId: string }>;
+}) {
   const { locale: rawLocale, periodId } = await params;
-  const { locale, dictionary: d, supabase, membership } = await getTenantPageContext(rawLocale);
+  const {
+    locale,
+    dictionary: d,
+    supabase,
+    membership,
+  } = await getTenantPageContext(rawLocale);
   if (!membership) return <div className="card">{d.noCompany}</div>;
   const tenantId = membership.tenant_id;
-  const copy = locale === "ar" ? {
-    back: "العودة إلى الرواتب", calculate: "حساب الرواتب", recalculate: "إعادة الحساب", calculated: "تم حساب رواتب الموظفين من الحضور والإجازات والسياسة الحالية.", submitReview: "إرسال للمراجعة", reviewed: "تم إرسال الدورة للمراجعة.", approve: "اعتماد", approved: "تم اعتماد دورة الرواتب.", lock: "قفل الرواتب", locked: "تم قفل الرواتب ولا يمكن تعديلها.", publish: "نشر القسائم", published: "تم نشر قسائم المرتب للموظفين.", cancel: "إلغاء الدورة", cancelled: "تم إلغاء دورة الرواتب.", note: "ملاحظة الإجراء", cancelReason: "سبب الإلغاء مطلوب", confirm: "هل تريد تنفيذ هذا الإجراء؟",
-    employees: "الموظفون", earnings: "الاستحقاقات", deductions: "الخصومات", net: "الصافي", attendance: "ملخص الحضور", days: "أيام العمل", absence: "غياب", leave: "إجازة غير مدفوعة", worked: "ساعات فعلية", late: "تأخير", early: "انصراف مبكر", overtime: "إضافي", missing: "وقت ناقص", components: "تفاصيل الحساب", source: "المصدر", quantity: "الكمية", rate: "السعر", amount: "القيمة", reason: "السبب", adjustment: "إضافة تعديل", earning: "استحقاق", deduction: "خصم", code: "الرمز", nameEn: "الاسم بالإنجليزية", nameAr: "الاسم بالعربية", add: "إضافة", added: "تمت إضافة التعديل وإعادة حساب الصافي.", delete: "حذف", deleted: "تم حذف التعديل.", deleteConfirm: "حذف هذا التعديل؟", payslip: "قسيمة المرتب", noResults: "اضبط أجور الموظفين ثم اضغط حساب الرواتب.", history: "سجل الدورة", actionFailed: d.actionFailed, saving: d.saving,
-  } : {
-    back: "Back to payroll", calculate: "Calculate payroll", recalculate: "Recalculate", calculated: "Employee payroll calculated from attendance, leave, and the current policy.", submitReview: "Submit for review", reviewed: "Payroll submitted for review.", approve: "Approve", approved: "Payroll period approved.", lock: "Lock payroll", locked: "Payroll locked against further changes.", publish: "Publish payslips", published: "Payslips published to employees.", cancel: "Cancel period", cancelled: "Payroll period cancelled.", note: "Transition note", cancelReason: "Cancellation reason required", confirm: "Continue with this payroll action?",
-    employees: "Employees", earnings: "Earnings", deductions: "Deductions", net: "Net pay", attendance: "Attendance summary", days: "Scheduled days", absence: "Absence", leave: "Unpaid leave", worked: "Worked hours", late: "Late", early: "Early departure", overtime: "Overtime", missing: "Missing time", components: "Calculation components", source: "Source", quantity: "Quantity", rate: "Rate", amount: "Amount", reason: "Reason", adjustment: "Add adjustment", earning: "Earning", deduction: "Deduction", code: "Code", nameEn: "English name", nameAr: "Arabic name", add: "Add adjustment", added: "Adjustment added and net pay recalculated.", delete: "Delete", deleted: "Adjustment removed.", deleteConfirm: "Delete this adjustment?", payslip: "Payslip", noResults: "Configure employee compensation, then calculate payroll.", history: "Period history", actionFailed: d.actionFailed, saving: d.saving,
-  };
+  const copy =
+    locale === "ar"
+      ? {
+          back: "العودة إلى الرواتب",
+          calculate: "حساب الرواتب",
+          recalculate: "إعادة الحساب",
+          calculated:
+            "تم حساب رواتب الموظفين من الحضور والإجازات والسياسة الحالية.",
+          submitReview: "إرسال للمراجعة",
+          reviewed: "تم إرسال الدورة للمراجعة.",
+          approve: "اعتماد",
+          approved: "تم اعتماد دورة الرواتب.",
+          lock: "قفل الرواتب",
+          locked: "تم قفل الرواتب ولا يمكن تعديلها.",
+          publish: "نشر القسائم",
+          published: "تم نشر قسائم المرتب للموظفين.",
+          cancel: "إلغاء الدورة",
+          cancelled: "تم إلغاء دورة الرواتب.",
+          note: "ملاحظة الإجراء",
+          cancelReason: "سبب الإلغاء مطلوب",
+          confirm: "هل تريد تنفيذ هذا الإجراء؟",
+          employees: "الموظفون",
+          earnings: "الاستحقاقات",
+          deductions: "الخصومات",
+          net: "الصافي",
+          attendance: "ملخص الحضور",
+          days: "أيام العمل",
+          absence: "غياب",
+          leave: "إجازة غير مدفوعة",
+          worked: "ساعات فعلية",
+          late: "تأخير",
+          early: "انصراف مبكر",
+          overtime: "إضافي",
+          missing: "وقت ناقص",
+          components: "تفاصيل الحساب",
+          source: "المصدر",
+          quantity: "الكمية",
+          rate: "السعر",
+          amount: "القيمة",
+          reason: "السبب",
+          adjustment: "إضافة تعديل",
+          earning: "استحقاق",
+          deduction: "خصم",
+          code: "الرمز",
+          nameEn: "الاسم بالإنجليزية",
+          nameAr: "الاسم بالعربية",
+          add: "إضافة",
+          added: "تمت إضافة التعديل وإعادة حساب الصافي.",
+          delete: "حذف",
+          deleted: "تم حذف التعديل.",
+          deleteConfirm: "حذف هذا التعديل؟",
+          payslip: "قسيمة المرتب",
+          noResults: "اضبط أجور الموظفين ثم اضغط حساب الرواتب.",
+          history: "سجل الدورة",
+          actionFailed: d.actionFailed,
+          saving: d.saving,
+        }
+      : {
+          back: "Back to payroll",
+          calculate: "Calculate payroll",
+          recalculate: "Recalculate",
+          calculated:
+            "Employee payroll calculated from attendance, leave, and the current policy.",
+          submitReview: "Submit for review",
+          reviewed: "Payroll submitted for review.",
+          approve: "Approve",
+          approved: "Payroll period approved.",
+          lock: "Lock payroll",
+          locked: "Payroll locked against further changes.",
+          publish: "Publish payslips",
+          published: "Payslips published to employees.",
+          cancel: "Cancel period",
+          cancelled: "Payroll period cancelled.",
+          note: "Transition note",
+          cancelReason: "Cancellation reason required",
+          confirm: "Continue with this payroll action?",
+          employees: "Employees",
+          earnings: "Earnings",
+          deductions: "Deductions",
+          net: "Net pay",
+          attendance: "Attendance summary",
+          days: "Scheduled days",
+          absence: "Absence",
+          leave: "Unpaid leave",
+          worked: "Worked hours",
+          late: "Late",
+          early: "Early departure",
+          overtime: "Overtime",
+          missing: "Missing time",
+          components: "Calculation components",
+          source: "Source",
+          quantity: "Quantity",
+          rate: "Rate",
+          amount: "Amount",
+          reason: "Reason",
+          adjustment: "Add adjustment",
+          earning: "Earning",
+          deduction: "Deduction",
+          code: "Code",
+          nameEn: "English name",
+          nameAr: "Arabic name",
+          add: "Add adjustment",
+          added: "Adjustment added and net pay recalculated.",
+          delete: "Delete",
+          deleted: "Adjustment removed.",
+          deleteConfirm: "Delete this adjustment?",
+          payslip: "Payslip",
+          noResults: "Configure employee compensation, then calculate payroll.",
+          history: "Period history",
+          actionFailed: d.actionFailed,
+          saving: d.saving,
+        };
 
-  const [{ data: period, error }, { data: results, error: resultError }, { data: events, error: eventError }, { data: actorEmployees }, { data: canManage }, { data: canApprove }, { data: canPublish }, { data: canAdjust }] = await Promise.all([
-    supabase.from("payroll_periods").select("id, code, name, period_start, period_end, pay_date, status, currency_code, calculated_at, reviewed_at, approved_at, locked_at, published_at").eq("tenant_id", tenantId).eq("id", periodId).maybeSingle(),
-    supabase.from("payroll_employee_results").select("id, employee_id, salary_basis, scheduled_days, worked_days, absence_days, unpaid_leave_units, scheduled_minutes, worked_minutes, late_minutes, early_departure_minutes, overtime_minutes, missing_minutes, earnings_amount, deductions_amount, gross_amount, net_amount, employees(id, employee_code, name_en, name_ar), payroll_components(id, code, name_en, name_ar, kind, source_type, amount, quantity, rate, reason)").eq("tenant_id", tenantId).eq("period_id", periodId).order("net_amount", { ascending: false }),
-    supabase.from("payroll_status_events").select("id, from_status, to_status, note, created_at, actor_user_id").eq("tenant_id", tenantId).eq("period_id", periodId).order("created_at", { ascending: false }),
-    supabase.from("employees").select("user_id, name_en, name_ar").eq("tenant_id", tenantId).not("user_id", "is", null),
-    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "payroll.manage" }),
-    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "payroll.approve" }),
-    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "payroll.publish" }),
-    supabase.rpc("has_permission", { p_tenant_id: tenantId, p_permission: "payroll.adjust" }),
+  const [
+    { data: period, error },
+    { data: results, error: resultError },
+    { data: events, error: eventError },
+    { data: actorEmployees },
+    { data: canManage },
+    { data: canApprove },
+    { data: canPublish },
+    { data: canAdjust },
+  ] = await Promise.all([
+    supabase
+      .from("payroll_periods")
+      .select(
+        "id, code, name, period_start, period_end, pay_date, status, currency_code, calculated_at, reviewed_at, approved_at, locked_at, published_at",
+      )
+      .eq("tenant_id", tenantId)
+      .eq("id", periodId)
+      .maybeSingle(),
+    supabase
+      .from("payroll_employee_results")
+      .select(
+        "id, employee_id, salary_basis, scheduled_days, worked_days, absence_days, unpaid_leave_units, scheduled_minutes, worked_minutes, late_minutes, early_departure_minutes, overtime_minutes, missing_minutes, earnings_amount, deductions_amount, gross_amount, net_amount, employees(id, employee_code, name_en, name_ar), payroll_components(id, code, name_en, name_ar, kind, source_type, amount, quantity, rate, reason)",
+      )
+      .eq("tenant_id", tenantId)
+      .eq("period_id", periodId)
+      .order("net_amount", { ascending: false }),
+    supabase
+      .from("payroll_status_events")
+      .select("id, from_status, to_status, note, created_at, actor_user_id")
+      .eq("tenant_id", tenantId)
+      .eq("period_id", periodId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("employees")
+      .select("user_id, name_en, name_ar")
+      .eq("tenant_id", tenantId)
+      .not("user_id", "is", null),
+    supabase.rpc("has_permission", {
+      p_tenant_id: tenantId,
+      p_permission: "payroll.manage",
+    }),
+    supabase.rpc("has_permission", {
+      p_tenant_id: tenantId,
+      p_permission: "payroll.approve",
+    }),
+    supabase.rpc("has_permission", {
+      p_tenant_id: tenantId,
+      p_permission: "payroll.publish",
+    }),
+    supabase.rpc("has_permission", {
+      p_tenant_id: tenantId,
+      p_permission: "payroll.adjust",
+    }),
   ]);
-  if (error) throw error; if (resultError) throw resultError; if (eventError) throw eventError; if (!period) notFound();
+  if (error) throw error;
+  if (resultError) throw resultError;
+  if (eventError) throw eventError;
+  if (!period) notFound();
   const rows = results ?? [];
-  const totals = rows.reduce((sum, row) => ({ earnings: sum.earnings + Number(row.earnings_amount), deductions: sum.deductions + Number(row.deductions_amount), net: sum.net + Number(row.net_amount) }), { earnings: 0, deductions: 0, net: 0 });
+  const totals = rows.reduce(
+    (sum, row) => ({
+      earnings: sum.earnings + Number(row.earnings_amount),
+      deductions: sum.deductions + Number(row.deductions_amount),
+      net: sum.net + Number(row.net_amount),
+    }),
+    { earnings: 0, deductions: 0, net: 0 },
+  );
   const mutable = ["calculated", "reviewed"].includes(period.status);
-  const actorByUser = new Map((actorEmployees ?? []).filter((employee) => employee.user_id).map((employee) => [employee.user_id!, locale === "ar" && employee.name_ar ? employee.name_ar : employee.name_en]));
+  const actorByUser = new Map(
+    (actorEmployees ?? [])
+      .filter((employee) => employee.user_id)
+      .map((employee) => [
+        employee.user_id!,
+        locale === "ar" && employee.name_ar
+          ? employee.name_ar
+          : employee.name_en,
+      ]),
+  );
 
-  return <>
-    <div className="page-head payroll-period-head"><div><Link className="back-link" href={`/${locale}/payroll`}>← {copy.back}</Link><h1 className="page-title">{period.name}</h1><p className="muted">{period.period_start} → {period.period_end}{period.pay_date ? ` · ${period.pay_date}` : ""}</p></div><span className={`badge payroll-status-${period.status}`}>{period.status}</span></div>
-    <section className="payroll-lifecycle" aria-label={copy.history}>{["draft", "calculated", "reviewed", "approved", "locked", "published"].map((step, index) => { const currentIndex = ["draft", "calculated", "reviewed", "approved", "locked", "published"].indexOf(period.status); return <div className={index <= currentIndex ? "complete" : ""} key={step}><span>{index + 1}</span><strong>{step}</strong></div>; })}</section>
-
-    <section className="payroll-action-bar section-gap">
-      <div className="payroll-action-copy"><strong>{period.status}</strong><span>{period.code}</span></div>
-      <div className="payroll-actions">
-        {canManage && ["draft", "calculated", "reviewed"].includes(period.status) ? <ActionForm action={calculatePayrollPeriod.bind(null, locale, period.id)} confirmMessage={period.status === "draft" ? undefined : copy.confirm} errorMessage={copy.actionFailed} pendingMessage={copy.saving} successMessage={copy.calculated}><button className="button" type="submit">{period.status === "draft" ? copy.calculate : copy.recalculate}</button></ActionForm> : null}
-        {canManage && period.status === "calculated" ? <ActionForm action={transitionPayrollPeriod.bind(null, locale, period.id, "reviewed")} errorMessage={copy.actionFailed} pendingMessage={copy.saving} successMessage={copy.reviewed}><input className="input compact" name="transitionNote" placeholder={copy.note} /><button className="button secondary" type="submit">{copy.submitReview}</button></ActionForm> : null}
-        {(canApprove || membership.is_owner) && period.status === "reviewed" ? <ActionForm action={transitionPayrollPeriod.bind(null, locale, period.id, "approved")} confirmMessage={copy.confirm} errorMessage={copy.actionFailed} pendingMessage={copy.saving} successMessage={copy.approved}><input className="input compact" name="transitionNote" placeholder={copy.note} /><button className="button" type="submit">{copy.approve}</button></ActionForm> : null}
-        {(canManage || membership.is_owner) && period.status === "approved" ? <ActionForm action={transitionPayrollPeriod.bind(null, locale, period.id, "locked")} confirmMessage={copy.confirm} errorMessage={copy.actionFailed} pendingMessage={copy.saving} successMessage={copy.locked}><input className="input compact" name="transitionNote" placeholder={copy.note} /><button className="button" type="submit">{copy.lock}</button></ActionForm> : null}
-        {(canPublish || membership.is_owner) && period.status === "locked" ? <ActionForm action={transitionPayrollPeriod.bind(null, locale, period.id, "published")} confirmMessage={copy.confirm} errorMessage={copy.actionFailed} pendingMessage={copy.saving} successMessage={copy.published}><input className="input compact" name="transitionNote" placeholder={copy.note} /><button className="button" type="submit">{copy.publish}</button></ActionForm> : null}
-        {canManage && ["draft", "calculated"].includes(period.status) ? <details className="payroll-cancel"><summary>{copy.cancel}</summary><ActionForm action={transitionPayrollPeriod.bind(null, locale, period.id, "cancelled")} confirmMessage={copy.confirm} errorMessage={copy.actionFailed} pendingMessage={copy.saving} successMessage={copy.cancelled}><input className="input" name="transitionNote" placeholder={copy.cancelReason} required /><button className="button danger" type="submit">{copy.cancel}</button></ActionForm></details> : null}
+  return (
+    <>
+      <div className="page-head payroll-period-head">
+        <div>
+          <Link className="back-link" href={`/${locale}/payroll`}>
+            ← {copy.back}
+          </Link>
+          <h1 className="page-title">{period.name}</h1>
+          <p className="muted">
+            {period.period_start} → {period.period_end}
+            {period.pay_date ? ` · ${period.pay_date}` : ""}
+          </p>
+        </div>
+        <span className={`badge payroll-status-${period.status}`}>
+          {period.status}
+        </span>
       </div>
-    </section>
+      <section className="payroll-lifecycle" aria-label={copy.history}>
+        {[
+          "draft",
+          "calculated",
+          "reviewed",
+          "approved",
+          "locked",
+          "published",
+        ].map((step, index) => {
+          const currentIndex = [
+            "draft",
+            "calculated",
+            "reviewed",
+            "approved",
+            "locked",
+            "published",
+          ].indexOf(period.status);
+          return (
+            <div className={index <= currentIndex ? "complete" : ""} key={step}>
+              <span>{index + 1}</span>
+              <strong>{step}</strong>
+            </div>
+          );
+        })}
+      </section>
 
-    <section className="stats-grid payroll-stats"><a className="stat-card" href="#payroll-results"><span>{copy.employees}</span><strong>{rows.length}</strong><small>{period.status}</small></a><a className="stat-card" href="#payroll-results"><span>{copy.earnings}</span><strong>{money(totals.earnings, period.currency_code, locale)}</strong><small>{period.currency_code}</small></a><a className="stat-card" href="#payroll-results"><span>{copy.deductions}</span><strong>{money(totals.deductions, period.currency_code, locale)}</strong><small>{period.currency_code}</small></a><a className="stat-card" href="#payroll-results"><span>{copy.net}</span><strong>{money(totals.net, period.currency_code, locale)}</strong><small>{period.currency_code}</small></a></section>
+      <section className="payroll-action-bar section-gap">
+        <div className="payroll-action-copy">
+          <strong>{period.status}</strong>
+          <span>{period.code}</span>
+        </div>
+        <div className="payroll-actions">
+          {canManage &&
+          ["draft", "calculated", "reviewed"].includes(period.status) ? (
+            <ActionForm
+              action={calculatePayrollPeriod.bind(null, locale, period.id)}
+              confirmMessage={
+                period.status === "draft" ? undefined : copy.confirm
+              }
+              errorMessage={copy.actionFailed}
+              pendingMessage={copy.saving}
+              successMessage={copy.calculated}
+            >
+              <button className="button" type="submit">
+                {period.status === "draft" ? copy.calculate : copy.recalculate}
+              </button>
+            </ActionForm>
+          ) : null}
+          {canManage && period.status === "calculated" ? (
+            <ActionForm
+              action={transitionPayrollPeriod.bind(
+                null,
+                locale,
+                period.id,
+                "reviewed",
+              )}
+              errorMessage={copy.actionFailed}
+              pendingMessage={copy.saving}
+              successMessage={copy.reviewed}
+            >
+              <input
+                className="input compact"
+                name="transitionNote"
+                placeholder={copy.note}
+              />
+              <button className="button secondary" type="submit">
+                {copy.submitReview}
+              </button>
+            </ActionForm>
+          ) : null}
+          {(canApprove || membership.is_owner) &&
+          period.status === "reviewed" ? (
+            <ActionForm
+              action={transitionPayrollPeriod.bind(
+                null,
+                locale,
+                period.id,
+                "approved",
+              )}
+              confirmMessage={copy.confirm}
+              errorMessage={copy.actionFailed}
+              pendingMessage={copy.saving}
+              successMessage={copy.approved}
+            >
+              <input
+                className="input compact"
+                name="transitionNote"
+                placeholder={copy.note}
+              />
+              <button className="button" type="submit">
+                {copy.approve}
+              </button>
+            </ActionForm>
+          ) : null}
+          {(canManage || membership.is_owner) &&
+          period.status === "approved" ? (
+            <ActionForm
+              action={transitionPayrollPeriod.bind(
+                null,
+                locale,
+                period.id,
+                "locked",
+              )}
+              confirmMessage={copy.confirm}
+              errorMessage={copy.actionFailed}
+              pendingMessage={copy.saving}
+              successMessage={copy.locked}
+            >
+              <input
+                className="input compact"
+                name="transitionNote"
+                placeholder={copy.note}
+              />
+              <button className="button" type="submit">
+                {copy.lock}
+              </button>
+            </ActionForm>
+          ) : null}
+          {(canPublish || membership.is_owner) && period.status === "locked" ? (
+            <ActionForm
+              action={transitionPayrollPeriod.bind(
+                null,
+                locale,
+                period.id,
+                "published",
+              )}
+              confirmMessage={copy.confirm}
+              errorMessage={copy.actionFailed}
+              pendingMessage={copy.saving}
+              successMessage={copy.published}
+            >
+              <input
+                className="input compact"
+                name="transitionNote"
+                placeholder={copy.note}
+              />
+              <button className="button" type="submit">
+                {copy.publish}
+              </button>
+            </ActionForm>
+          ) : null}
+          {canManage && ["draft", "calculated"].includes(period.status) ? (
+            <details className="payroll-cancel">
+              <summary>{copy.cancel}</summary>
+              <ActionForm
+                action={transitionPayrollPeriod.bind(
+                  null,
+                  locale,
+                  period.id,
+                  "cancelled",
+                )}
+                confirmMessage={copy.confirm}
+                errorMessage={copy.actionFailed}
+                pendingMessage={copy.saving}
+                successMessage={copy.cancelled}
+              >
+                <input
+                  className="input"
+                  name="transitionNote"
+                  placeholder={copy.cancelReason}
+                  required
+                />
+                <button className="button danger" type="submit">
+                  {copy.cancel}
+                </button>
+              </ActionForm>
+            </details>
+          ) : null}
+        </div>
+      </section>
 
-    <section className="payroll-result-list section-gap" id="payroll-results">{rows.map((row) => { const employee = one(row.employees); const components = row.payroll_components ?? []; return <details className="payroll-result-card" key={row.id}><summary><div className="payroll-person"><span>{(employee?.name_en ?? "?").slice(0, 2).toUpperCase()}</span><div><strong>{locale === "ar" && employee?.name_ar ? employee.name_ar : employee?.name_en}</strong><small>{employee?.employee_code} · {row.salary_basis}</small></div></div><div><span>{copy.earnings}</span><strong>{money(row.earnings_amount, period.currency_code, locale)}</strong></div><div><span>{copy.deductions}</span><strong>{money(row.deductions_amount, period.currency_code, locale)}</strong></div><div className="payroll-net"><span>{copy.net}</span><strong>{money(row.net_amount, period.currency_code, locale)}</strong></div></summary><div className="payroll-result-body">
-        <section><h3>{copy.attendance}</h3><div className="payroll-metric-grid"><div><span>{copy.days}</span><strong>{Number(row.scheduled_days).toFixed(1)}</strong></div><div><span>{copy.absence}</span><strong>{Number(row.absence_days).toFixed(1)}</strong></div><div><span>{copy.leave}</span><strong>{Number(row.unpaid_leave_units).toFixed(1)}</strong></div><div><span>{copy.worked}</span><strong>{hours(row.worked_minutes, locale)}</strong></div><div><span>{copy.late}</span><strong>{hours(row.late_minutes, locale)}</strong></div><div><span>{copy.early}</span><strong>{hours(row.early_departure_minutes, locale)}</strong></div><div><span>{copy.overtime}</span><strong>{hours(row.overtime_minutes, locale)}</strong></div><div><span>{copy.missing}</span><strong>{hours(row.missing_minutes, locale)}</strong></div></div></section>
-        <section><div className="card-heading"><h3>{copy.components}</h3>{period.status === "published" ? <Link className="button secondary small-button" href={`/${locale}/payslips/${row.id}`}>{copy.payslip}</Link> : null}</div><div className="payroll-component-list">{components.map((component) => <div className="payroll-component" key={component.id}><div><strong>{locale === "ar" ? component.name_ar : component.name_en}</strong><small>{component.source_type}{component.reason ? ` · ${component.reason}` : ""}</small></div><span className={`component-${component.kind}`}>{component.kind === "deduction" ? "−" : "+"}{money(component.amount, period.currency_code, locale)}</span>{canAdjust && mutable && component.source_type === "adjustment" ? <ActionForm action={deletePayrollAdjustment.bind(null, locale, period.id, row.id, component.id)} confirmMessage={copy.deleteConfirm} errorMessage={copy.actionFailed} pendingMessage={copy.saving} successMessage={copy.deleted}><button className="icon-danger" title={copy.delete} type="submit">×</button></ActionForm> : null}</div>)}</div></section>
-        {canAdjust && mutable ? <div className="payroll-adjustment-action"><CreateDialog closeLabel={d.close} description={copy.components} eyebrow={copy.adjustment} title={`${copy.adjustment} · ${locale === "ar" && employee?.name_ar ? employee.name_ar : employee?.name_en ?? ""}`} triggerLabel={`＋ ${copy.adjustment}`} width="medium"><ActionForm action={addPayrollAdjustment.bind(null, locale, period.id, row.id)} className="form-grid" errorMessage={copy.actionFailed} pendingMessage={copy.saving} successMessage={copy.added} resetOnSuccess><div className="field"><label>{copy.source}</label><select className="select" name="kind"><option value="earning">{copy.earning}</option><option value="deduction">{copy.deduction}</option></select></div><div className="field"><label>{copy.code}</label><input className="input" name="code" placeholder="manual_bonus" required /></div><div className="field"><label>{copy.nameEn}</label><input className="input" name="nameEn" required /></div><div className="field"><label>{copy.nameAr}</label><input className="input" dir="rtl" name="nameAr" required /></div><div className="field"><label>{copy.amount}</label><input className="input" min="0.01" name="amount" step="0.01" type="number" required /></div><div className="field"><label>{copy.reason}</label><input className="input" name="reason" required /></div><button className="button full" type="submit">{copy.add}</button></ActionForm></CreateDialog></div> : null}
-      </div></details>; })}{!rows.length ? <div className="card empty">{copy.noResults}</div> : null}</section>
+      <section className="stats-grid payroll-stats">
+        <a className="stat-card" href="#payroll-results">
+          <span>{copy.employees}</span>
+          <strong>{rows.length}</strong>
+          <small>{period.status}</small>
+        </a>
+        <a className="stat-card" href="#payroll-results">
+          <span>{copy.earnings}</span>
+          <strong>
+            {money(totals.earnings, period.currency_code, locale)}
+          </strong>
+          <small>{period.currency_code}</small>
+        </a>
+        <a className="stat-card" href="#payroll-results">
+          <span>{copy.deductions}</span>
+          <strong>
+            {money(totals.deductions, period.currency_code, locale)}
+          </strong>
+          <small>{period.currency_code}</small>
+        </a>
+        <a className="stat-card" href="#payroll-results">
+          <span>{copy.net}</span>
+          <strong>{money(totals.net, period.currency_code, locale)}</strong>
+          <small>{period.currency_code}</small>
+        </a>
+      </section>
 
-    <section className="card stack section-gap"><h2>{copy.history}</h2><div className="payroll-history">{events?.map((event) => <div key={event.id}><span className={`status-dot payroll-status-${event.to_status}`} /><div><strong>{event.from_status ? `${event.from_status} → ` : ""}{event.to_status}</strong><small>{(event.actor_user_id ? actorByUser.get(event.actor_user_id) : null) ?? (locale === "ar" ? "مسؤول الشركة" : "Company administrator")} · {new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", { dateStyle: "medium", timeStyle: "short" }).format(new Date(event.created_at))}</small>{event.note ? <p>{event.note}</p> : null}</div></div>)}</div></section>
-  </>;
+      <section className="payroll-result-list section-gap" id="payroll-results">
+        {rows.map((row) => {
+          const employee = one(row.employees);
+          const components = row.payroll_components ?? [];
+          return (
+            <details className="payroll-result-card" key={row.id}>
+              <summary>
+                <div className="payroll-person">
+                  <span>
+                    {(employee?.name_en ?? "?").slice(0, 2).toUpperCase()}
+                  </span>
+                  <div>
+                    <strong>
+                      {locale === "ar" && employee?.name_ar
+                        ? employee.name_ar
+                        : employee?.name_en}
+                    </strong>
+                    <small>
+                      {employee?.employee_code} · {row.salary_basis}
+                    </small>
+                  </div>
+                </div>
+                <div>
+                  <span>{copy.earnings}</span>
+                  <strong>
+                    {money(row.earnings_amount, period.currency_code, locale)}
+                  </strong>
+                </div>
+                <div>
+                  <span>{copy.deductions}</span>
+                  <strong>
+                    {money(row.deductions_amount, period.currency_code, locale)}
+                  </strong>
+                </div>
+                <div className="payroll-net">
+                  <span>{copy.net}</span>
+                  <strong>
+                    {money(row.net_amount, period.currency_code, locale)}
+                  </strong>
+                </div>
+              </summary>
+              <div className="payroll-result-body">
+                <section>
+                  <h3>{copy.attendance}</h3>
+                  <div className="payroll-metric-grid">
+                    <div>
+                      <span>{copy.days}</span>
+                      <strong>{Number(row.scheduled_days).toFixed(1)}</strong>
+                    </div>
+                    <div>
+                      <span>{copy.absence}</span>
+                      <strong>{Number(row.absence_days).toFixed(1)}</strong>
+                    </div>
+                    <div>
+                      <span>{copy.leave}</span>
+                      <strong>
+                        {Number(row.unpaid_leave_units).toFixed(1)}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>{copy.worked}</span>
+                      <strong>{hours(row.worked_minutes, locale)}</strong>
+                    </div>
+                    <div>
+                      <span>{copy.late}</span>
+                      <strong>{hours(row.late_minutes, locale)}</strong>
+                    </div>
+                    <div>
+                      <span>{copy.early}</span>
+                      <strong>
+                        {hours(row.early_departure_minutes, locale)}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>{copy.overtime}</span>
+                      <strong>{hours(row.overtime_minutes, locale)}</strong>
+                    </div>
+                    <div>
+                      <span>{copy.missing}</span>
+                      <strong>{hours(row.missing_minutes, locale)}</strong>
+                    </div>
+                  </div>
+                </section>
+                <section>
+                  <div className="card-heading">
+                    <h3>{copy.components}</h3>
+                    {period.status === "published" ? (
+                      <Link
+                        className="button secondary small-button"
+                        href={`/${locale}/payslips/${row.id}`}
+                      >
+                        {copy.payslip}
+                      </Link>
+                    ) : null}
+                  </div>
+                  <div className="payroll-component-list">
+                    {components.map((component) => (
+                      <div className="payroll-component" key={component.id}>
+                        <div>
+                          <strong>
+                            {locale === "ar"
+                              ? component.name_ar
+                              : component.name_en}
+                          </strong>
+                          <small>
+                            {component.source_type}
+                            {component.reason ? ` · ${component.reason}` : ""}
+                          </small>
+                        </div>
+                        <span className={`component-${component.kind}`}>
+                          {component.kind === "deduction" ? "−" : "+"}
+                          {money(
+                            component.amount,
+                            period.currency_code,
+                            locale,
+                          )}
+                        </span>
+                        {canAdjust &&
+                        mutable &&
+                        component.source_type === "adjustment" ? (
+                          <ActionForm
+                            action={deletePayrollAdjustment.bind(
+                              null,
+                              locale,
+                              period.id,
+                              row.id,
+                              component.id,
+                            )}
+                            confirmMessage={copy.deleteConfirm}
+                            errorMessage={copy.actionFailed}
+                            pendingMessage={copy.saving}
+                            successMessage={copy.deleted}
+                          >
+                            <button
+                              className="icon-danger"
+                              title={copy.delete}
+                              type="submit"
+                            >
+                              ×
+                            </button>
+                          </ActionForm>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+                {canAdjust && mutable ? (
+                  <div className="payroll-adjustment-action">
+                    <CreateDialog
+                      closeLabel={d.close}
+                      description={copy.components}
+                      eyebrow={copy.adjustment}
+                      title={`${copy.adjustment} · ${locale === "ar" && employee?.name_ar ? employee.name_ar : (employee?.name_en ?? "")}`}
+                      triggerLabel={`＋ ${copy.adjustment}`}
+                      width="medium"
+                    >
+                      <ActionForm
+                        action={addPayrollAdjustment.bind(
+                          null,
+                          locale,
+                          period.id,
+                          row.id,
+                        )}
+                        className="form-grid"
+                        errorMessage={copy.actionFailed}
+                        pendingMessage={copy.saving}
+                        successMessage={copy.added}
+                        resetOnSuccess
+                      >
+                        <div className="field">
+                          <label>{copy.source}</label>
+                          <select className="select" name="kind">
+                            <option value="earning">{copy.earning}</option>
+                            <option value="deduction">{copy.deduction}</option>
+                          </select>
+                        </div>
+                        <div className="automatic-record-note full">
+                          <span aria-hidden="true">⚡</span>
+                          <div>
+                            <strong>
+                              {locale === "ar"
+                                ? "كود تلقائي"
+                                : "Automatic code"}
+                            </strong>
+                            <small>
+                              {locale === "ar"
+                                ? "يُنشأ مرجع التعديل تلقائيًا."
+                                : "The adjustment reference is generated automatically."}
+                            </small>
+                          </div>
+                        </div>
+                        <div className="field">
+                          <label>{copy.nameEn}</label>
+                          <input className="input" name="nameEn" required />
+                        </div>
+                        <div className="field">
+                          <label>{copy.nameAr}</label>
+                          <input
+                            className="input"
+                            dir="rtl"
+                            name="nameAr"
+                            required
+                          />
+                        </div>
+                        <div className="field">
+                          <label>{copy.amount}</label>
+                          <input
+                            className="input"
+                            min="0.01"
+                            name="amount"
+                            step="0.01"
+                            type="number"
+                            required
+                          />
+                        </div>
+                        <div className="field">
+                          <label>{copy.reason}</label>
+                          <input className="input" name="reason" required />
+                        </div>
+                        <button className="button full" type="submit">
+                          {copy.add}
+                        </button>
+                      </ActionForm>
+                    </CreateDialog>
+                  </div>
+                ) : null}
+              </div>
+            </details>
+          );
+        })}
+        {!rows.length ? (
+          <div className="card empty">{copy.noResults}</div>
+        ) : null}
+      </section>
+
+      <section className="card stack section-gap">
+        <h2>{copy.history}</h2>
+        <div className="payroll-history">
+          {events?.map((event) => (
+            <div key={event.id}>
+              <span
+                className={`status-dot payroll-status-${event.to_status}`}
+              />
+              <div>
+                <strong>
+                  {event.from_status ? `${event.from_status} → ` : ""}
+                  {event.to_status}
+                </strong>
+                <small>
+                  {(event.actor_user_id
+                    ? actorByUser.get(event.actor_user_id)
+                    : null) ??
+                    (locale === "ar"
+                      ? "مسؤول الشركة"
+                      : "Company administrator")}{" "}
+                  ·{" "}
+                  {new Intl.DateTimeFormat(
+                    locale === "ar" ? "ar-EG" : "en-EG",
+                    { dateStyle: "medium", timeStyle: "short" },
+                  ).format(new Date(event.created_at))}
+                </small>
+                {event.note ? <p>{event.note}</p> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
+  );
 }

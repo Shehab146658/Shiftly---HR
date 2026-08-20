@@ -205,7 +205,7 @@
 ## Employee self-service attendance
 
 - [ ] A linked employee with `attendance.clock` sees the current branch, operational workday shift, and the correct next clock action.
-- [ ] The employee explicitly grants precise browser location access before the clock action is enabled; stale coordinates are refreshed before submission.
+- [ ] Pressing clock-in/out requests precise browser location when needed; stale coordinates are refreshed before submission and denial produces a clear error.
 - [ ] "Take selfie" opens the front camera directly, shows a live preview, and captures a compressed image without exposing a file-upload picker.
 - [ ] Branches requiring a selfie prevent submission until the employee captures an image.
 - [ ] Selfies upload only to a private tenant/employee path and linked evidence cannot be deleted by the employee after recording.
@@ -218,7 +218,7 @@
 
 ## Fingerprint devices and imports
 
-- [ ] HR can register an active device with a unique code, optional branch, model, serial number, connection mode, and valid timezone.
+- [ ] HR can register an active device with an automatically generated unique code, optional branch, model, serial number, connection mode, and valid timezone.
 - [ ] Paused devices cannot accept file imports and can be safely reactivated.
 - [ ] CSV, semicolon-delimited TXT, and XLSX files accept common terminal headers or explicit column overrides.
 - [ ] Device-specific punch states can be mapped to check-in and check-out without changing source files.
@@ -250,6 +250,19 @@
 - [ ] Removing a role removes the corresponding membership permission assignment.
 - [ ] Company ownership cannot be granted through an employee profile.
 - [ ] Every employee-role change is tenant-isolated and audited.
+
+## Client-feedback workflows
+
+- [ ] Branch, team, employee, shift, payroll-period, bonus-policy, target, and device codes are generated automatically and remain unique per company.
+- [ ] New employees start Active; branch and team can both be left unassigned.
+- [ ] Authorized payroll users can enter starting salary while creating an employee; unauthorized users never see compensation fields.
+- [ ] An employee can have multiple active managers and each manager resolves in manager-routed request and leave approvals.
+- [ ] Team managers can search and select individual members, remove members, and cannot mix employees from an incompatible branch.
+- [ ] Clicking a schedule table cell opens shift choices without a separate employee/day picker.
+- [ ] A schedule cell accepts predefined shifts, custom same-day or overnight hours, OFF/leave/training, and an additional split segment.
+- [ ] Published or locked schedules remain protected from ordinary cell edits.
+- [ ] Attendance uses Completed attendance wording and clock-in/out provides location/camera permission feedback.
+- [ ] The desktop sidebar can collapse and restores its last state; mobile search remains visible and tappable at 390px.
 
 ## Seed-data confirmation
 

@@ -4,6 +4,13 @@
 
 ### Added
 
+- Tenant-scoped automatic human-readable codes for branches, teams, employees, shifts, payroll periods, bonus policies, sales targets, and attendance devices.
+- Effective-dated multi-manager employee relationships that participate in request and leave approval routing while preserving a primary-manager compatibility link.
+- Selective, searchable team membership management with branch validation and audited employee assignment history.
+- Direct weekly-schedule cell editing with predefined shifts, custom hours, automatic overnight detection, OFF/leave/training assignments, and split-shift append mode.
+- Optional starting compensation during employee creation for authorized payroll administrators.
+- A visual, bilingual payroll lifecycle that explains the path from attendance inputs to a published payslip.
+- A persistent compact/collapsed desktop sidebar preference with tooltips and an always-visible mobile global-search trigger.
 - One repeatable login account for every standard role, with linked employee records, scoped branch/team assignments, synchronized authorization roles, and a documented credential matrix for feedback environments.
 - A bilingual, action-oriented guidance panel on every primary and detail workspace so users understand the available decisions and workflows before acting.
 - An audited fingerprint-device registry with tenant/branch scope, timezone, serial/model metadata, adapter mode, operating status, last synchronization, and import health.
@@ -49,6 +56,10 @@
 
 ### Changed
 
+- Made employee status default to Active and branch/team assignment optional; employee and organization codes are no longer entered manually.
+- Made clock-in/out request precise location on the action itself and open the front camera when selfie evidence is required.
+- Renamed the attendance summary from Present to Completed attendance and clarified company-view/company-edit permission descriptions.
+- Replaced the separate schedule assignment panel with direct action inside each employee/day table cell, including unassigned employees in the branch roster.
 - Replaced the compressed phone-width search bar with an accessible search trigger and focused mobile search overlay that supports Escape, backdrop closing, and automatic focus.
 - Replaced the schedule-only Flutter foundation and inactive dashboard tiles with guarded live employee workflows, localized recovery states, pull-to-refresh, and action feedback.
 - Standardized the remaining nested add flows—bonus policies, sales targets, loan payments, payroll adjustments, workflow versions, and approval steps—on the reusable creation dialog.

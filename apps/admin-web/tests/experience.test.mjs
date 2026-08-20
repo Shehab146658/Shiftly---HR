@@ -26,7 +26,9 @@ test("employee creation opens in a dialog and the directory has one responsive t
 test("mutating forms provide pending, success, and failure feedback", async () => {
   const [feedback, details, branches] = await Promise.all([
     readSource("../src/components/action-form.tsx"),
-    readSource("../src/app/[locale]/(protected)/employees/[employeeId]/page.tsx"),
+    readSource(
+      "../src/app/[locale]/(protected)/employees/[employeeId]/page.tsx",
+    ),
     readSource("../src/app/[locale]/(protected)/branches/page.tsx"),
   ]);
   assert.match(feedback, /type: "success"/);
@@ -36,15 +38,21 @@ test("mutating forms provide pending, success, and failure feedback", async () =
   assert.match(branches, /successMessage=\{d\.branchUpdated\}/);
 });
 
-test("owner profiles and company-wide team assignment are implemented", async () => {
+test("owner profiles and selective team membership are implemented", async () => {
   const [profile, teams, migration] = await Promise.all([
     readSource("../src/app/[locale]/(protected)/profiles/[userId]/page.tsx"),
     readSource("../src/app/[locale]/(protected)/teams/page.tsx"),
-    readSource("../../../supabase/migrations/202607260007_member_profiles_and_team_assignment.sql"),
+    readSource(
+      "../../../supabase/migrations/202608200026_feedback_workflow_foundations.sql",
+    ),
   ]);
   assert.match(profile, /updateOwnProfile/);
   assert.match(profile, /membership_roles/);
-  assert.match(teams, /assignAllEmployeesToTeam/);
-  assert.match(migration, /assign_all_employees_to_team/);
-  assert.match(migration, /set branch_id = null/);
+  assert.match(teams, /TeamMemberDialog/);
+  assert.match(teams, /setTeamMembers/);
+  const picker = await readSource("../src/components/team-member-dialog.tsx");
+  assert.match(picker, /selectedIds/);
+  assert.match(picker, /name="employeeIds"[\s\S]*type="hidden"/);
+  assert.match(migration, /set_team_members/);
+  assert.match(migration, /team_id = null/);
 });

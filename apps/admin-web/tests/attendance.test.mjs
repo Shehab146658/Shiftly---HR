@@ -5,7 +5,9 @@ import { readFile } from "node:fs/promises";
 const readSource = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
 test("attendance foundation stores evidence and calculates operational day results", async () => {
-  const migration = await readSource("../../../supabase/migrations/202608100010_attendance_management.sql");
+  const migration = await readSource(
+    "../../../supabase/migrations/202608100010_attendance_management.sql",
+  );
   assert.match(migration, /create table public\.attendance_punches/);
   assert.match(migration, /create table public\.attendance_days/);
   assert.match(migration, /record_attendance_punch/);
@@ -26,7 +28,10 @@ test("attendance report supports filters, manual corrections, exceptions, and CS
   assert.match(page, /reviewAttendancePunch/);
   assert.match(dialog, /type="datetime-local"/);
   assert.match(dialog, /toISOString/);
-  assert.match(shell, /\["attendance", d\.attendance, "attendance", \["attendance\.read"\]\]/);
+  assert.match(
+    shell,
+    /\["attendance", d\.attendance, "attendance", \["attendance\.read"\]\]/,
+  );
 });
 
 test("branch administration exposes practical attendance rules", async () => {
@@ -41,13 +46,18 @@ test("branch administration exposes practical attendance rules", async () => {
 });
 
 test("employee self-service clock requests precise location and captures a front-camera selfie", async () => {
-  const [page, clock, shell, migration, authorizationMigration] = await Promise.all([
-    readSource("../src/app/[locale]/(protected)/clock/page.tsx"),
-    readSource("../src/components/employee-clock.tsx"),
-    readSource("../src/components/app-shell.tsx"),
-    readSource("../../../supabase/migrations/202608110020_employee_self_service_attendance.sql"),
-    readSource("../../../supabase/migrations/202608180025_employee_self_service_authorization.sql"),
-  ]);
+  const [page, clock, shell, migration, authorizationMigration] =
+    await Promise.all([
+      readSource("../src/app/[locale]/(protected)/clock/page.tsx"),
+      readSource("../src/components/employee-clock.tsx"),
+      readSource("../src/components/app-shell.tsx"),
+      readSource(
+        "../../../supabase/migrations/202608110020_employee_self_service_attendance.sql",
+      ),
+      readSource(
+        "../../../supabase/migrations/202608180025_employee_self_service_authorization.sql",
+      ),
+    ]);
   assert.match(page, /operational_day_start/);
   assert.match(page, /attendance\.clock/);
   assert.match(clock, /navigator\.geolocation\.getCurrentPosition/);
@@ -56,19 +66,32 @@ test("employee self-service clock requests precise location and captures a front
   assert.match(clock, /navigator\.mediaDevices\.getUserMedia/);
   assert.match(clock, /facingMode: "user"/);
   assert.match(clock, /canvas\.toBlob/);
-  assert.match(clock, /disabled=\{busy \|\| !online \|\| !mobileClockEnabled \|\| !location/);
+  assert.match(
+    clock,
+    /disabled=\{busy \|\| !online \|\| !mobileClockEnabled\}/,
+  );
+  assert.match(clock, /let currentLocation = location/);
+  assert.match(clock, /if \(!currentLocation\)[\s\S]*requestCurrentLocation/);
   assert.doesNotMatch(clock, /type="file"/);
-  assert.match(shell, /\["clock", d\.clock, "attendance", \["attendance\.clock"\]\]/);
+  assert.match(
+    shell,
+    /\["clock", d\.clock, "attendance", \["attendance\.clock"\]\]/,
+  );
   assert.match(migration, /attendance_selfies_insert/);
   assert.match(migration, /attendance_selfies_delete_orphan/);
-  assert.match(authorizationMigration, /Precise location is required for mobile attendance/);
+  assert.match(
+    authorizationMigration,
+    /Precise location is required for mobile attendance/,
+  );
 });
 
 test("fingerprint operations provide device setup, guarded imports, and row reconciliation", async () => {
   const [page, actions, migration] = await Promise.all([
     readSource("../src/app/[locale]/(protected)/attendance/devices/page.tsx"),
     readSource("../src/app/[locale]/(protected)/actions.ts"),
-    readSource("../../../supabase/migrations/202608110021_fingerprint_device_sync.sql"),
+    readSource(
+      "../../../supabase/migrations/202608110021_fingerprint_device_sync.sql",
+    ),
   ]);
   assert.match(page, /createAttendanceDevice/);
   assert.match(page, /importFingerprintAttendance/);
@@ -79,6 +102,9 @@ test("fingerprint operations provide device setup, guarded imports, and row reco
   assert.match(actions, /read-excel-file\/node/);
   assert.match(migration, /create table public\.attendance_devices/);
   assert.match(migration, /create table public\.attendance_import_batches/);
-  assert.match(migration, /create or replace function public\.import_fingerprint_punches/);
+  assert.match(
+    migration,
+    /create or replace function public\.import_fingerprint_punches/,
+  );
   assert.match(migration, /attendance_device_id/);
 });

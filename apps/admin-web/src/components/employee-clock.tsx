@@ -111,7 +111,10 @@ export function EmployeeClock({
   const [cameraBusy, setCameraBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [online, setOnline] = useState(true);
-  const [feedback, setFeedback] = useState<{ kind: "success" | "warning" | "error"; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<{
+    kind: "success" | "warning" | "error";
+    text: string;
+  } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -128,9 +131,12 @@ export function EmployeeClock({
     };
   }, []);
 
-  useEffect(() => () => {
-    if (preview) URL.revokeObjectURL(preview);
-  }, [preview]);
+  useEffect(
+    () => () => {
+      if (preview) URL.revokeObjectURL(preview);
+    },
+    [preview],
+  );
 
   useEffect(() => {
     if (!cameraOpen || !videoRef.current || !streamRef.current) return;
@@ -138,15 +144,19 @@ export function EmployeeClock({
     void videoRef.current.play();
   }, [cameraOpen]);
 
-  useEffect(() => () => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-  }, []);
+  useEffect(
+    () => () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    },
+    [],
+  );
 
   const lastAcceptedPunch = useMemo(
     () => punches.find((punch) => punch.validation_status !== "rejected"),
     [punches],
   );
-  const punchType: "check_in" | "check_out" = lastAcceptedPunch?.punch_type === "check_in" ? "check_out" : "check_in";
+  const punchType: "check_in" | "check_out" =
+    lastAcceptedPunch?.punch_type === "check_in" ? "check_out" : "check_in";
   const actionLabel = punchType === "check_in" ? copy.checkIn : copy.checkOut;
 
   async function requestCurrentLocation(): Promise<LocationEvidence | null> {
@@ -156,21 +166,26 @@ export function EmployeeClock({
     }
     setLocationBusy(true);
     setFeedback(null);
-    const result = await new Promise<LocationEvidence | null>((resolve) => navigator.geolocation.getCurrentPosition(
-      (position) => resolve({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy: position.coords.accuracy,
-        capturedAt: Date.now(),
-      }),
-      () => resolve(null),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
-    ));
+    const result = await new Promise<LocationEvidence | null>((resolve) =>
+      navigator.geolocation.getCurrentPosition(
+        (position) =>
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            capturedAt: Date.now(),
+          }),
+        () => resolve(null),
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
+      ),
+    );
     setLocationBusy(false);
     setLocation(result);
-    setFeedback(result
-      ? { kind: "success", text: copy.locationReady }
-      : { kind: "error", text: copy.locationDenied });
+    setFeedback(
+      result
+        ? { kind: "success", text: copy.locationReady }
+        : { kind: "error", text: copy.locationDenied },
+    );
     return result;
   }
 
@@ -199,7 +214,11 @@ export function EmployeeClock({
       stopCamera();
       streamRef.current = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: {
+          facingMode: "user",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
       });
       setCameraOpen(true);
     } catch {
@@ -224,24 +243,32 @@ export function EmployeeClock({
     context.translate(canvas.width, 0);
     context.scale(-1, 1);
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.86));
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.86),
+    );
     if (!blob) {
       setFeedback({ kind: "error", text: copy.cameraUnavailable });
       return;
     }
-    selectSelfie(new File([blob], `attendance-selfie-${Date.now()}.jpg`, { type: "image/jpeg" }));
+    selectSelfie(
+      new File([blob], `attendance-selfie-${Date.now()}.jpg`, {
+        type: "image/jpeg",
+      }),
+    );
     stopCamera();
     setFeedback({ kind: "success", text: copy.cameraReady });
   }
 
   async function submitPunch() {
     if (busy || !online || !mobileClockEnabled) return;
+    let currentLocation = location;
+    if (!currentLocation) {
+      currentLocation = await requestCurrentLocation();
+      if (!currentLocation) return;
+    }
     if (selfieRequired && !selfie) {
       setFeedback({ kind: "error", text: copy.selfieRequired });
-      return;
-    }
-    if (!location) {
-      setFeedback({ kind: "error", text: copy.locationDenied });
+      await startCamera();
       return;
     }
 
@@ -250,41 +277,57 @@ export function EmployeeClock({
     const client = createSupabaseBrowserClient();
     let selfiePath: string | null = null;
     try {
-      const coordinates = Date.now() - location.capturedAt > 120_000
-        ? await requestCurrentLocation()
-        : location;
+      const coordinates =
+        Date.now() - currentLocation.capturedAt > 120_000
+          ? await requestCurrentLocation()
+          : currentLocation;
       if (!coordinates) throw new Error(copy.locationDenied);
       if (selfie) {
-        const extension = ({ "image/png": "png", "image/webp": "webp", "image/heic": "heic", "image/heif": "heif" } as Record<string, string>)[selfie.type] ?? "jpg";
+        const extension =
+          (
+            {
+              "image/png": "png",
+              "image/webp": "webp",
+              "image/heic": "heic",
+              "image/heif": "heif",
+            } as Record<string, string>
+          )[selfie.type] ?? "jpg";
         selfiePath = `${tenantId}/${employeeId}/${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}.${extension}`;
-        const { error: uploadError } = await client.storage.from("attendance-selfies").upload(selfiePath, selfie, {
-          cacheControl: "3600",
-          contentType: selfie.type || "image/jpeg",
-          upsert: false,
-        });
+        const { error: uploadError } = await client.storage
+          .from("attendance-selfies")
+          .upload(selfiePath, selfie, {
+            cacheControl: "3600",
+            contentType: selfie.type || "image/jpeg",
+            upsert: false,
+          });
         if (uploadError) throw uploadError;
       }
 
       const occurredAt = new Date().toISOString();
-      const { data: punchId, error: punchError } = await client.rpc("record_attendance_punch", {
-        p_employee_id: employeeId,
-        p_punch_type: punchType,
-        p_occurred_at: occurredAt,
-        p_source: "mobile",
-        p_work_date: null,
-        p_branch_id: branchId,
-        p_latitude: coordinates.latitude,
-        p_longitude: coordinates.longitude,
-        p_selfie_path: selfiePath,
-        p_device_identifier: `web:${navigator.userAgent.slice(0, 180)}`,
-        p_external_reference: null,
-        p_notes: `Location accuracy: ${Math.round(coordinates.accuracy)}m`,
-      });
+      const { data: punchId, error: punchError } = await client.rpc(
+        "record_attendance_punch",
+        {
+          p_employee_id: employeeId,
+          p_punch_type: punchType,
+          p_occurred_at: occurredAt,
+          p_source: "mobile",
+          p_work_date: null,
+          p_branch_id: branchId,
+          p_latitude: coordinates.latitude,
+          p_longitude: coordinates.longitude,
+          p_selfie_path: selfiePath,
+          p_device_identifier: `web:${navigator.userAgent.slice(0, 180)}`,
+          p_external_reference: null,
+          p_notes: `Location accuracy: ${Math.round(coordinates.accuracy)}m`,
+        },
+      );
       if (punchError) throw punchError;
 
       const { data: saved, error: savedError } = await client
         .from("attendance_punches")
-        .select("id,punch_type,occurred_at,validation_status,within_geofence,distance_metres,source")
+        .select(
+          "id,punch_type,occurred_at,validation_status,within_geofence,distance_metres,source",
+        )
         .eq("id", punchId)
         .single();
       if (savedError) throw savedError;
@@ -293,11 +336,15 @@ export function EmployeeClock({
       selectSelfie(null);
       setFeedback({
         kind: newPunch.validation_status === "pending" ? "warning" : "success",
-        text: newPunch.validation_status === "pending" ? copy.pending : `${actionLabel} ${copy.recorded}`,
+        text:
+          newPunch.validation_status === "pending"
+            ? copy.pending
+            : `${actionLabel} ${copy.recorded}`,
       });
       router.refresh();
     } catch (error) {
-      if (selfiePath) await client.storage.from("attendance-selfies").remove([selfiePath]);
+      if (selfiePath)
+        await client.storage.from("attendance-selfies").remove([selfiePath]);
       const detail = error instanceof Error ? error.message : String(error);
       setFeedback({ kind: "error", text: `${copy.failed} ${detail}` });
     } finally {
@@ -305,24 +352,229 @@ export function EmployeeClock({
     }
   }
 
-  const formattedTime = new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(now);
-  const formattedDate = new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", { weekday: "long", day: "numeric", month: "long" }).format(now);
+  const formattedTime = new Intl.DateTimeFormat(
+    locale === "ar" ? "ar-EG" : "en-EG",
+    { hour: "2-digit", minute: "2-digit", second: "2-digit" },
+  ).format(now);
+  const formattedDate = new Intl.DateTimeFormat(
+    locale === "ar" ? "ar-EG" : "en-EG",
+    { weekday: "long", day: "numeric", month: "long" },
+  ).format(now);
 
-  return <div className="employee-clock-layout">
-    <section className="card clock-console">
-      <div className="clock-console-head"><div><span className={`connection-state ${online ? "online" : "offline"}`}><i />{online ? copy.online : copy.offline}</span><h2>{formattedTime}</h2><p>{formattedDate}</p></div><span className="clock-branch-badge">{branchName}</span></div>
-      {!mobileClockEnabled ? <div className="clock-policy-warning">{copy.mobileDisabled}</div> : null}
-      <div className="clock-action-orbit"><button aria-busy={busy} className={`clock-action clock-action-${punchType}`} disabled={busy || !online || !mobileClockEnabled || !location || (selfieRequired && !selfie)} onClick={submitPunch} type="button"><span>{busy ? <i className="clock-button-spinner" /> : punchType === "check_in" ? "→" : "←"}</span><strong>{busy ? copy.submitting : actionLabel}</strong><small>{location ? copy.locationReady : copy.requestLocation}</small></button></div>
-      {feedback ? <div aria-live="polite" className={`clock-feedback clock-feedback-${feedback.kind}`}>{feedback.text}</div> : null}
-      <div className="clock-evidence-grid">
-        <div className="clock-evidence-card"><span>{copy.location}</span><strong>{location ? copy.locationReady : copy.locationOnSubmit}</strong><small>{location ? `${copy.locationAccuracy}: ±${Math.round(location.accuracy)} ${copy.meters}` : geofenceConfigured ? `${copy.radius}: ${geofenceRadiusMetres} ${copy.meters}` : copy.pending}</small><button className="button secondary small-button" disabled={locationBusy} onClick={requestCurrentLocation} type="button">{locationBusy ? copy.locationRequesting : copy.requestLocation}</button></div>
-        <div className="clock-evidence-card selfie-card"><span>{copy.selfie}</span>{cameraOpen ? <div className="camera-stage"><video aria-label={copy.selfie} autoPlay muted playsInline ref={videoRef} /><div><button className="button small-button" onClick={captureSelfie} type="button">{copy.captureSelfie}</button><button className="button ghost small-button" onClick={stopCamera} type="button">{copy.cancel}</button></div></div> : <>{preview ? <Image alt={copy.selfie} height={72} src={preview} unoptimized width={72} /> : <strong>{selfieRequired ? copy.selfieRequired : copy.selfieOptional}</strong>}<div><button className="button secondary small-button" disabled={cameraBusy} onClick={startCamera} type="button">{preview ? copy.replaceSelfie : copy.takeSelfie}</button>{preview ? <button className="text-button danger-text" onClick={() => selectSelfie(null)} type="button">{copy.remove}</button> : null}</div></>}</div>
-      </div>
-    </section>
+  return (
+    <div className="employee-clock-layout">
+      <section className="card clock-console">
+        <div className="clock-console-head">
+          <div>
+            <span
+              className={`connection-state ${online ? "online" : "offline"}`}
+            >
+              <i />
+              {online ? copy.online : copy.offline}
+            </span>
+            <h2>{formattedTime}</h2>
+            <p>{formattedDate}</p>
+          </div>
+          <span className="clock-branch-badge">{branchName}</span>
+        </div>
+        {!mobileClockEnabled ? (
+          <div className="clock-policy-warning">{copy.mobileDisabled}</div>
+        ) : null}
+        <div className="clock-action-orbit">
+          <button
+            aria-busy={busy}
+            className={`clock-action clock-action-${punchType}`}
+            disabled={busy || !online || !mobileClockEnabled}
+            onClick={submitPunch}
+            type="button"
+          >
+            <span>
+              {busy ? (
+                <i className="clock-button-spinner" />
+              ) : punchType === "check_in" ? (
+                "→"
+              ) : (
+                "←"
+              )}
+            </span>
+            <strong>{busy ? copy.submitting : actionLabel}</strong>
+            <small>
+              {!location
+                ? copy.requestLocation
+                : selfieRequired && !selfie
+                  ? copy.takeSelfie
+                  : copy.locationReady}
+            </small>
+          </button>
+        </div>
+        {feedback ? (
+          <div
+            aria-live="polite"
+            className={`clock-feedback clock-feedback-${feedback.kind}`}
+          >
+            {feedback.text}
+          </div>
+        ) : null}
+        <div className="clock-evidence-grid">
+          <div className="clock-evidence-card">
+            <span>{copy.location}</span>
+            <strong>
+              {location ? copy.locationReady : copy.locationOnSubmit}
+            </strong>
+            <small>
+              {location
+                ? `${copy.locationAccuracy}: ±${Math.round(location.accuracy)} ${copy.meters}`
+                : geofenceConfigured
+                  ? `${copy.radius}: ${geofenceRadiusMetres} ${copy.meters}`
+                  : copy.pending}
+            </small>
+            <button
+              className="button secondary small-button"
+              disabled={locationBusy}
+              onClick={requestCurrentLocation}
+              type="button"
+            >
+              {locationBusy ? copy.locationRequesting : copy.requestLocation}
+            </button>
+          </div>
+          <div className="clock-evidence-card selfie-card">
+            <span>{copy.selfie}</span>
+            {cameraOpen ? (
+              <div className="camera-stage">
+                <video
+                  aria-label={copy.selfie}
+                  autoPlay
+                  muted
+                  playsInline
+                  ref={videoRef}
+                />
+                <div>
+                  <button
+                    className="button small-button"
+                    onClick={captureSelfie}
+                    type="button"
+                  >
+                    {copy.captureSelfie}
+                  </button>
+                  <button
+                    className="button ghost small-button"
+                    onClick={stopCamera}
+                    type="button"
+                  >
+                    {copy.cancel}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {preview ? (
+                  <Image
+                    alt={copy.selfie}
+                    height={72}
+                    src={preview}
+                    unoptimized
+                    width={72}
+                  />
+                ) : (
+                  <strong>
+                    {selfieRequired ? copy.selfieRequired : copy.selfieOptional}
+                  </strong>
+                )}
+                <div>
+                  <button
+                    className="button secondary small-button"
+                    disabled={cameraBusy}
+                    onClick={startCamera}
+                    type="button"
+                  >
+                    {preview ? copy.replaceSelfie : copy.takeSelfie}
+                  </button>
+                  {preview ? (
+                    <button
+                      className="text-button danger-text"
+                      onClick={() => selectSelfie(null)}
+                      type="button"
+                    >
+                      {copy.remove}
+                    </button>
+                  ) : null}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
 
-    <aside className="clock-side-stack">
-      <section className="card clock-shift-card"><div className="card-heading"><h2>{copy.todayShift}</h2><span className="badge">{schedule.length}</span></div>{schedule.length ? <div className="clock-shift-list">{schedule.map((entry) => <div key={entry.id}><span>{entry.entryType.replaceAll("_", " ")}</span><strong>{entry.start && entry.end ? `${entry.start.slice(0, 5)} – ${entry.end.slice(0, 5)}${entry.endDayOffset ? " +1" : ""}` : entry.entryType.toUpperCase()}</strong><small>{entry.branchName ?? branchName}</small></div>)}</div> : <div className="empty compact-empty">{copy.noShift}</div>}</section>
-      <section className="card clock-history-card"><div className="card-heading"><h2>{copy.recent}</h2><span className="badge">{punches.length}</span></div><div className="clock-punch-list">{punches.map((punch) => <div key={punch.id}><span className={`clock-punch-icon clock-punch-${punch.punch_type}`}>{punch.punch_type === "check_in" ? "→" : "←"}</span><div><strong>{punch.punch_type === "check_in" ? copy.checkIn : copy.checkOut}</strong><small>{new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(punch.occurred_at))}</small></div><span className={`badge attendance-${punch.validation_status}`}>{punch.validation_status === "valid" ? copy.valid : punch.validation_status === "pending" ? copy.pending : copy.rejected}</span></div>)}{!punches.length ? <div className="empty compact-empty">{copy.noPunches}</div> : null}</div></section>
-    </aside>
-  </div>;
+      <aside className="clock-side-stack">
+        <section className="card clock-shift-card">
+          <div className="card-heading">
+            <h2>{copy.todayShift}</h2>
+            <span className="badge">{schedule.length}</span>
+          </div>
+          {schedule.length ? (
+            <div className="clock-shift-list">
+              {schedule.map((entry) => (
+                <div key={entry.id}>
+                  <span>{entry.entryType.replaceAll("_", " ")}</span>
+                  <strong>
+                    {entry.start && entry.end
+                      ? `${entry.start.slice(0, 5)} – ${entry.end.slice(0, 5)}${entry.endDayOffset ? " +1" : ""}`
+                      : entry.entryType.toUpperCase()}
+                  </strong>
+                  <small>{entry.branchName ?? branchName}</small>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty compact-empty">{copy.noShift}</div>
+          )}
+        </section>
+        <section className="card clock-history-card">
+          <div className="card-heading">
+            <h2>{copy.recent}</h2>
+            <span className="badge">{punches.length}</span>
+          </div>
+          <div className="clock-punch-list">
+            {punches.map((punch) => (
+              <div key={punch.id}>
+                <span
+                  className={`clock-punch-icon clock-punch-${punch.punch_type}`}
+                >
+                  {punch.punch_type === "check_in" ? "→" : "←"}
+                </span>
+                <div>
+                  <strong>
+                    {punch.punch_type === "check_in"
+                      ? copy.checkIn
+                      : copy.checkOut}
+                  </strong>
+                  <small>
+                    {new Intl.DateTimeFormat(
+                      locale === "ar" ? "ar-EG" : "en-EG",
+                      {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      },
+                    ).format(new Date(punch.occurred_at))}
+                  </small>
+                </div>
+                <span className={`badge attendance-${punch.validation_status}`}>
+                  {punch.validation_status === "valid"
+                    ? copy.valid
+                    : punch.validation_status === "pending"
+                      ? copy.pending
+                      : copy.rejected}
+                </span>
+              </div>
+            ))}
+            {!punches.length ? (
+              <div className="empty compact-empty">{copy.noPunches}</div>
+            ) : null}
+          </div>
+        </section>
+      </aside>
+    </div>
+  );
 }

@@ -5,8 +5,19 @@ import { readFile } from "node:fs/promises";
 const readSource = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
 test("global search spans tenant-safe business records", async () => {
-  const search = await readSource("../src/app/[locale]/(protected)/search/page.tsx");
-  for (const source of ["employees", "branches", "teams", "hr_requests", "tasks", "announcements", "payroll_periods", "weekly_schedules"]) {
+  const search = await readSource(
+    "../src/app/[locale]/(protected)/search/page.tsx",
+  );
+  for (const source of [
+    "employees",
+    "branches",
+    "teams",
+    "hr_requests",
+    "tasks",
+    "announcements",
+    "payroll_periods",
+    "weekly_schedules",
+  ]) {
     assert.match(search, new RegExp(`from\\(\"${source}\"\\)`));
   }
   assert.match(search, /membership\.tenant_id/);
@@ -28,11 +39,19 @@ test("topbar search is keyboard accessible and navigation is permission-aware", 
   assert.match(component, /closeOnEscape/);
   assert.match(shell, /<GlobalSearch locale={locale}/);
   assert.match(layout, /role_permissions/);
-  assert.match(shell, /requiredPermissions\.some\(\(permission\) => permissionSet\.has\(permission\)\)/);
-  assert.match(shell, /\["dashboard", d\.dashboard, "dashboard", \["tenant\.read"\]\]/);
+  assert.match(
+    shell,
+    /requiredPermissions\.some\(\(permission\) => permissionSet\.has\(permission\)\)/,
+  );
+  assert.match(
+    shell,
+    /\["dashboard", d\.dashboard, "dashboard", \["tenant\.read"\]\]/,
+  );
   assert.doesNotMatch(shell, /permission === null/);
   assert.match(styles, /\.global-search/);
   assert.match(styles, /\.global-search-wrap-open \.global-search/);
   assert.match(styles, /\.global-search-mobile-trigger/);
+  assert.match(styles, /\.topbar > \.global-search-wrap/);
+  assert.match(styles, /pointer-events:\s*auto/);
   assert.match(styles, /\.search-result-groups/);
 });
